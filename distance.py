@@ -8,7 +8,7 @@ print('Введите наименования ниже для поиска их
 rows = []
 class Find_materials():
     def __init__(self):
-        self.all_materials = pd.read_csv('data/mats.csv')
+        self.all_materials = pd.read_csv('mats.csv')
         print('All materials opened!')
     def find_mats(self, rows):
         results = []
