@@ -1,11 +1,9 @@
+import re
+
 import jellyfish
-from Find import find_gost
 import pandas as pd
 import uuid
-import json
 
-print('Введите наименования ниже для поиска их в базе:')
-rows = []
 class Find_materials():
     def __init__(self):
         self.all_materials = pd.read_csv('mats.csv')
@@ -64,6 +62,7 @@ class Find_materials():
                 .replace('тн.', 'тн')\
                 .replace('  ', ' ')\
                 .replace(' /к', ' х/к')\
+                .replace('бу та', 'бухта')\
                 .replace(' — ', ' ') + ' '
             new_mat = new_mat.replace('профтруба', 'труба профил')
             if len([i for i in new_mat if i.isdigit()]) == 0:
@@ -85,8 +84,16 @@ class Find_materials():
                     ei = i[-2:]
                     try:
                         val_ei = float(i[:-2].replace(',', '.'))
+                        continue
                     except:
-                        print('ошибочка')
+                        print('ошибка')
+                        pass
+                if len(re.findall('\d+м', i)) > 0:
+                    ei = 'м'
+                    try:
+                        val_ei = float(i[:-1].replace(',', '.'))
+                    except:
+                        print('ошибка в метрах')
                         pass
 
             poss+=[{'position_id':str(pos_id)}]
@@ -95,19 +102,13 @@ class Find_materials():
             for material in self.all_materials.iloc[59:].values:
                 if str(material[0]) == 'nan':
                     continue
-                # mater = material.fillna('').to_string(header=False)
-                # mater = ' '.join(mater.split()[1::2])
                 try:
-                    # mater = material[1] + ' ' + material[2]
                     mater = material[1].lower().replace('diy ', '')\
                         .replace('профильная', 'проф')\
                         .replace(' шт', 'шт') \
                         .replace(' кг', 'кг')\
                         .replace(' мл', 'мл')
                     mater = ' '.join(mater.split()[:len(new_mat.split())])
-                    # rep = material[2].lower()
-                    # mater = material[1].lower().split()
-                    # mater = ' '.join(rep) + ' ' + ' '.join(mater[len(rep):])
                     dis = jellyfish.levenshtein_distance(new_mat, mater)
                     around_materials[str(material[1])] = (str(int(material[0])), dis)
                 except Exception as exc:
@@ -117,23 +118,23 @@ class Find_materials():
                 if dis < min_dis:
                     min_dis = dis
                     around_material = material[1]
-            print(new_mat, ' =', around_material)
+            print(new_mat, ' =', around_material+'|'+ str(val_ei) +'-'+ ei +'|')
             ress = [(v[0], k) for k, v in sorted(around_materials.items(), key=lambda item: item[1][1])][:5]
             print(ress, end ='\n----\n')
             poss[-1]['request_text'] = new_mat
             poss[-1]['ei'] = ei
             poss[-1]['value'] = str(val_ei)
             for ind, pos in enumerate(ress):
-                poss[-1]['material'+str(ind+1)+'_id'] = pos[0]
+                poss[-1]['material'+str(ind+1)+'_id'] = '0'*(18-len(pos[0]))+pos[0]
 
         results[0]['positions'] = poss
         print(results)
         return results
 
-# with open('example.json', 'w', encoding="utf-8") as f:
-#     json.dump(results, f,ensure_ascii=False)
 
 if __name__ == '__main__':
+    print('Введите наименования ниже для поиска их в базе:')
+    rows = []
     find_mats  = Find_materials()
     while True:
         try:
@@ -147,18 +148,14 @@ if __name__ == '__main__':
     print(f'Найдено {len(rows)} наименований')
     find_mats.find_mats(rows)
 
-    # for ind, line in enumerate(rows):
-    #     line_j = ' '.join(line.split())
-    #     print(line_j)
-    #     gost = [find_gost(i) for i in line.split('\t') if 'гост ' == i.lower()[:5]]
-    #     print(gost)
-    # all_materials = pd.read_excel('data/all_materials2.xlsx')
-
 '''
-Арматура 6 бухта А500 С 34028-16					1450,000	100 630,00	20,00
-Арматура 8 6м А-III 25Г2С 5781-82					2,500	180,00	30,00
-Арматура 8 бухта А-III 25Г2С 5781-82					1988,000	145 720,00	30,00
-Арматура 8 бухта А500 С 34028-16					1994,000	137 190,00	30,00
+Арматура 6 бухта А500 С 34028-16	3 кг
+Арматура 8 6м А-III 25Г2С 5781-82	8шт
+Арматура 8 бухта А-III 25Г2С 5781-82 21.2тн
+Арматура 8 бухта А500 С 34028-16	15метров
+уголок ст3  90 90 7 20м.
+               шв нут  140 60 4 12 11.0 3 м
+0
 '''
 '''
 уголок ст3  90 90 7
