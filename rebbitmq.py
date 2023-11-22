@@ -33,15 +33,22 @@ class Order_recognition():
         order_data = body.decode('utf-8')
         body = json.loads(body)
         print(body)
-        content = base64.standard_b64decode(base64.standard_b64decode(body['email'])).decode('utf-8')\
-              .split('<fileContent>')[1]\
-              .split('</fileContent>')[0]
-        print(content)
+        try:
+            content = base64.standard_b64decode(base64.standard_b64decode(body['email']))\
+                .decode('utf-8')\
+                  .split('<fileContent>')[1]\
+                  .split('</fileContent>')[0].replace('&lt;', '')\
+                        .replace('/div>', '')\
+                        .replace('div>', '') \
+                        .replace('&amp;nbsp;', ' ')
+        except Exception as exc:
+            print('Error, письмо не читается', exc)
+        print('content - ', content)
         # results = self.find_mats.find_mats(content.split('\n'))
         results = self.find_mats.find_mats(content.split('&#xd;'))
         print('results = ', results)
         # self.send_result()
-        self.send_result(results)
+        self.send_result(str(results))
 
     def start(self):
         # channel.queue_declare(queue='Excchange')
@@ -55,3 +62,7 @@ class Order_recognition():
         self.find_mats = Find_materials()
         print('Подключение прошло успешно, слушаем очередь')
         self.channel.start_consuming()
+
+if __name__ == '__main__':
+    oreder_rec = Order_recognition()
+    oreder_rec.start()

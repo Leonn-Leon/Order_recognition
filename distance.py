@@ -20,9 +20,11 @@ class Find_materials():
         for _, row in enumerate(rows):
             around_materials = {}
             min_dis = 1e5
-            if len(row.split()) == 0 or row[0]=='+' or (ord(row[0]) > 65 and ord(row[0]) < 123):
+            if len(row.split()) == 0 or row[0]=='+':
                 continue
             new_row = ' '.join(row.split())
+            if (ord(new_row[0]) > 65 and ord(new_row[0]) < 123):
+                continue
             new_row = new_row.replace(' -', ' ')\
                 .replace(' — ', ' ') \
                 .replace(' м', 'м')\
@@ -58,6 +60,7 @@ class Find_materials():
                 .replace(' -', ' ')\
                 .replace('м.', 'м') \
                 .replace('шт.', 'шт') \
+                .replace('мп.', 'мп') \
                 .replace('кг.', 'кг') \
                 .replace('тн.', 'тн')\
                 .replace('  ', ' ')\
@@ -80,7 +83,7 @@ class Find_materials():
                     .replace('п, ', ' п ')
 
             for i in new_mat.split():
-                if i[-2:] in ('шт', 'кг', 'тн'):
+                if i[-2:] in ('шт', 'кг', 'тн', 'мп'):
                     ei = i[-2:]
                     try:
                         val_ei = float(i[:-2].replace(',', '.'))
