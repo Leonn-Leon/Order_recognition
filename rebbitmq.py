@@ -2,6 +2,7 @@ import pika
 import base64
 import json
 from distance import Find_materials
+import time
 
 class Order_recognition():
 
@@ -30,6 +31,7 @@ class Order_recognition():
 
     def get_message(self, ch, method, properties, body):
         print('Получилось взять письмо из очереди')
+        start = time.time()
         order_data = body.decode('utf-8')
         body = json.loads(body)
         print(body)
@@ -40,9 +42,16 @@ class Order_recognition():
                   .split('</fileContent>')[0].replace('&lt;', '')\
                         .replace('/div>', '')\
                         .replace('div>', '') \
-                        .replace('&amp;nbsp;', ' ')
+                        .replace('&amp;nbsp;', ' ')\
+                        .replace('span', '')\
+                        .replace('А', 'арматура ') \
+                        .replace('/>', '')\
+                        .replace('>', '')
         except Exception as exc:
             print('Error, письмо не читается', exc)
+            return None
+        end = time.time()
+        print('1 участок по времени занял -', end - start)
         print('content - ', content)
         # results = self.find_mats.find_mats(content.split('\n'))
         results = self.find_mats.find_mats(content.split('&#xd;'))

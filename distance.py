@@ -1,8 +1,8 @@
 import re
-
 import jellyfish
 import pandas as pd
 import uuid
+import time
 
 class Find_materials():
     def __init__(self):
@@ -18,6 +18,7 @@ class Find_materials():
         no_numbers = False
         pos_id = 0
         for _, row in enumerate(rows):
+            start = time.time()
             around_materials = {}
             min_dis = 1e5
             if len(row.split()) == 0 or row[0]=='+':
@@ -40,6 +41,9 @@ class Find_materials():
                     new_mat = ' '.join(new_mat.split()[:-len(new_row.split())])+ ' ' + new_row
             else:
                 new_mat = new_row
+            end = time.time()
+            print('что-нибуть -', end-start)
+            start = time.time()
             new_mat = new_mat.lower().replace('х', ' ') \
                 .replace('(', '') \
                 .replace(')', '') \
@@ -71,17 +75,22 @@ class Find_materials():
             if len([i for i in new_mat if i.isdigit()]) == 0:
                 no_numbers = True
                 continue
-            if 'ооо' in new_mat:
+            if 'ооо' in new_mat or 'г.' in new_mat or 'ул.' in new_mat:
                 continue
             if 'привет' in new_mat:
                 continue
-            if 'добрый' in new_mat or 'прошу' in new_mat or 'здравс' in new_mat or 'тел' in new_mat:
+            if 'добрый' in new_mat or 'прошу' in new_mat or 'здравс' in new_mat or\
+                    'тел' in new_mat or 'часовой' in new_mat:
                 continue
             if 'швеллер' in new_mat:
                 new_mat = new_mat.replace('у ', ' у ')\
                     .replace('п ', ' п ')\
                     .replace('п, ', ' п ')
-
+            if 'арматура' in new_mat:
+                new_mat = new_mat.replace(' i', ' a-i')
+            end = time.time()
+            print('Ещё что-нибудь -', end-start)
+            start = time.time()
             for i in new_mat.split():
                 if i[-2:] in ('шт', 'кг', 'тн', 'мп'):
                     ei = i[-2:]
@@ -98,10 +107,11 @@ class Find_materials():
                     except:
                         print('ошибка в метрах')
                         pass
-
+            end = time.time()
+            print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
-
+            start = time.time()
             for material in self.all_materials.iloc[59:].values:
                 if str(material[0]) == 'nan':
                     continue
@@ -121,6 +131,8 @@ class Find_materials():
                 if dis < min_dis:
                     min_dis = dis
                     around_material = material[1]
+            end = time.time()
+            print('поиск материалов -', end - start)
             print(new_mat, ' =', around_material+'|'+ str(val_ei) +'-'+ ei +'|')
             ress = [(v[0], k) for k, v in sorted(around_materials.items(), key=lambda item: item[1][1])][:5]
             print(ress, end ='\n----\n')
