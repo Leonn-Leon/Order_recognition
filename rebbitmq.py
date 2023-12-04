@@ -1,3 +1,5 @@
+import xml.etree.ElementTree as ET
+import re
 import pika
 import base64
 import json
@@ -37,24 +39,27 @@ class Order_recognition():
         print(body)
         try:
             content = base64.standard_b64decode(base64.standard_b64decode(body['email']))\
-                .decode('utf-8')\
-                  .split('<fileContent>')[1]\
-                  .split('</fileContent>')[0].replace('&lt;', '')\
-                        .replace('/div>', '')\
-                        .replace('div>', '') \
-                        .replace('&amp;nbsp;', ' ')\
-                        .replace('span', '')\
-                        .replace('А', 'арматура ') \
-                        .replace('/>', '')\
-                        .replace('>', '')
+                .decode('utf-8')
+                  # .split('<fileContent>')[1]\
+                  # .split('</fileContent>')[0].replace('&lt;', '')\
+                  #       .replace('/div>', '')\
+                  #       .replace('div>', '') \
+                  #       .replace('&amp;nbsp;', ' ')\
+                  #       .replace('span', '')\
+                  #       .replace('А', 'арматура ') \
+                  #       .replace('/>', '')\
+                  #       .replace('>', '')
+            root = ET.fromstring(content)
+            content = root[0][0][2].text
+            content = re.sub(r'\<.*?\>', '', content).replace('&nbsp;', '')
         except Exception as exc:
-            print('Error, письмо не читается', exc)
+            print('Error, письмо не читается,', exc)
             return None
         end = time.time()
-        print('1 участок по времени занял -', end - start)
+        # print('1 участок по времени занял -', end - start)
         print('content - ', content)
         # results = self.find_mats.find_mats(content.split('\n'))
-        results = self.find_mats.find_mats(content.split('&#xd;'))
+        results = self.find_mats.find_mats(content.split('\n'))
         print('results = ', results)
         # self.send_result()
         self.send_result(str(results))

@@ -42,7 +42,7 @@ class Find_materials():
             else:
                 new_mat = new_row
             end = time.time()
-            print('что-нибуть -', end-start)
+            # print('что-нибуть -', end-start)
             start = time.time()
             new_mat = new_mat.lower().replace('х', ' ') \
                 .replace('(', '') \
@@ -77,10 +77,10 @@ class Find_materials():
                 continue
             if 'ооо' in new_mat or 'г.' in new_mat or 'ул.' in new_mat:
                 continue
-            if 'привет' in new_mat:
+            if 'привет' in new_mat or '&' in new_mat or '{' in new_mat or '}' in new_mat:
                 continue
             if 'добрый' in new_mat or 'прошу' in new_mat or 'здравс' in new_mat or\
-                    'тел' in new_mat or 'часовой' in new_mat:
+                    'тел' in new_mat or 'часовой' in new_mat or 'достав' in new_mat or 'нужн' in new_mat:
                 continue
             if 'швеллер' in new_mat:
                 new_mat = new_mat.replace('у ', ' у ')\
@@ -89,7 +89,7 @@ class Find_materials():
             if 'арматура' in new_mat:
                 new_mat = new_mat.replace(' i', ' a-i')
             end = time.time()
-            print('Ещё что-нибудь -', end-start)
+            # print('Ещё что-нибудь -', end-start)
             start = time.time()
             for i in new_mat.split():
                 if i[-2:] in ('шт', 'кг', 'тн', 'мп'):
@@ -108,7 +108,7 @@ class Find_materials():
                         print('ошибка в метрах')
                         pass
             end = time.time()
-            print('Поиск едениц измерения -', end - start)
+            # print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
             start = time.time()
@@ -132,7 +132,7 @@ class Find_materials():
                     min_dis = dis
                     around_material = material[1]
             end = time.time()
-            print('поиск материалов -', end - start)
+            # print('поиск материалов -', end - start)
             print(new_mat, ' =', around_material+'|'+ str(val_ei) +'-'+ ei +'|')
             ress = [(v[0], k) for k, v in sorted(around_materials.items(), key=lambda item: item[1][1])][:5]
             print(ress, end ='\n----\n')
