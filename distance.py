@@ -3,11 +3,21 @@ import jellyfish
 import pandas as pd
 import uuid
 import time
+from datetime import datetime
 
 class Find_materials():
     def __init__(self):
         self.all_materials = pd.read_csv('mats.csv')
         print('All materials opened!')
+
+    def write_logs(self, text, event=1):
+        event = 'EVENT' if event == 1 else 'ERROR'
+        date_time = datetime.now().astimezone()
+        file_name = './logs/' + str(date_time.date()) + '.txt'
+        log = open(file_name, 'a')
+        log.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
+        log.close()
+
     def find_mats(self, rows):
         results = []
         around_material = ''
