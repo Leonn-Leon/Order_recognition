@@ -1,0 +1,7 @@
+pandas==2.0.3
+aio_pika==9.3.0
+jellyfish
+uuid
+functools
+base64
+asyncio

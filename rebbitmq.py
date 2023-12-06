@@ -1,6 +1,5 @@
 import xml.etree.ElementTree as ET
 import re
-import pika
 import asyncio
 import aio_pika
 import base64
@@ -8,8 +7,6 @@ import json
 from distance import Find_materials
 from datetime import datetime
 from functools import partial
-import time
-
 class Order_recognition():
 
     def __init__(self):
