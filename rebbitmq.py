@@ -1,31 +1,20 @@
 import xml.etree.ElementTree as ET
 import re
 import pika
+import asyncio
+import aio_pika
 import base64
 import json
 from distance import Find_materials
 from datetime import datetime
+from functools import partial
 import time
 
 class Order_recognition():
 
     def __init__(self):
-        # Параметры подключения
-        connection_params = pika.ConnectionParameters(
-            host='esb-dev-rmq01.spk.ru',
-            port=5672,
-            virtual_host='/',
-            credentials=pika.PlainCredentials(
-                username='ai',
-                password='XRKh02eFLTKjMJErcpoy'
-            )
-        )
+        self.find_mats = Find_materials()
 
-        # Установка соединения
-        connection = pika.BlockingConnection(connection_params)
-
-        # Создание канала
-        self.channel = connection.channel()
 
     def write_logs(self, text, event=1):
         event = 'EVENT' if event == 1 else 'ERROR'
@@ -35,56 +24,69 @@ class Order_recognition():
         log.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
         log.close()
 
-    def send_result(self, message='[{"req_Number": "5622e8f9-4c08-4659-87f4-a9679c6f70a8", "positions": [{"position_id": "0", "request_text": "уголок ст3 90 90 7 ", "ei": "шт", "value": "5.0", "material1_id": "9359", "material2_id": "9360", "material3_id": "81264", "material4_id": "9361", "material5_id": "76658"}, {"position_id": "1", "request_text": "швеллер гнутый 140 60 4 12 ", "ei": "шт", "value": "5.0", "material1_id": "84537", "material2_id": "6368", "material3_id": "107858", "material4_id": "98844", "material5_id": "106878"}, {"position_id": "2", "request_text": "швеллер гнутый 100 50 4 12 м ", "ei": "шт", "value": "5.0", "material1_id": "116489", "material2_id": "6613", "material3_id": "101959", "material4_id": "86777", "material5_id": "6331"}, {"position_id": "3", "request_text": "труба проф 60 60 2 ", "ei": "шт", "value": "5.0", "material1_id": "80823", "material2_id": "83288", "material3_id": "8200", "material4_id": "86689", "material5_id": "99431"}, {"position_id": "4", "request_text": "труба проф 60 40 2", "ei": "шт", "value": "5.0", "material1_id": "100075", "material2_id": "77463", "material3_id": "99130", "material4_id": "8187", "material5_id": "86504"}, {"position_id": "5", "request_text": "труба проф 60 40 3", "ei": "шт", "value": "5.0", "material1_id": "108078", "material2_id": "78975", "material3_id": "8191", "material4_id": "86727", "material5_id": "99430"}, {"position_id": "6", "request_text": "труба проф 40 40 2", "ei": "шт", "value": "5.0", "material1_id": "26242", "material2_id": "78910", "material3_id": "83433", "material4_id": "26243", "material5_id": "26244"}, {"position_id": "7", "request_text": "труба проф 40 20 2", "ei": "шт", "value": "5.0", "material1_id": "82902", "material2_id": "26238", "material3_id": "74728", "material4_id": "8120", "material5_id": "86889"}, {"position_id": "8", "request_text": "труба проф 40 20 20", "ei": "шт", "value": "5.0", "material1_id": "82902", "material2_id": "26238", "material3_id": "74728", "material4_id": "8120", "material5_id": "86889"}, {"position_id": "9", "request_text": "лист 3 1250 2500 ", "ei": "шт", "value": "5.0", "material1_id": "16642", "material2_id": "16644", "material3_id": "16769", "material4_id": "16770", "material5_id": "90872"}, {"position_id": "10", "request_text": "лист рифленый 4 чечевицa ", "ei": "шт", "value": "5.0", "material1_id": "105114", "material2_id": "25354", "material3_id": "105113", "material4_id": "97339", "material5_id": "96818"}, {"position_id": "11", "request_text": "труба вгп 32 3,2 ", "ei": "шт", "value": "3.0", "material1_id": "96547", "material2_id": "26227", "material3_id": "111892", "material4_id": "7250", "material5_id": "89126"}]}]'):
-        self.channel.basic_publish(
-            exchange='ai', routing_key='orderrecognition.find_request_result', body=message)
-        print('Отправил результат')
+    async def consumer(self,
+            msg: aio_pika.IncomingMessage,
+            channel: aio_pika.RobustChannel,
+    ):
+        # используем контекстный менеджер для ack'а сообщения
+        async with msg.process():
+            self.write_logs('Получилось взять письмо из очереди', 1)
+            print('Получилось взять письмо из очереди')
+            content = self.get_message(msg.body)
+            self.write_logs('content - ' + content, 1)
+            print('content - ', content)
+            # Отправляем распознанный текст(!) на поиск материалов
+            results = str(self.find_mats.find_mats(content.split('\n')))
+            self.write_logs('results - ' + results, 1)
+            print('results = ', results)
+            # self.send_result(results)
 
-    def get_message(self, ch, method, properties, body):
-        self.write_logs('Получилось взять письмо из очереди', 1)
-        print('Получилось взять письмо из очереди')
-        start = time.time()
-        order_data = body.decode('utf-8')
+            # проверяем, требует ли сообщение ответа
+            if msg.reply_to:
+                # отправляем ответ в default exchange
+                print('Отправляем результат')
+                self.write_logs('Отправляем результат', 1)
+                await channel.default_exchange.publish(
+                    message=aio_pika.Message(
+                        body=str.encode(results),
+                        correlation_id=msg.correlation_id,
+                    ),
+                    routing_key=msg.reply_to,  # самое важное
+                )
+    def get_message(self, body):
         body = json.loads(body)
         print(body)
         try:
             content = base64.standard_b64decode(base64.standard_b64decode(body['email']))\
                 .decode('utf-8')
-                  # .split('<fileContent>')[1]\
-                  # .split('</fileContent>')[0].replace('&lt;', '')\
-                  #       .replace('/div>', '')\
-                  #       .replace('div>', '') \
-                  #       .replace('&amp;nbsp;', ' ')\
-                  #       .replace('span', '')\
-                  #       .replace('А', 'арматура ') \
-                  #       .replace('/>', '')\
-                  #       .replace('>', '')
             root = ET.fromstring(content)
             content = root[0][0][2].text
             content = re.sub(r'\<.*?\>', '', content).replace('&nbsp;', '')
         except Exception as exc:
             self.write_logs('Письмо не читается,'+str(exc), 0)
             print('Error, письмо не читается,', exc)
-            return None
-        self.write_logs('content - '+content, 1)
-        print('content - ', content)
-        results = str(self.find_mats.find_mats(content.split('\n')))
-        self.write_logs('results - '+results, 1)
-        print('results = ', results)
-        self.send_result(results)
+            return 'Error while reading'
+        return content
 
+    async def main(self):
+        connection = await aio_pika.connect_robust(
+            "amqp://ai:XRKh02eFLTKjMJErcpoy@esb-dev-rmq01.spk.ru:5672/"
+        )
+
+        queue_name = "get_message"
+
+        async with connection:
+            channel = await connection.channel()
+            queue = await channel.declare_queue(queue_name)
+            # через partial прокидываем в наш обработчик сам канал
+            await queue.consume(partial(self.consumer, channel=channel))
+            print('Слушаем очередь')
+            try:
+                await asyncio.Future()
+            except Exception:
+                pass
     def start(self):
-        # channel.queue_declare(queue='Excchange')
-        self.channel.exchange_declare(exchange='ai', exchange_type='topic', durable=True)
-        self.channel.queue_declare(queue='get_message')
-        self.channel.queue_bind(
-                exchange='ai', queue='get_message', routing_key='orderrecognition.find_request')
-
-        self.channel.basic_consume(
-            queue='get_message', on_message_callback=self.get_message, auto_ack=True)
-        self.find_mats = Find_materials()
-        print('Подключение прошло успешно, слушаем очередь')
-        self.channel.start_consuming()
+        asyncio.run(self.main())
 
 if __name__ == '__main__':
     oreder_rec = Order_recognition()
