@@ -21,10 +21,10 @@ class Find_materials():
     def find_mats(self, rows):
         results = []
         around_material = ''
-        results += [{'req_Number': str(uuid.uuid4())}]
+        results += [{"req_Number": str(uuid.uuid4())}]
         poss = []
         ei = 'шт'
-        val_ei = 5.0
+        val_ei = 1.0
         no_numbers = False
         pos_id = 0
         for _, row in enumerate(rows):
@@ -152,9 +152,9 @@ class Find_materials():
             for ind, pos in enumerate(ress):
                 poss[-1]['material'+str(ind+1)+'_id'] = '0'*(18-len(pos[0]))+pos[0]
 
-        results[0]['positions'] = poss
+        results[0]["positions"] = poss
         print(results)
-        return results
+        return str(results)
 
 
 if __name__ == '__main__':

@@ -45,10 +45,13 @@ class Order_recognition():
                 self.write_logs('Отправляем результат', 1)
                 await channel.default_exchange.publish(
                     message=aio_pika.Message(
-                        body=str.encode(results),
-                        correlation_id=msg.correlation_id,
+                        content_type='application/json',
+                        body=str.encode(results.replace("'", '"')),
+                        # body=b'{"a":"b"}',
+                        correlation_id=msg.correlation_id
                     ),
                     routing_key=msg.reply_to,  # самое важное
+
                 )
     def get_message(self, body):
         body = json.loads(body)
