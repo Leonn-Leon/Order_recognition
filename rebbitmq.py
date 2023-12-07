@@ -46,7 +46,7 @@ class Order_recognition():
                 await channel.default_exchange.publish(
                     message=aio_pika.Message(
                         content_type='application/json',
-                        body=str.encode(results.replace("'", '"')),
+                        body=str.encode(results.replace("'", '"')[1:-1]),
                         # body=b'{"a":"b"}',
                         correlation_id=msg.correlation_id
                     ),
