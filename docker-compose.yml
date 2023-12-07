@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  vitaly:
+    image: vitaly
+    build: .
+    deploy:
+      resources:
+        limits:
+          cpus: '3'
+          memory: 5000M
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./logs:/app/logs
+    command:
+      - python3
+      - /app/example.py
