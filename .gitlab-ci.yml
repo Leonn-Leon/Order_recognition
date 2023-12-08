@@ -10,9 +10,9 @@ build:
       refs:
         - master  #указываем запускать пайплайн только в ветке мастер
   stage: build
-  image: docker:latest   #18.09.7
+  image: docker:18.09.7
   services:
-    - docker:latest      #18.09.7-dind
+    - docker:18.09.7-dind
   before_script:
    - echo $CI_REGISTRY
    - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
