@@ -17,7 +17,7 @@ build:
    - echo $CI_REGISTRY
    - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
   script:
-    - docker build -t $TAG_LATEST .
+    - export DOCKER_HOST=tcp://localhost:2375 && docker build $TAG_LATEST .    #docker build -t $TAG_LATEST .
     - docker login $CI_REGISTRY -u $CI_TKN_LN -p $CI_TKN_PW
     - docker push $TAG_LATEST
 
