@@ -3,5 +3,3 @@ aio_pika==9.3.0
 jellyfish
 uuid
 asyncio
-functools
-base64
