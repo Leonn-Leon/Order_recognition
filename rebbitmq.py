@@ -7,6 +7,8 @@ import json
 from distance import Find_materials
 from datetime import datetime
 from functools import partial
+from config import connection_url, queue_name
+
 class Order_recognition():
 
     def __init__(self):
@@ -70,10 +72,9 @@ class Order_recognition():
 
     async def main(self):
         connection = await aio_pika.connect_robust(
-            "amqp://ai:XRKh02eFLTKjMJErcpoy@esb-dev-rmq01.spk.ru:5672/"
+            connection_url
         )
 
-        queue_name = "get_message"
 
         async with connection:
             channel = await connection.channel()
