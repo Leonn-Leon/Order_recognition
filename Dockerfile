@@ -1,4 +1,4 @@
-FROM 3.11-slim as builder
+FROM python:3.11-slim as builder
 #FROM python:3.11.4
 
 # ARG UID=1000
