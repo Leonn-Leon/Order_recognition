@@ -14,7 +14,7 @@ WORKDIR /app
 
 COPY distance.py distance.py
 COPY example.py example.py
-COPY rebbitmq.py rebbitmq.py
+COPY rabbitmq.py rabbitmq.py
 COPY logs logs
 
 # RUN groupadd -g "${GID}" -r vitaly \
