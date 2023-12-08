@@ -25,7 +25,7 @@ deploy:
   image: alpine:latest
   stage: deploy
   before_script:
-    - apk update && apk add openssh-client    #для альпины2
+    - apk update && apk add openssh-client    #для альпины
     - chmod 400 $SSH_PRIVATE_KEY
   script:
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no zabbix@$ZBX_SERVER_IP "docker rmi -f $TAG_LATEST"
