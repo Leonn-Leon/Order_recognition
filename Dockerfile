@@ -1,5 +1,10 @@
 FROM python:3.11.4
 
+
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6ED0E7B82643E131
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F8D2585B8783D481
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9 
+RUN apt-get update && apt-get install -y libpq-dev gcc
 # ARG UID=1000
 # ARG GID=1000
 
