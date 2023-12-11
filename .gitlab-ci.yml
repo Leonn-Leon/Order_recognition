@@ -36,8 +36,8 @@ build:
     - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
     - docker images
     #- docker tag registry.spk.ru:5050/dab/order-recognition/master:latest registry.spk.ru:5050/dab/order-recognition/master:latest
-    - docker push registry.spk.ru:5050/dab/order-recognition/master:tagg
-
+    - docker push tagg:latest
+    
     #- docker tag firstimage YOUR_DOCKERHUB_NAME/firstimage
     #- docker push registry.spk.ru:5050/dab/order-recognition/master   
 
