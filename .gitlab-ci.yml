@@ -35,6 +35,8 @@ docker-build:
     - docker build --pull -t $TAG_LATEST .   #export DOCKER_HOST=tcp://127.0.0.1:2375 && docker build --pull -t ${CI_REGISTRY_IMAGE} .    #
     - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
     - docker images
+    - echo $DOCKER_IMAGE_NAME 
+    - echo $CI_REGISTRY_IMAGE:latest
     #- docker tag registry.spk.ru:5050/dab/order-recognition/master:latest registry.spk.ru:5050/dab/order-recognition/master:latest
     #- docker push $TAG_LATEST
     #- docker push1 
