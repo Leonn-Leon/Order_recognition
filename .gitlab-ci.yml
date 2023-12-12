@@ -20,12 +20,12 @@ docker-build:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
   services:
-    #- name: docker:dind
-    #  alias: docker
+    - name: docker:dind
+      alias: docker
       # in our experience although you'd assume this would be sufficient, this did 
       # nothing to prevent connection errors without `DOCKER_TLS_CERTDIR` being set 
       # to an empty string, and I would call that beyond mildly infuriating.
-    #  command: ["--tls=false"]
+      command: ["--tls=false"]
     - docker:dind    #docker:18.09.7-dind
   before_script:
    - echo $CI_REGISTRY
