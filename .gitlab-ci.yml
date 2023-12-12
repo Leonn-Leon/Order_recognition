@@ -10,7 +10,7 @@ docker-build:
       refs:
         - master  #указываем запускать пайплайн только в ветке мастер
   stage: build
-  image: docker:cli #docker:20-dind      #docker:18.09.7
+  image: docker:latest #docker:20-dind      #docker:18.09.7
   variables:
     # using "docker" as the host is only possible if you alias the service below
     DOCKER_HOST: tcp://docker:2375 
