@@ -3,9 +3,9 @@ FROM python:3.11.4
 # ARG UID=1000
 # ARG GID=1000
 
-RUN apt update
-RUN apt upgrade -y
-RUN apt install ffmpeg libsm6 libxext6 -y
+RUN apt-get update
+RUN apt-get upgrade -y
+RUN apt-get install ffmpeg libsm6 libxext6 -y
 COPY requirements.txt requirements.txt
 RUN /usr/local/bin/python -m pip install --upgrade pip
 RUN pip install -r requirements.txt
