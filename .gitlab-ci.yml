@@ -37,12 +37,9 @@ docker-build:
     - docker images
     #- docker tag registry.spk.ru:5050/dab/order-recognition/master:latest registry.spk.ru:5050/dab/order-recognition/master:latest
     #- docker push $TAG_LATEST
+    #- docker push 
+    - docker tag $DOCKER_IMAGE_NAME $CI_REGISTRY_IMAGE:latest
     - docker push $TAG_LATEST
-    - |
-      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
-        docker tag "$DOCKER_IMAGE_NAME" "$CI_REGISTRY_IMAGE:latest"
-        docker push "$CI_REGISTRY_IMAGE:latest"
-      fi
 
     
     #- docker tag firstimage YOUR_DOCKERHUB_NAME/firstimage
