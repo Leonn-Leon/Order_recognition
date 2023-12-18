@@ -42,7 +42,8 @@ class Find_materials():
                 .replace(' кг', 'кг')\
                 .replace(' мл', 'мл') \
                 .replace(' шт', 'шт') \
-                .replace(' тн', 'тн')
+                .replace(' тн', 'тн')\
+                .replace(' т', 'т')
             if new_row[0].isdigit():
                 if no_numbers:
                     new_mat = new_mat + new_row
@@ -76,7 +77,11 @@ class Find_materials():
                 .replace('шт.', 'шт') \
                 .replace('мп.', 'мп') \
                 .replace('кг.', 'кг') \
-                .replace('тн.', 'тн')\
+                .replace('тн', 'тн')\
+                .replace('-шт', 'шт') \
+                .replace('-мп', 'мп') \
+                .replace('-кг', 'кг') \
+                .replace('-т', 'т')\
                 .replace('  ', ' ')\
                 .replace(' /к', ' х/к')\
                 .replace('бу та', 'бухта')\
@@ -102,7 +107,7 @@ class Find_materials():
             # print('Ещё что-нибудь -', end-start)
             start = time.time()
             for i in new_mat.split():
-                if i[-2:] in ('шт', 'кг', 'тн', 'мп'):
+                if i[-2:] in ('шт', 'кг', 'тн', 'мп', 'м2'):
                     ei = i[-2:]
                     try:
                         val_ei = float(i[:-2].replace(',', '.'))
@@ -110,12 +115,19 @@ class Find_materials():
                     except:
                         print('ошибка')
                         pass
-                if len(re.findall('\d+м', i)) > 0:
+                elif len(re.findall('\d+м', i)) > 0:
                     ei = 'м'
                     try:
                         val_ei = float(i[:-1].replace(',', '.'))
                     except:
                         print('ошибка в метрах')
+                        pass
+                elif len(re.findall('\d+т', i)) > 0:
+                    ei = 'т'
+                    try:
+                        val_ei = float(i[:-1].replace(',', '.'))
+                    except:
+                        print('ошибка в тоннах')
                         pass
             end = time.time()
             # print('Поиск едениц измерения -', end - start)
@@ -130,7 +142,8 @@ class Find_materials():
                         .replace('профильная', 'проф')\
                         .replace(' шт', 'шт') \
                         .replace(' кг', 'кг')\
-                        .replace(' мл', 'мл')
+                        .replace(' мл', 'мл')\
+                        .replace(' тн', 'тн')
                     mater = ' '.join(mater.split()[:len(new_mat.split())])
                     dis = jellyfish.levenshtein_distance(new_mat, mater)
                     around_materials[str(material[1])] = (str(int(material[0])), dis)
