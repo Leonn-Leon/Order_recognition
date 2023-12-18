@@ -13,8 +13,10 @@ RUN mkdir /app
 WORKDIR /app
 
 COPY distance.py distance.py
+COPY config.py config.py
 COPY example.py example.py
 COPY rabbitmq.py rabbitmq.py
+COPY mats.csv mats.csv
 COPY logs logs
 
 # RUN groupadd -g "${GID}" -r vitaly \
