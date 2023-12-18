@@ -28,7 +28,6 @@ class Find_materials():
         no_numbers = False
         pos_id = 0
         for _, row in enumerate(rows):
-            start = time.time()
             around_materials = {}
             min_dis = 1e5
             if len(row.split()) == 0 or row[0]=='+':
@@ -45,6 +44,8 @@ class Find_materials():
                 .replace(' тн', 'тн')\
                 .replace(' т', 'т')
             if new_row[0].isdigit():
+                if len(new_row.split()) == 1:
+                    continue
                 if no_numbers:
                     new_mat = new_mat + new_row
                     no_numbers = False
@@ -52,9 +53,6 @@ class Find_materials():
                     new_mat = ' '.join(new_mat.split()[:-len(new_row.split())])+ ' ' + new_row
             else:
                 new_mat = new_row
-            end = time.time()
-            # print('что-нибуть -', end-start)
-            start = time.time()
             new_mat = new_mat.lower().replace('х', ' ') \
                 .replace('(', '') \
                 .replace(')', '') \
@@ -84,7 +82,8 @@ class Find_materials():
                 .replace('-т', 'т')\
                 .replace('  ', ' ')\
                 .replace(' /к', ' х/к')\
-                .replace('бу та', 'бухта')\
+                .replace('бу та', 'бухта') \
+                .replace('гост', '')\
                 .replace(' — ', ' ') + ' '
             new_mat = new_mat.replace('профтруба', 'труба профил')
             if len([i for i in new_mat if i.isdigit()]) == 0:
@@ -103,9 +102,6 @@ class Find_materials():
                     .replace('п, ', ' п ')
             if 'арматура' in new_mat:
                 new_mat = new_mat.replace(' i', ' a-i')
-            end = time.time()
-            # print('Ещё что-нибудь -', end-start)
-            start = time.time()
             for i in new_mat.split():
                 if i[-2:] in ('шт', 'кг', 'тн', 'мп', 'м2'):
                     ei = i[-2:]
@@ -129,11 +125,9 @@ class Find_materials():
                     except:
                         print('ошибка в тоннах')
                         pass
-            end = time.time()
             # print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
-            start = time.time()
             for material in self.all_materials.iloc[59:].values:
                 if str(material[0]) == 'nan':
                     continue
@@ -143,7 +137,8 @@ class Find_materials():
                         .replace(' шт', 'шт') \
                         .replace(' кг', 'кг')\
                         .replace(' мл', 'мл')\
-                        .replace(' тн', 'тн')
+                        .replace(' тн', 'тн')\
+                        .replace('гост', '')
                     mater = ' '.join(mater.split()[:len(new_mat.split())])
                     dis = jellyfish.levenshtein_distance(new_mat, mater)
                     around_materials[str(material[1])] = (str(int(material[0])), dis)
@@ -185,7 +180,12 @@ if __name__ == '__main__':
         rows.append(line)
     print(f'Найдено {len(rows)} наименований')
     find_mats.find_mats(rows)
+'''
+труба 20 2,8 гост 3262-75 
+30
+0
 
+'''
 '''
 Арматура 6 бухта А500 С 34028-16	3 кг
 Арматура 8 6м А-III 25Г2С 5781-82	8шт
