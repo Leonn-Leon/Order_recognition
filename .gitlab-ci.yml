@@ -54,7 +54,7 @@ deploy:
     - apk update && apk add openssh-client    #для альпины
     - chmod 400 $SSH_PRIVATE_KEY
   script:
-    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker rmi -f $TAG_LATEST"
+    #- ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker rmi -f $TAG_LATEST"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker images"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker ps -a"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker login $CI_REGISTRY -u $CI_TKN_LN -p $CI_TKN_PW"
