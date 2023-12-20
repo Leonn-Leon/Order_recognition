@@ -37,15 +37,8 @@ docker-build:
     - docker images
     - echo $DOCKER_IMAGE_NAME 
     - echo $CI_REGISTRY_IMAGE:latest
-    #- docker tag registry.spk.ru:5050/dab/order-recognition/master:latest registry.spk.ru:5050/dab/order-recognition/master:latest
-    #- docker push $TAG_LATEST
-    #- docker push1 
     - docker tag $TAG_LATEST $CI_REGISTRY_IMAGE/master:latest
     - docker push $TAG_LATEST
-
-    
-    #- docker tag firstimage YOUR_DOCKERHUB_NAME/firstimage
-    #- docker push registry.spk.ru:5050/dab/order-recognition/master   
 
 deploy:
   image: alpine:latest
