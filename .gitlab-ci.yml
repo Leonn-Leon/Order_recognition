@@ -60,7 +60,3 @@ deploy:
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker login $CI_REGISTRY -u $CI_TKN_LN -p $CI_TKN_PW"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker pull $TAG_LATEST"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker images"
-  environment:
-    name: production
-  only:
-      - master
