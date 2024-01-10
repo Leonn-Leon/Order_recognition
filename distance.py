@@ -39,7 +39,7 @@ class Find_materials():
         for material in self.all_materials.iloc[59:].values:
             distance = ratio(text, material[1])
             # distance = self.jaccard_dastance(text, material[1])
-            nearest_mats += [(material[0], material[1], distance)]
+            nearest_mats += [(material[0][:-2], material[1], distance)]
         return nearest_mats
 
 
@@ -134,7 +134,7 @@ class Find_materials():
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
             ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item:item[2])[-5:][::-1]
-            print(new_mat, ' =', ress[0][0]+'|'+ str(val_ei) +'-'+ ei +'|')
+            print(new_mat, ' =', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
             poss[-1]['request_text'] = new_mat
             poss[-1]['ei'] = ei

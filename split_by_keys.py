@@ -28,7 +28,7 @@ class Key_words():
 # Функция для предварительной обработки текста: удаление стоп-слов и знаков препинания
     def preprocess_text(self, text):
         # Удаление знаков препинания
-        text = re.sub(r'[^\w\s]', '', text)
+        # text = re.sub(r'[^\w\s]', ' ', text)
         # Токенизация и фильтрация стоп-слов
         words = word_tokenize(text)
         filtered_words = [word for word in words if word not in self.stop_words]
