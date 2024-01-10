@@ -1,13 +1,9 @@
 from Levenshtein import ratio
-from difflib import SequenceMatcher
-import re
-import jellyfish
 import pandas as pd
 import uuid
 import time
 from datetime import datetime
 from find_ei import find_quantities_and_units
-from fuzzywuzzy import process, fuzz
 
 class Find_materials():
     def __init__(self):
