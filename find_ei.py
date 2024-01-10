@@ -2,7 +2,7 @@ import re
 def find_quantities_and_units(text):
     # Расширенный паттерн для поиска единиц измерения и количества
     # Учитывает единицы измерения до и после числа, а также возможность дефиса
-    pattern = r'\b(м|т|тн|кг|мп)?\s*(-)?\s*(\d+\.?\d*)\s*(-)?\s*(м|т|тн|кг|мп)?\b'
+    pattern = r'\b(м|т|тн|кг|мп|шт)?\s*(-)?\s*(\d+\.?\d*)\s*(-)?\s*(м|т|тн|кг|мп|шт)?\b'
     matches = re.findall(pattern, text)
     quantities_and_units = []
 
@@ -19,5 +19,6 @@ def find_quantities_and_units(text):
 # Пример использования
 if __name__ == '__main__':
     text = "Уголок 100x100 7м тн 5.85"
+    text = "профиль пн4 7540 3м 045 240шт"
     found_quantities_and_units = find_quantities_and_units(text)
     print("Найденные количества и единицы измерения:", found_quantities_and_units)

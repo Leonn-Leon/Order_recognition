@@ -60,14 +60,14 @@ class Find_materials():
             new_row = ' '.join(row.split())
             if (ord(new_row[0]) > 65 and ord(new_row[0]) < 123):
                 continue
-            new_row = new_row.replace(' -', ' ')\
-                .replace(' — ', ' ') \
-                .replace(' м', 'м')\
-                .replace(' кг', 'кг')\
-                .replace(' мл', 'мл') \
-                .replace(' шт', 'шт') \
-                .replace(' тн', 'тн')\
-                .replace(' т', 'т')
+            # new_row = new_row.replace(' -', ' ')\
+            #     .replace(' — ', ' ') \
+            #     .replace(' м', 'м')\
+            #     .replace(' кг', 'кг')\
+            #     .replace(' мл', 'мл') \
+            #     .replace(' шт', 'шт') \
+            #     .replace(' тн', 'тн')\
+            #     .replace(' т', 'т')
             if new_row[0].isdigit():
                 if len(new_row.split()) == 1:
                     continue
