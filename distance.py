@@ -39,7 +39,10 @@ class Find_materials():
         for material in self.all_materials.iloc[59:].values:
             distance = ratio(text, material[1])
             # distance = self.jaccard_dastance(text, material[1])
-            nearest_mats += [(material[0][:-2], material[1], distance)]
+            try:
+                nearest_mats += [(str(material[0])[:-2], material[1], distance)]
+            except:
+                print(material)
         return nearest_mats
 
 
@@ -102,11 +105,6 @@ class Find_materials():
                 .replace('шт.', 'шт') \
                 .replace('мп.', 'мп') \
                 .replace('кг.', 'кг') \
-                .replace('тн', 'тн')\
-                .replace('-шт', 'шт') \
-                .replace('-мп', 'мп') \
-                .replace('-кг', 'кг') \
-                .replace('-т', 'т')\
                 .replace('  ', ' ')\
                 .replace(' /к', ' х/к')\
                 .replace('бу та', 'бухта') \
@@ -115,13 +113,6 @@ class Find_materials():
             new_mat = new_mat.replace('профтруба', 'труба профил')
             if len([i for i in new_mat if i.isdigit()]) == 0:
                 no_numbers = True
-                continue
-            if 'ооо' in new_mat or 'г.' in new_mat or 'ул.' in new_mat:
-                continue
-            if 'привет' in new_mat or '&' in new_mat or '{' in new_mat or '}' in new_mat:
-                continue
-            if 'добрый' in new_mat or 'прошу' in new_mat or 'здравс' in new_mat or\
-                    'тел' in new_mat or 'часовой' in new_mat or 'достав' in new_mat or 'нужн' in new_mat:
                 continue
             if 'швеллер' in new_mat:
                 new_mat = new_mat.replace('у ', ' у ')\
@@ -137,7 +128,7 @@ class Find_materials():
             print(new_mat, ' =', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
             poss[-1]['request_text'] = new_mat
-            poss[-1]['ei'] = ei
+            poss[-1]['ei'] = ei.replace('тн', 'т')
             poss[-1]['value'] = str(val_ei)
             for ind, pos in enumerate(ress):
                 poss[-1]['material'+str(ind+1)+'_id'] = '0'*(18-len(pos[0]))+pos[0]

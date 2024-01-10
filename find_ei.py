@@ -19,6 +19,6 @@ def find_quantities_and_units(text):
 # Пример использования
 if __name__ == '__main__':
     text = "Уголок 100x100 7м тн 5.85"
-    text = "профиль пн4 7540 3м 045 240шт"
+    text = "профиль пн4 7540 3м 045 -240шт"
     found_quantities_and_units = find_quantities_and_units(text)
     print("Найденные количества и единицы измерения:", found_quantities_and_units)
