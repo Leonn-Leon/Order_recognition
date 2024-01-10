@@ -1,8 +1,5 @@
 FROM python:3.11.4
 
-# ARG UID=1000
-# ARG GID=1000
-
 RUN apt-get update
 RUN apt-get upgrade -y
 RUN apt-get install ffmpeg libsm6 libxext6 -y
@@ -14,16 +11,14 @@ WORKDIR /app
 
 COPY distance.py distance.py
 COPY config.py config.py
-COPY example.py example.py
 COPY rabbitmq.py rabbitmq.py
-COPY mats.csv mats.csv
+COPY hash2text.py hash2text.py
+COPY find_ei.py find_ei.py
+COPY split_by_keys.py split_by_keys.py
 COPY logs logs
-
-# RUN groupadd -g "${GID}" -r vitaly \
-#     && useradd -d '/app' -g vitaly -l -r -u "${UID}" vitaly \
-#     && chown vitaly:vitaly -R /app
+RUN mkdir data
+COPY data/mats.csv data/mats.csv
+COPY data/categories.csv data/categories.csv
 
 RUN chmod -R g+rw /app
 CMD ["python3.11", "rabbitmq.py"]
-
-#USER vitaly

@@ -1,13 +1,17 @@
+from Levenshtein import ratio
+from difflib import SequenceMatcher
 import re
 import jellyfish
 import pandas as pd
 import uuid
 import time
 from datetime import datetime
+from find_ei import find_quantities_and_units
+from fuzzywuzzy import process, fuzz
 
 class Find_materials():
     def __init__(self):
-        self.all_materials = pd.read_csv('mats.csv')
+        self.all_materials = pd.read_csv('data/mats.csv')
         print('All materials opened!')
 
     def write_logs(self, text, event=1):
@@ -17,6 +21,31 @@ class Find_materials():
         log = open(file_name, 'a')
         log.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
         log.close()
+
+    # def choose_based_on_similarity(self, text):
+    #     # query = vector_to_text(query_vector)  # Преобразование вектора обратно в текст
+    #     # Использование FuzzyWuzzy для нахождения топ-5 наиболее подходящих продуктов
+    #     top_matches = process.extract(text, self.all_materials.iloc[:, 1], scorer=fuzz.ratio, limit=5)
+    #     # Получаем индексы этих продуктов
+    #     print(top_matches)
+    #     top_indices = [(match[0], match[1]) for match in top_matches]
+    #     return top_indices
+
+    def jaccard_distance(self, str1, str2):
+        a = set(str1)
+        b = set(str2)
+        intersection = len(a.intersection(b))
+        union = len(a.union(b))
+        return 1 - intersection / union
+
+    def choose_based_on_similarity(self, text):
+        nearest_mats = []
+        for material in self.all_materials.iloc[59:].values:
+            distance = ratio(text, material[1])
+            # distance = self.jaccard_dastance(text, material[1])
+            nearest_mats += [(material[0], material[1], distance)]
+        return nearest_mats
+
 
     def find_mats(self, rows):
         results = []
@@ -67,9 +96,11 @@ class Find_materials():
                 .replace('гут ', 'гнутый ') \
                 .replace('тр ', 'труба ') \
                 .replace('тр. ', 'труба ') \
+                .replace('проф ', 'профиль')\
                 .replace('*', ' ') \
                 .replace('метра', 'м') \
                 .replace('метров', 'м')\
+                .replace('мм', '')\
                 .replace(' -', ' ')\
                 .replace('м.', 'м') \
                 .replace('шт.', 'шт') \
@@ -102,57 +133,12 @@ class Find_materials():
                     .replace('п, ', ' п ')
             if 'арматура' in new_mat:
                 new_mat = new_mat.replace(' i', ' a-i')
-            for i in new_mat.split():
-                if i[-2:] in ('шт', 'кг', 'тн', 'мп', 'м2'):
-                    ei = i[-2:]
-                    try:
-                        val_ei = float(i[:-2].replace(',', '.'))
-                        continue
-                    except:
-                        print('ошибка')
-                        pass
-                elif len(re.findall('\d+м', i)) > 0:
-                    ei = 'м'
-                    try:
-                        val_ei = float(i[:-1].replace(',', '.'))
-                    except:
-                        print('ошибка в метрах')
-                        pass
-                elif len(re.findall('\d+т', i)) > 0:
-                    ei = 'т'
-                    try:
-                        val_ei = float(i[:-1].replace(',', '.'))
-                    except:
-                        print('ошибка в тоннах')
-                        pass
+            val_ei, ei = find_quantities_and_units(new_mat)
             # print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
-            for material in self.all_materials.iloc[59:].values:
-                if str(material[0]) == 'nan':
-                    continue
-                try:
-                    mater = material[1].lower().replace('diy ', '')\
-                        .replace('профильная', 'проф')\
-                        .replace(' шт', 'шт') \
-                        .replace(' кг', 'кг')\
-                        .replace(' мл', 'мл')\
-                        .replace(' тн', 'тн')\
-                        .replace('гост', '')
-                    mater = ' '.join(mater.split()[:len(new_mat.split())])
-                    dis = jellyfish.levenshtein_distance(new_mat, mater)
-                    around_materials[str(material[1])] = (str(int(material[0])), dis)
-                except Exception as exc:
-                    print(exc)
-                    print(material)
-                    continue
-                if dis < min_dis:
-                    min_dis = dis
-                    around_material = material[1]
-            end = time.time()
-            # print('поиск материалов -', end - start)
-            print(new_mat, ' =', around_material+'|'+ str(val_ei) +'-'+ ei +'|')
-            ress = [(v[0], k) for k, v in sorted(around_materials.items(), key=lambda item: item[1][1])][:5]
+            ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item:item[2])[-5:][::-1]
+            print(new_mat, ' =', ress[0][0]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
             poss[-1]['request_text'] = new_mat
             poss[-1]['ei'] = ei
@@ -180,6 +166,14 @@ if __name__ == '__main__':
         rows.append(line)
     print(f'Найдено {len(rows)} наименований')
     find_mats.find_mats(rows)
+'''
+@page wordsection1 
+@list l0 
+@list l0level1 
+@list l0level1 
+швеллер 16 п – 28,116т 
+0
+'''
 '''
 труба 20 2,8 гост 3262-75 
 30
@@ -231,7 +225,7 @@ if __name__ == '__main__':
 Длина 1,25м допускается.
 '''
 '''
-Профиль горизонтальный ПН-6 (100х40х3000) 0,5мм  - 224шт/1 пал,
+Профиль горизонтaльный ПН-6 (100х40х3000) 0,5мм  - 224шт/1 пал,
 
  Профиль стоечный ПС-6 (100х50х3000) 0,5мм  - 336шт/2 пал ,
 

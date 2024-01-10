@@ -1,4 +1,5 @@
 .idea/
 __pycache__/
-data/
 test.ipynb
+/data/mails/
+/data/all_materials2.xlsx
