@@ -43,7 +43,7 @@ class Order_recognition():
 
     async def consumer(self,
             msg: aio_pika.IncomingMessage,
-            channel: aio_pika.RobustChannel
+            channel: aio_pika.RobustChannel,
     ):
         # используем контекстный менеджер для ack'а сообщения
         async with msg.process():

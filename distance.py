@@ -116,8 +116,7 @@ class Find_materials():
                 continue
             if 'швеллер' in new_mat:
                 new_mat = new_mat.replace('у ', ' у ')\
-                    .replace('п ', ' п ')\
-                    .replace('п, ', ' п ')
+                    .replace('п ', ' п ')
             if 'арматура' in new_mat:
                 new_mat = new_mat.replace(' i', ' a-i')
             val_ei, ei = find_quantities_and_units(new_mat)

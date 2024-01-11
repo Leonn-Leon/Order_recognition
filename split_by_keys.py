@@ -28,11 +28,13 @@ class Key_words():
 # Функция для предварительной обработки текста: удаление стоп-слов и знаков препинания
     def preprocess_text(self, text):
         # Удаление знаков препинания
-        text = re.sub(r'[^\w\s]', ' ', text)
+        # text = re.sub(r'[^\w\s]', ' ', text)
+        text = text.replace(',', '.').replace('двутавр', 'профиль')
+        print(text)
         # Токенизация и фильтрация стоп-слов
         words = word_tokenize(text)
         filtered_words = [word for word in words if word not in self.stop_words]
-        return ' '.join(filtered_words)
+        return ' '.join(filtered_words).replace(' . ', ' ')
 
     def find_key_words(self, text):
         text = text.lower()  # Приведение текста к нижнему регистру
@@ -43,7 +45,6 @@ class Key_words():
             for match in re.finditer(r'\b' + re.escape(word) + r'\b', text):
                 positions.append((match.start(), word))
         positions.sort()
-
         for i in range(len(positions)):
             start, word = positions[i]
             end = positions[i + 1][0] if i + 1 < len(positions) else len(text)
