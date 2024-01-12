@@ -32,6 +32,8 @@ docker-build:
    - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
   script:
     - docker logout
+    - sed -i "s|RMQ_AI_URL|$RMQ_AI_URL|g" config.py
+    - cat config.py
     - docker build --pull -t $TAG_LATEST .   #export DOCKER_HOST=tcp://127.0.0.1:2375 && docker build --pull -t ${CI_REGISTRY_IMAGE} .    #
     - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
     - docker images
@@ -43,14 +45,17 @@ docker-build:
 deploy:
   image: alpine:latest
   stage: deploy
+  allow_failure: true
   before_script:
     - apk update && apk add openssh-client    #для альпины
     - chmod 400 $SSH_PRIVATE_KEY
   script:
-    #- ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker rmi -f $TAG_LATEST:latest"
+    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker stop orderrec"
+    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker rm orderrec"
+    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker rmi -f $CI_REGISTRY_IMAGE/master:latest"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker images"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker ps -a"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker login $CI_REGISTRY -u $CI_TKN_LN -p $CI_TKN_PW"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker pull $TAG_LATEST"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker images"
-    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker run --name dabtt -d $CI_REGISTRY_IMAGE/master:latest"
+    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker run --name orderrec -d $CI_REGISTRY_IMAGE/master:latest"
