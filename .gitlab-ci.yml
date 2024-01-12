@@ -32,7 +32,7 @@ docker-build:
    - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
   script:
     - docker logout
-    - sed -i "s|$RMQ_AI_URL|${RMQ_AI_URL}|g" config.py
+    - sed -i "s|RMQ_AI_URL|$RMQ_AI_URL|g" config.py
     - cat config.py
     - docker build --pull -t $TAG_LATEST .   #export DOCKER_HOST=tcp://127.0.0.1:2375 && docker build --pull -t ${CI_REGISTRY_IMAGE} .    #
     - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
