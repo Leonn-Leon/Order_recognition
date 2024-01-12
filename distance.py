@@ -13,9 +13,15 @@ class Find_materials():
         print('All materials opened!')
 
     def count_matching_words(self, query, material_name):
-        query_words = set(query.lower().split())
-        material_words = set(material_name.lower().split())
-        return len(query_words.intersection(material_words))
+        query_words = query.lower().split()
+        material_words = material_name.lower().split()
+        kol = 0
+        for word in query_words:
+            if word in material_words:
+                kol += 1
+                material_words.remove(word)
+        return kol
+
     def find_top_materials(self, query, top_n=5):
         """
         Find the top matching materials from the materials table based on the query.
@@ -118,7 +124,7 @@ class Find_materials():
                 .replace('x', ' ')\
                 .replace(':', '')
             new_mat = new_mat.replace('шв ', 'швеллер ') \
-                .replace('рифл ', 'рифленый ') \
+                .replace('количестве', '') \
                 .replace('гн ', 'гнутый ') \
                 .replace('гнут ', 'гнутый ') \
                 .replace('нут ', 'гнутый ') \
@@ -126,6 +132,7 @@ class Find_materials():
                 .replace('тр ', 'труба ') \
                 .replace('тр. ', 'труба ') \
                 .replace('проф ', 'профиль')\
+                .replace('профильная', 'проф') \
                 .replace('*', ' ') \
                 .replace('метра', 'м') \
                 .replace('метров', 'м')\
