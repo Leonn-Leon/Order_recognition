@@ -45,7 +45,6 @@ docker-build:
 deploy:
   image: alpine:latest
   stage: deploy
-  allow_failure: true
   before_script:
     - apk update && apk add openssh-client    #для альпины
     - chmod 400 $SSH_PRIVATE_KEY
@@ -59,3 +58,4 @@ deploy:
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker pull $TAG_LATEST"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker images"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker run --name orderrec -d $CI_REGISTRY_IMAGE/master:latest"
+  allow_failure: true
