@@ -1,6 +1,7 @@
 from Levenshtein import ratio
 import pandas as pd
 import uuid
+import numpy as np
 import time
 from datetime import datetime
 from find_ei import find_quantities_and_units
@@ -8,7 +9,45 @@ from find_ei import find_quantities_and_units
 class Find_materials():
     def __init__(self):
         self.all_materials = pd.read_csv('data/mats.csv')
+        self.all_materials['Материал'].apply(str)
         print('All materials opened!')
+
+    def count_matching_words(self, query, material_name):
+        query_words = set(query.lower().split())
+        material_words = set(material_name.lower().split())
+        return len(query_words.intersection(material_words))
+    def find_top_materials(self, query, top_n=5):
+        """
+        Find the top matching materials from the materials table based on the query.
+        The materials are ranked based on the number of matching words. In case of a tie,
+        the material with fewer characters in its name is considered more relevant.
+
+        Args:
+        query (str): The query string from the client.
+        materials_df (pd.DataFrame): DataFrame containing the materials data.
+        top_n (int): Number of top results to return.
+
+        Returns:
+        pd.DataFrame: A DataFrame containing the top matching materials.
+        """
+        materials_df = self.all_materials.copy()
+        # Function to count matching words
+
+        # Count the number of matching words for each material
+        materials_df["Matching Words"] = materials_df["Полное наименование материала"].apply(
+            lambda material: self.count_matching_words(query, material)
+        )
+
+        # Additional sorting criterion - length of the material name
+        materials_df["Name Length"] = materials_df["Полное наименование материала"].apply(len)
+
+        # Sorting by matching words and then by name length
+        sorted_materials = materials_df.sort_values(
+            by=["Matching Words", "Name Length"],
+            ascending=[False, True]
+        )
+
+        return sorted_materials.head(top_n).values
 
     def write_logs(self, text, event=1):
         event = 'EVENT' if event == 1 else 'ERROR'
@@ -17,15 +56,6 @@ class Find_materials():
         log = open(file_name, 'a')
         log.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
         log.close()
-
-    # def choose_based_on_similarity(self, text):
-    #     # query = vector_to_text(query_vector)  # Преобразование вектора обратно в текст
-    #     # Использование FuzzyWuzzy для нахождения топ-5 наиболее подходящих продуктов
-    #     top_matches = process.extract(text, self.all_materials.iloc[:, 1], scorer=fuzz.ratio, limit=5)
-    #     # Получаем индексы этих продуктов
-    #     print(top_matches)
-    #     top_indices = [(match[0], match[1]) for match in top_matches]
-    #     return top_indices
 
     def jaccard_distance(self, str1, str2):
         a = set(str1)
@@ -123,14 +153,15 @@ class Find_materials():
             # print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
-            ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item:item[2])[-5:][::-1]
+            # ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item:item[2])[-5:][::-1]
+            ress = self.find_top_materials(new_mat)
             print(new_mat, ' =', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
             poss[-1]['request_text'] = new_mat
             poss[-1]['ei'] = ei.replace('тн', 'т')
             poss[-1]['value'] = str(val_ei)
             for ind, pos in enumerate(ress):
-                poss[-1]['material'+str(ind+1)+'_id'] = '0'*(18-len(pos[0]))+pos[0]
+                poss[-1]['material'+str(ind+1)+'_id'] = '0'*(18-len(str(pos[0])))+str(pos[0])
 
         results[0]["positions"] = poss
         print(results)
