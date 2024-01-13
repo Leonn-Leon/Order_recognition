@@ -120,6 +120,7 @@ class Find_materials():
             new_mat = new_mat.lower().replace('х', ' ') \
                 .replace('(', '') \
                 .replace(')', '') \
+                .replace('оцинк', 'оц') \
                 .replace(' оц.', ' оц') \
                 .replace('x', ' ')\
                 .replace(':', '')
@@ -131,11 +132,11 @@ class Find_materials():
                 .replace('гут ', 'гнутый ') \
                 .replace('тр ', 'труба ') \
                 .replace('тр. ', 'труба ') \
-                .replace('проф ', 'профиль')\
+                .replace('проф ', 'профиль ')\
                 .replace('профильная', 'проф') \
                 .replace('*', ' ') \
-                .replace('метра', 'м') \
-                .replace('метров', 'м')\
+                .replace('метра', 'м ') \
+                .replace('метров', 'м ')\
                 .replace('мм', '')\
                 .replace(' -', ' ')\
                 .replace('м.', 'м') \
