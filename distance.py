@@ -122,8 +122,8 @@ class Find_materials():
                 .replace(')', '') \
                 .replace(' -', ' ')\
                 .replace(' —', ' ')\
-                .replace('оцинк', 'оц') \
-                .replace(' оц.', ' оц') \
+                .replace('оцинк', 'оц ') \
+                .replace(' оц.', ' оц ') \
                 .replace('x', ' ')\
                 .replace(' 0', '0')\
                 .replace(':', '')
