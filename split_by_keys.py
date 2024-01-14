@@ -3,8 +3,6 @@ import re
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-import os
-
 
 
 class Key_words():
@@ -36,22 +34,49 @@ class Key_words():
         filtered_words = [word for word in words if word not in self.stop_words]
         return ' '.join(filtered_words).replace(' . ', ' ')
 
+    def find_category_in_line(self, line, categories):
+        for word in line.split():
+            if word in categories:
+                return word
+        return None
+
+    def process_order(self, input_order):
+        lines = input_order.split("\n")
+        orders = []
+        current_category_description = ""
+
+        for line in lines:
+            if len(line.split()) == 0 or not any(chr.isdigit() for chr in line):
+                current_category_description = ''
+            if line.strip() == "":
+                continue
+            category = self.find_category_in_line(line, self.key_words)
+            if category:
+                # Находим описание категории в строке
+                start = line.find(category)
+                current_words = line[start:]
+                current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
+                orders.append(line[start:].strip())
+            elif current_category_description:
+                # Добавляем описание категории к строке, если она не содержит категории
+                order_detail = f"{current_category_description} {line.strip()}"
+                orders.append(order_detail)
+
+        return orders
+
+    def split_numbers_and_words(self, s):
+        # Разделяем числа и буквы
+        s = re.sub(r'(?<=\d)(?=[а-яА-Яa-zA-Z])', ' ', s)
+        # Разделяем буквы и числа
+        s = re.sub(r'(?<=[а-яА-Яa-zA-Z])(?=\d)', ' ', s)
+        s = s.replace(' -', ' ')
+        return s
+
     def find_key_words(self, text):
         text = text.lower()  # Приведение текста к нижнему регистру
-        text = self.preprocess_text(text)
-        requests = []
-        positions = []
-        for word in self.key_words:
-            for match in re.finditer(r'\b' + re.escape(word) + r'\b', text):
-                positions.append((match.start(), word))
-        positions.sort()
-        for i in range(len(positions)):
-            start, word = positions[i]
-            end = positions[i + 1][0] if i + 1 < len(positions) else len(text)
-            request_text = text[start:end].strip()
-            requests.append((word, request_text))
-
-        return requests
+        text = self.split_numbers_and_words(text).replace('*', ' ').replace('х',' ')
+        # text = self.preprocess_text(text)
+        return self.process_order(text)
 
 if __name__ == '__main__':
 

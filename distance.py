@@ -117,12 +117,15 @@ class Find_materials():
                     new_mat = ' '.join(new_mat.split()[:-len(new_row.split())])+ ' ' + new_row
             else:
                 new_mat = new_row
-            new_mat = new_mat.lower().replace('х', ' ') \
+            new_mat = new_mat.lower()\
                 .replace('(', '') \
                 .replace(')', '') \
+                .replace(' -', ' ')\
+                .replace(' —', ' ')\
                 .replace('оцинк', 'оц') \
                 .replace(' оц.', ' оц') \
                 .replace('x', ' ')\
+                .replace(' 0', '0')\
                 .replace(':', '')
             new_mat = new_mat.replace('шв ', 'швеллер ') \
                 .replace('количестве', '') \
@@ -147,6 +150,8 @@ class Find_materials():
                 .replace(' /к', ' х/к')\
                 .replace('бу та', 'бухта') \
                 .replace('гост', '')\
+                .replace(' м', 'м')\
+                .replace('по ', ' ')\
                 .replace(' — ', ' ') + ' '
             new_mat = new_mat.replace('профтруба', 'труба профил')
             if len([i for i in new_mat if i.isdigit()]) == 0:
