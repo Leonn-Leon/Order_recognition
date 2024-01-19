@@ -9,7 +9,8 @@ from datetime import datetime
 from functools import partial
 from hash2text import text_from_hash
 from split_by_keys import Key_words
-from config import connection_url, queue_name
+import config as conf
+# from config import connection_url, first_queue, second_queue
 
 class Order_recognition():
 
@@ -38,18 +39,32 @@ class Order_recognition():
         print('results = ', results)
         # self.send_result(results)
 
+    async def save_truth(self,
+            msg: aio_pika.IncomingMessage):
+        # используем контекстный менеджер для ack'а сообщения
+        async with msg.process():
+            content = msg.body
+            if 'true_value' not in str(content):
+                return
+            self.write_logs('Получилось взять письмо из очереди', 1)
+            print('Получилось взять письмо из очереди')
+            body = json.loads(content)
+            print("Text - ", body)
     async def consumer(self,
             msg: aio_pika.IncomingMessage,
-            channel: aio_pika.RobustChannel,
+            channel: aio_pika.RobustChannel
     ):
         # используем контекстный менеджер для ack'а сообщения
         async with msg.process():
+            content = msg.body
+            if 'true_value' in str(content):
+                return
             self.write_logs('Получилось взять письмо из очереди', 1)
             print('Получилось взять письмо из очереди')
-            body = json.loads(msg.body)
+            body = json.loads(content)
             self.write_logs('Body - ' + str(body), 1)
             content = text_from_hash(body['email'])
-            print('Text - ', content)
+            # print('Text - ', content)
             kw = Key_words()
             clear_email = kw.find_key_words(content)
             # Отправляем распознаннaй текст(!) на поиск материалов
@@ -91,20 +106,28 @@ class Order_recognition():
 
     async def main(self):
         connection = await aio_pika.connect_robust(
-            connection_url
+            conf.connection_url
         )
 
 
         async with connection:
             channel = await connection.channel()
-            queue = await channel.declare_queue(queue_name)
+            queue = await channel.declare_queue(conf.first_queue)
             # через partial прокидываем в наш обработчик сам канал
             await queue.consume(partial(self.consumer, channel=channel))
             print('Слушаем очередь')
+
+
+            queue2 = await channel.declare_queue(conf.second_queue)
+            await queue2.bind(exchange=conf.exchange, routing_key=conf.routing_key)
+            # через partial прокидываем в наш обработчик сам канал
+            await queue2.consume(partial(self.save_truth))
+            print('Слушаем очередь2')
             try:
                 await asyncio.Future()
             except Exception:
                 pass
+
     def start(self):
         asyncio.run(self.main())
 

@@ -74,7 +74,8 @@ class Key_words():
 
     def find_key_words(self, text):
         text = text.lower()  # Приведение текста к нижнему регистру
-        text = self.split_numbers_and_words(text).replace('*', ' ').replace('х',' ').replace('тр.', 'труба')
+        text = self.split_numbers_and_words(text).replace('*', ' ').replace('х',' ')\
+            .replace('тр.', 'труба').replace('\t', ' ')
         # text = self.preprocess_text(text)
         return self.process_order(text)
 

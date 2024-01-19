@@ -1,2 +1,5 @@
 connection_url = "RMQ_AI_URL"
-queue_name = "get_message"
+first_queue = "get_message"
+second_queue = "save_truth"
+exchange = "ai"
+routing_key = "orderrecognition.save_truth"
