@@ -33,7 +33,7 @@ class Order_recognition():
         kw = Key_words()
         clear_email = kw.find_key_words(content)
         # Отправляем распознаннaй текст(!) на поиск материалов
-        print(clear_email)
+        print('Очищенное сообщение -', clear_email)
         results = str(self.find_mats.find_mats(clear_email))
         self.write_logs('results - ' + results, 1)
         print('results = ', results)
@@ -67,7 +67,7 @@ class Order_recognition():
             # print('Text - ', content)
             kw = Key_words()
             clear_email = kw.find_key_words(content)
-            # Отправляем распознаннaй текст(!) на поиск материалов
+            # Отправляем распознанный текст(!) на поиск материалов
             print('Clear email - ', clear_email)
             results = str(self.find_mats.find_mats(clear_email))
             self.write_logs('results - ' + results, 1)

@@ -1,15 +1,18 @@
 from Levenshtein import ratio
 import pandas as pd
 import uuid
-import numpy as np
-import time
+import re
 from datetime import datetime
 from find_ei import find_quantities_and_units
 
 class Find_materials():
     def __init__(self):
         self.all_materials = pd.read_csv('data/mats.csv')
+        self.all_materials['Полное наименование материала'] = self.all_materials['Полное наименование материала'].apply(
+            lambda x: x.replace(', ', ' '))
         self.all_materials['Материал'].apply(str)
+        # Добавление длины названия
+        self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
         print('All materials opened!')
 
     def count_matching_words(self, query, material_name):
@@ -37,7 +40,6 @@ class Find_materials():
         pd.DataFrame: A DataFrame containing the top matching materials.
         """
         materials_df = self.all_materials.copy()
-        # Function to count matching words
 
         # Count the number of matching words for each material
         materials_df["Matching Words"] = materials_df["Полное наименование материала"].apply(
@@ -52,6 +54,46 @@ class Find_materials():
             by=["Matching Words", "Name Length"],
             ascending=[False, True]
         )
+
+        return sorted_materials.head(top_n).values
+
+    def find_top_materials_advanced(self, query, top_n=5):
+        """
+        Расширенная функция поиска материалов, которая отдаёт приоритет совпадениям по словам и учитывает числовые параметры.
+
+        Аргументы:
+        query (str): Строка запроса от клиента.
+        materials_df (pd.DataFrame): DataFrame, содержащий данные о материалах.
+        top_n (int): Количество лучших результатов для возврата.
+
+        Возвращает:
+        pd.DataFrame: DataFrame, содержащий топовые совпадающие материалы.
+        """
+        materials_df = self.all_materials.copy()
+        # Разделение запроса на слова и числа
+        words = re.findall(r'\D+', query)  # Найти все нечисловые последовательности
+        numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
+
+        # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
+        def count_matches_and_numeric(query_words, query_numbers, material_name):
+            material_words = set(material_name.lower().split())  # Разбиение названия материала на слова
+            match_count = sum(1 for word in query_words if word.lower().strip() in material_words)  # Подсчёт совпадений
+            numeric_presence = any(
+                num in material_name for num in query_numbers)  # Проверка наличия числовых параметров
+            return match_count, numeric_presence
+
+        # Применение функции подсчёта к каждому материалу
+        materials_df["Matches"], materials_df["Numeric Presence"] = zip(
+            *materials_df["Полное наименование материала"].apply(
+                lambda x: count_matches_and_numeric(words, numbers, x)
+            ))
+
+        # Фильтрация материалов, которые имеют хотя бы одно словесное совпадение и числовые параметры
+        filtered_materials = materials_df[(materials_df["Matches"] > 0) & (materials_df["Numeric Presence"])]
+
+        # Сортировка по количеству совпадений, наличию числовых параметров и, наконец, по длине названия
+        sorted_materials = filtered_materials.sort_values(by=["Matches", "Numeric Presence", "Name Length"],
+                                                          ascending=[False, False, True])
 
         return sorted_materials.head(top_n).values
 
@@ -74,9 +116,9 @@ class Find_materials():
         nearest_mats = []
         for material in self.all_materials.iloc[59:].values:
             distance = ratio(text, material[1])
-            # distance = self.jaccard_dastance(text, material[1])
+            # distance = self.jaccard_distance(text, material[1])
             try:
-                nearest_mats += [(str(material[0])[:-2], material[1], distance)]
+                nearest_mats += [(str(material[0]), material[1], distance)]
             except:
                 print(material)
         return nearest_mats
@@ -99,14 +141,6 @@ class Find_materials():
             new_row = ' '.join(row.split())
             if (ord(new_row[0]) > 65 and ord(new_row[0]) < 123):
                 continue
-            # new_row = new_row.replace(' -', ' ')\
-            #     .replace(' — ', ' ') \
-            #     .replace(' м', 'м')\
-            #     .replace(' кг', 'кг')\
-            #     .replace(' мл', 'мл') \
-            #     .replace(' шт', 'шт') \
-            #     .replace(' тн', 'тн')\
-            #     .replace(' т', 'т')
             if new_row[0].isdigit():
                 if len(new_row.split()) == 1:
                     continue
@@ -122,10 +156,8 @@ class Find_materials():
                 .replace(')', '') \
                 .replace(' -', ' ')\
                 .replace(' —', ' ')\
-                .replace('оцинк', 'оц ') \
+                .replace('оцинк ', 'оц ') \
                 .replace(' оц.', ' оц ') \
-                .replace('x', ' ')\
-                .replace(' 0', '0')\
                 .replace(':', '')
             new_mat = new_mat.replace('шв ', 'швеллер ') \
                 .replace('количестве', '') \
@@ -137,6 +169,7 @@ class Find_materials():
                 .replace('тр. ', 'труба ') \
                 .replace('проф ', 'профиль ')\
                 .replace('профильная', 'проф') \
+                .replace('оцинкованный', 'оц') \
                 .replace('*', ' ') \
                 .replace('метра', 'м ') \
                 .replace('метров', 'м ')\
@@ -149,10 +182,7 @@ class Find_materials():
                 .replace('  ', ' ')\
                 .replace(' /к', ' х/к')\
                 .replace('бу та', 'бухта') \
-                .replace('гост', '')\
-                .replace(' м', 'м')\
-                .replace('по ', ' ')\
-                .replace(' — ', ' ') + ' '
+                .replace('гост', '') + ' '
             new_mat = new_mat.replace('профтруба', 'труба профил')
             if len([i for i in new_mat if i.isdigit()]) == 0:
                 no_numbers = True
@@ -166,9 +196,10 @@ class Find_materials():
             # print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
-            # ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item:item[2])[-5:][::-1]
-            ress = self.find_top_materials(new_mat)
-            print(new_mat, ' =', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
+            ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item:item[2])[-5:][::-1]
+            # ress = self.find_top_materials(new_mat)
+            # ress = self.find_top_materials_advanced(new_mat)
+            print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
             poss[-1]['request_text'] = new_mat
             poss[-1]['ei'] = ei.replace('тн', 'т')
