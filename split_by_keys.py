@@ -69,13 +69,14 @@ class Key_words():
         s = re.sub(r'(?<=\d)(?=[а-яА-Яa-zA-Z])', ' ', s)
         # Разделяем буквы и числа
         s = re.sub(r'(?<=[а-яА-Яa-zA-Z])(?=\d)', ' ', s)
+        s = re.sub(r'(\d+),(\d+)', r'\1.\2', s)
         s = s.replace(' -', ' ')
         return s
 
     def find_key_words(self, text):
         text = text.lower()  # Приведение текста к нижнему регистру
         text = self.split_numbers_and_words(text).replace('*', ' ').replace('х',' ')\
-            .replace('тр.', 'труба').replace('\t', ' ')
+            .replace('тр.', 'труба')
         # text = self.preprocess_text(text)
         return self.process_order(text)
 
