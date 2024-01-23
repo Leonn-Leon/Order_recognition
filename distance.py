@@ -13,7 +13,7 @@ class Find_materials():
         self.all_materials['Материал'].apply(str)
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
-        print('All materials opened!')
+        print('All materials opened!', flush=True)
 
     def count_matching_words(self, query, material_name):
         query_words = query.lower().split()

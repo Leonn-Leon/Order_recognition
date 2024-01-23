@@ -29,7 +29,7 @@ class Order_recognition():
     def consumer_test(self, hash:str=None, content:str=None):
         if content is None:
             content = text_from_hash(hash)
-            print('Text - ', content)
+            print('Text - ', content, flush=True)
         kw = Key_words()
         clear_email = kw.find_key_words(content)
         # Отправляем распознаннaй текст(!) на поиск материалов
@@ -47,7 +47,7 @@ class Order_recognition():
             if 'true_value' not in str(content):
                 return
             self.write_logs('Получилось взять письмо из очереди', 1)
-            print('Получилось взять письмо из очереди')
+            print('Получилось взять ответы', flush=True)
             body = json.loads(content)
             print("Text - ", body)
     async def consumer(self,
@@ -60,7 +60,7 @@ class Order_recognition():
             if 'true_value' in str(content):
                 return
             self.write_logs('Получилось взять письмо из очереди', 1)
-            print('Получилось взять письмо из очереди')
+            print('Получилось взять письмо из очереди', flush=True)
             body = json.loads(content)
             self.write_logs('Body - ' + str(body), 1)
             content = text_from_hash(body['email'])
@@ -77,7 +77,7 @@ class Order_recognition():
             # проверяем, требует ли сообщение ответа
             if msg.reply_to:
                 # отправляем ответ в default exchange
-                print('Отправляем результат')
+                print('Отправляем результат', flush=True)
                 self.write_logs('Отправляем результaт', 1)
                 await channel.default_exchange.publish(
                     message=aio_pika.Message(
@@ -115,14 +115,14 @@ class Order_recognition():
             queue = await channel.declare_queue(conf.first_queue)
             # через partial прокидываем в наш обработчик сам канал
             await queue.consume(partial(self.consumer, channel=channel))
-            print('Слушаем очередь')
+            print('Слушаем очередь', flush=True)
 
 
             queue2 = await channel.declare_queue(conf.second_queue)
             await queue2.bind(exchange=conf.exchange, routing_key=conf.routing_key)
             # через partial прокидываем в наш обработчик сам канал
             await queue2.consume(partial(self.save_truth))
-            print('Слушаем очередь2')
+            print('Слушаем очередь2', flush=True)
             try:
                 await asyncio.Future()
             except Exception:
@@ -132,5 +132,5 @@ class Order_recognition():
         asyncio.run(self.main())
 
 if __name__ == '__main__':
-    oreder_rec = Order_recognition()
-    oreder_rec.start()
+    order_rec = Order_recognition()
+    order_rec.start()
