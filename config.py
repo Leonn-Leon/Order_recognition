@@ -1,4 +1,4 @@
-connection_url = "amqp://ai:XRKh02eFLTKjMJErcpoy@esb-dev-rmq01.spk.ru:5672/"
+connection_url = "RMQ_AI_URL"
 first_queue = "get_message"
 second_queue = "save_truth"
 exchange = "ai"
