@@ -56,6 +56,7 @@ class Order_recognition():
     ):
         # используем контекстный менеджер для ack'а сообщения
         async with msg.process():
+            print('Что-то получил из очереди rebbitmq...', flush=True)
             content = msg.body
             if 'true_value' in str(content):
                 return
