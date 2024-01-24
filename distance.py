@@ -15,87 +15,6 @@ class Find_materials():
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
         print('All materials opened!', flush=True)
 
-    def count_matching_words(self, query, material_name):
-        query_words = query.lower().split()
-        material_words = material_name.lower().split()
-        kol = 0
-        for word in query_words:
-            if word in material_words:
-                kol += 1
-                material_words.remove(word)
-        return kol
-
-    def find_top_materials(self, query, top_n=5):
-        """
-        Find the top matching materials from the materials table based on the query.
-        The materials are ranked based on the number of matching words. In case of a tie,
-        the material with fewer characters in its name is considered more relevant.
-
-        Args:
-        query (str): The query string from the client.
-        materials_df (pd.DataFrame): DataFrame containing the materials data.
-        top_n (int): Number of top results to return.
-
-        Returns:
-        pd.DataFrame: A DataFrame containing the top matching materials.
-        """
-        materials_df = self.all_materials.copy()
-
-        # Count the number of matching words for each material
-        materials_df["Matching Words"] = materials_df["Полное наименование материала"].apply(
-            lambda material: self.count_matching_words(query, material)
-        )
-
-        # Additional sorting criterion - length of the material name
-        materials_df["Name Length"] = materials_df["Полное наименование материала"].apply(len)
-
-        # Sorting by matching words and then by name length
-        sorted_materials = materials_df.sort_values(
-            by=["Matching Words", "Name Length"],
-            ascending=[False, True]
-        )
-
-        return sorted_materials.head(top_n).values
-
-    def find_top_materials_advanced(self, query, top_n=5):
-        """
-        Расширенная функция поиска материалов, которая отдаёт приоритет совпадениям по словам и учитывает числовые параметры.
-
-        Аргументы:
-        query (str): Строка запроса от клиента.
-        materials_df (pd.DataFrame): DataFrame, содержащий данные о материалах.
-        top_n (int): Количество лучших результатов для возврата.
-
-        Возвращает:
-        pd.DataFrame: DataFrame, содержащий топовые совпадающие материалы.
-        """
-        materials_df = self.all_materials.copy()
-        # Разделение запроса на слова и числа
-        words = re.findall(r'\D+', query)  # Найти все нечисловые последовательности
-        numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
-
-        # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
-        def count_matches_and_numeric(query_words, query_numbers, material_name):
-            material_words = set(material_name.lower().split())  # Разбиение названия материала на слова
-            match_count = sum(1 for word in query_words if word.lower().strip() in material_words)  # Подсчёт совпадений
-            numeric_presence = any(
-                num in material_name for num in query_numbers)  # Проверка наличия числовых параметров
-            return match_count, numeric_presence
-
-        # Применение функции подсчёта к каждому материалу
-        materials_df["Matches"], materials_df["Numeric Presence"] = zip(
-            *materials_df["Полное наименование материала"].apply(
-                lambda x: count_matches_and_numeric(words, numbers, x)
-            ))
-
-        # Фильтрация материалов, которые имеют хотя бы одно словесное совпадение и числовые параметры
-        filtered_materials = materials_df[(materials_df["Matches"] > 0) & (materials_df["Numeric Presence"])]
-
-        # Сортировка по количеству совпадений, наличию числовых параметров и, наконец, по длине названия
-        sorted_materials = filtered_materials.sort_values(by=["Matches", "Numeric Presence", "Name Length"],
-                                                          ascending=[False, False, True])
-
-        return sorted_materials.head(top_n).values
 
     def write_logs(self, text, event=1):
         event = 'EVENT' if event == 1 else 'ERROR'
@@ -126,11 +45,8 @@ class Find_materials():
 
     def find_mats(self, rows):
         results = []
-        around_material = ''
         results += [{"req_Number": str(uuid.uuid4())}]
         poss = []
-        ei = 'шт'
-        val_ei = 1.0
         no_numbers = False
         pos_id = 0
         for _, row in enumerate(rows):
@@ -197,8 +113,6 @@ class Find_materials():
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
             ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item:item[2])[-5:][::-1]
-            # ress = self.find_top_materials(new_mat)
-            # ress = self.find_top_materials_advanced(new_mat)
             print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
             poss[-1]['request_text'] = new_mat
