@@ -46,10 +46,11 @@ class Order_recognition():
             content = msg.body
             if 'true_value' not in str(content):
                 return
-            self.write_logs('Получилось взять письмо из очереди', 1)
-            print('Получилось взять ответы', flush=True)
+            self.write_logs('Получилось взять ответы МЕТОД 2', 1)
+            print('Получилось взять ответы МЕТОД 2', flush=True)
             body = json.loads(content)
             print("Text - ", body)
+            self.write_logs('METHOD 2 - ' + str(body), 1)
     async def consumer(self,
             msg: aio_pika.IncomingMessage,
             channel: aio_pika.RobustChannel,
