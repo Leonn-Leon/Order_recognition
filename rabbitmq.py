@@ -135,4 +135,12 @@ class Order_recognition():
 
 if __name__ == '__main__':
     order_rec = Order_recognition()
-    order_rec.start()
+    # order_rec.start()
+    order_rec.consumer_test(content=""" Доброе утро!
+Оля, выстави счет, пожалуйста!
+Все ли есть?
+1.	Угол 100*100*10 ГОСТ 8509-93 ст.09Г2С — 7т
+2.	Угол 63*63*5 ГОСТ 8509-93 ст.09Г2С (12м) — 35т
+3.	Угол 80*80*6 ГОСТ 8509-93 ст.09Г2С — 23т
+
+""")
