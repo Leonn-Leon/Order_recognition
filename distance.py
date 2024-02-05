@@ -1,16 +1,19 @@
 from Levenshtein import ratio
 import pandas as pd
 import uuid
-import re
+import json
+import base64
 from datetime import datetime
 from find_ei import find_quantities_and_units
 
 class Find_materials():
     def __init__(self):
         self.all_materials = pd.read_csv('data/mats.csv')
+        self.method2 = pd.read_csv('data/method2.csv', index_col='question')
+        self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
         self.all_materials['Полное наименование материала'] = self.all_materials['Полное наименование материала'].apply(
             lambda x: x.replace(', ', ' '))
-        self.all_materials['Материал'].apply(str)
+        self.all_materials['Материал'] = self.all_materials['Материал'].apply(str)
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
         print('All materials opened!', flush=True)
@@ -112,16 +115,32 @@ class Find_materials():
             # print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
-            ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item:item[2])[-5:][::-1]
+
+            if new_mat in self.method2.index:
+                true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
+                ei = true_position["true_ei"]
+                val_ei = true_position["true_value"]
+                ress = []
+                ress += [(true_position["num_mat"], true_position["name_mat"])]
+                ress += [(true_position["num_mat"], true_position["name_mat"])]
+                ress += [(true_position["num_mat"], true_position["name_mat"])]
+                ress += [(true_position["num_mat"], true_position["name_mat"])]
+                ress += [(true_position["num_mat"], true_position["name_mat"])]
+            else:
+                ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item:item[2])[-5:][::-1]
+                poss[-1]['ei'] = ei.replace('тн', 'т')
+                poss[-1]['value'] = str(val_ei)
+
+            poss[-1]['request_text'] = new_mat
             print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
-            poss[-1]['request_text'] = new_mat
-            poss[-1]['ei'] = ei.replace('тн', 'т')
-            poss[-1]['value'] = str(val_ei)
+
             for ind, pos in enumerate(ress):
                 poss[-1]['material'+str(ind+1)+'_id'] = '0'*(18-len(str(pos[0])))+str(pos[0])
 
         results[0]["positions"] = poss
+        self.saves.loc[results[0]["req_Number"]] = ["{'positions':"+str(results[0]["positions"])+"}"]
+        self.saves.to_csv('data/saves.csv')
         print(results)
         return str(results)
 
