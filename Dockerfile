@@ -19,6 +19,9 @@ COPY logs logs
 RUN mkdir data
 COPY data/mats.csv data/mats.csv
 COPY data/categories.csv data/categories.csv
+COPY data/saves.csv data/saves.csv
+COPY data/method2.csv data/method2.csv
+
 
 RUN chmod -R g+rw /app
 CMD ["python3.11", "rabbitmq.py"]
