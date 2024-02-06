@@ -54,7 +54,7 @@ class Order_recognition():
                 positions = json.loads(self.find_mats.saves.loc[req_Number]['positions'].replace("'", '"'))['positions']
                 true_positions = body['positions']
                 for ind, pos in enumerate(true_positions):
-                    request_text = positions[ind]['request_text']
+                    request_text = positions[int(pos['position_id'])]['request_text']
                     true_mat = self.find_mats.all_materials[self.find_mats.all_materials['Материал'].\
                             str.contains(str(int(pos['true_material'])))]['Полное наименование материала'].values[0]
                     res = str({'num_mat':str(int(pos['true_material'])),
@@ -65,7 +65,7 @@ class Order_recognition():
                     self.find_mats.method2.loc[request_text] = res.decode('utf-8')
                 self.find_mats.method2.to_csv('data/method2.csv')
             else:
-                print('Не нашёл такого письма', flash=True)
+                print('Не нашёл такого письма', flush=True)
             print("METHOD 2 - ", body, flush=True)
             self.write_logs('METHOD 2 - ' + str(body), 1)
     async def consumer(self,
