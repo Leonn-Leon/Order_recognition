@@ -115,19 +115,13 @@ class Find_materials():
             # print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
-
+            ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item: item[2])[-5:][::-1]
             if new_mat in self.method2.index:
                 true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
                 ei = true_position["true_ei"]
                 val_ei = true_position["true_value"]
-                ress = []
-                ress += [(true_position["num_mat"], true_position["name_mat"])]
-                ress += [(true_position["num_mat"], true_position["name_mat"])]
-                ress += [(true_position["num_mat"], true_position["name_mat"])]
-                ress += [(true_position["num_mat"], true_position["name_mat"])]
-                ress += [(true_position["num_mat"], true_position["name_mat"])]
+                ress = [(true_position["num_mat"], true_position["name_mat"])] + ress[:-1]
             else:
-                ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item:item[2])[-5:][::-1]
                 poss[-1]['ei'] = ei.replace('тн', 'т')
                 poss[-1]['value'] = str(val_ei)
 
