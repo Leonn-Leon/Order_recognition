@@ -34,18 +34,36 @@ class Key_words():
         filtered_words = [word for word in words if word not in self.stop_words]
         return ' '.join(filtered_words).replace(' . ', ' ')
 
-    def find_category_in_line(self, line, categories):
-        for word in line.split():
-            if word in categories:
-                return word
-        return None
+    def find_category_in_line(self, line, categories, _split=True):
+        if _split:
+            for word in line.split():
+                if word in categories:
+                    return word
+            return None
+        else:
+            min_start = 1e5
+            for category in categories:
+                start = line[15:].find(category)
+                if start != -1:
+                    if start < min_start:
+                        min_start=start
+            return None if min_start == 1e5 else min_start + 15
+
 
     def process_order(self, input_order):
         lines = input_order.split("\n")
         orders = []
         current_category_description = ""
 
-        for line in lines:
+        # for line in lines:
+        indx = 0
+        end = None
+        while indx < len(lines):
+            if end is None:
+                line = lines[indx]
+                indx += 1
+            else:
+                end = None
             if len(line.split()) == 0 or not any(chr.isdigit() for chr in line):
                 current_category_description = ''
             if line.strip() == "":
@@ -54,9 +72,12 @@ class Key_words():
             if category:
                 # Находим описание категории в строке
                 start = line.find(category)
-                current_words = line[start:]
+                end = self.find_category_in_line(line[start:], self.key_words, _split=False)
+                current_words = line[start:end]
                 current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
-                orders.append(line[start:].strip())
+                orders.append(current_words.strip())
+                if end:
+                    line = line[end:]
             elif current_category_description:
                 # Добавляем описание категории к строке, если она не содержит категории
                 order_detail = f"{current_category_description} {line.strip()}"

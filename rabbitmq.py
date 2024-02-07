@@ -111,6 +111,7 @@ class Order_recognition():
     def get_message(self, body):
         body = json.loads(body)
         print(body)
+
         try:
             content = base64.standard_b64decode(base64.standard_b64decode(body['email']))\
                 .decode('utf-8')

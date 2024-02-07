@@ -95,9 +95,9 @@ class Find_materials():
                 .replace('мм', '')\
                 .replace(' -', ' ')\
                 .replace('м.', 'м') \
-                .replace('шт.', 'шт') \
+                .replace('шт', 'шт ') \
                 .replace('мп.', 'мп') \
-                .replace('кг.', 'кг') \
+                .replace('кг', 'кг ') \
                 .replace('  ', ' ')\
                 .replace(' /к', ' х/к')\
                 .replace('бу та', 'бухта') \
