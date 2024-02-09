@@ -5,6 +5,9 @@ import json
 import base64
 from datetime import datetime
 from find_ei import find_quantities_and_units
+from split_by_keys import Key_words
+import re
+import numpy as np
 
 class Find_materials():
     def __init__(self):
@@ -16,6 +19,8 @@ class Find_materials():
         self.all_materials['Материал'] = self.all_materials['Материал'].apply(str)
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
+        kw = Key_words()
+        self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(kw.split_numbers_and_words)
         print('All materials opened!', flush=True)
 
 
@@ -36,15 +41,52 @@ class Find_materials():
 
     def choose_based_on_similarity(self, text):
         nearest_mats = []
-        for material in self.all_materials.iloc[59:].values:
+        for ind, material in enumerate(self.all_materials.iloc[59:].values):
             distance = ratio(text, material[1])
             # distance = self.jaccard_distance(text, material[1])
             try:
-                nearest_mats += [(str(material[0]), material[1], distance)]
+                nearest_mats += [[str(material[0]), material[1], distance, ind+59]]
             except:
                 print(material)
         return nearest_mats
 
+    def find_top_materials_advanced(self, query, materials_df, top_n=5):
+        """
+        Расширенная функция поиска материалов, которая отдаёт приоритет совпадениям по словам и учитывает числовые параметры.
+
+        Аргументы:
+        query (str): Строка запроса от клиента.
+        materials_df (pd.DataFrame): DataFrame, содержащий данные о материалах.
+        top_n (int): Количество лучших результатов для возврата.
+
+        Возвращает:
+        pd.DataFrame: DataFrame, содержащий топовые совпадающие материалы.
+        """
+        # Разделение запроса на слова и числа
+        words = re.findall(r'\D+', query)  # Найти все нечисловые последовательности
+        numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
+        all = words + numbers
+        # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
+        def count_matches_and_numeric(query_words, query_numbers, material_name):
+            material_words = set(material_name.lower().split())  # Разбиение названия материала на слова
+            # match_count = sum(1 for word in query_words if word.lower().strip() in material_words)  # Подсчёт совпадений
+            numeric_presence = sum(1 for num in query_numbers if num.strip() in material_words)  # Подсчёт совпадений
+            # numeric_presence = any(
+            #     num in material_name for num in query_numbers)  # Проверка наличия числовых параметров
+            return numeric_presence
+
+        # Применение функции подсчёта к каждому материалу
+        materials_df["Numeric Presence"] = materials_df["Полное наименование материала"].apply(
+            lambda x: count_matches_and_numeric(words, all, x))
+
+        # Фильтрация материалов, которые имеют хотя бы одно словесное совпадение и числовые параметры
+        # filtered_materials = materials_df[(materials_df["Matches"] > 0) & (materials_df["Numeric Presence"])]
+
+        # Сортировка по количеству совпадений, наличию числовых параметров и, наконец, по длине названия
+        sorted_materials = materials_df.sort_values(by=["Numeric Presence", "Name Length"],
+                                                          ascending=[False, True])
+
+        return sorted_materials.head(top_n)
 
     def find_mats(self, rows):
         results = []
@@ -115,7 +157,11 @@ class Find_materials():
             # print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
-            ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item: item[2])[-5:][::-1]
+            # ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item: item[2])[-5:][::-1]
+            # ress = np.array(ress)
+            advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
+            print('Advanced -', advanced_search_results.values)
+            ress = advanced_search_results.values
             if new_mat in self.method2.index:
                 true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
                 ei = true_position["true_ei"]
