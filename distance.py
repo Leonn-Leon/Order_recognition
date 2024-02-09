@@ -161,7 +161,7 @@ class Find_materials():
             ress = np.array(ress)
             advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.loc[ress[:, 3].astype(np.int32)])
             print('Advanced -', advanced_search_results.values)
-            # ress = advanced_search_results.values
+            ress = advanced_search_results.values
             if new_mat in self.method2.index:
                 true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
                 ei = true_position["true_ei"]
