@@ -157,11 +157,11 @@ class Find_materials():
             # print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
-            # ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item: item[2])[-5:][::-1]
-            # ress = np.array(ress)
-            advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
+            ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item: item[2])[-30:][::-1]
+            ress = np.array(ress)
+            advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.loc[ress[:, 3].astype(np.int32)])
             print('Advanced -', advanced_search_results.values)
-            ress = advanced_search_results.values
+            # ress = advanced_search_results.values
             if new_mat in self.method2.index:
                 true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
                 ei = true_position["true_ei"]
@@ -200,79 +200,3 @@ if __name__ == '__main__':
         rows.append(line)
     print(f'Найдено {len(rows)} наименований')
     find_mats.find_mats(rows)
-'''
-@page wordsection1 
-@list l0 
-@list l0level1 
-@list l0level1 
-швеллер 16 п – 28,116т 
-0
-'''
-'''
-труба 20 2,8 гост 3262-75 
-30
-0
-
-'''
-'''
-Арматура 6 бухта А500 С 34028-16	3 кг
-Арматура 8 6м А-III 25Г2С 5781-82	8шт
-Арматура 8 бухта А-III 25Г2С 5781-82 21.2тн
-Арматура 8 бухта А500 С 34028-16	15метров
-уголок ст3  90 90 7 20м.
-               шв нут  140 60 4 12 11.0 3 м
-0
-'''
-'''
-уголок ст3  90 90 7
-               шв нут  140 60 4 12
-шв гут 100 50 4 12 м
- тр. проф 60 60 2
- 60 40 2
-60 40 3
-40 40 2
-40 20 2
-20 20 
- лист 3 1250 2500
-лист рифл 4 чечевицa
-труба вгп 32*3,2
-'''
-
-'''
-Балка 20Б1
-Швеллер 20у
-Швеллер 14у
-Швеллер 12у
-Швеллер 10у
-шв гн  160*60
-шв гн 140*60
-лист рифл 5*1500*6000
-'''
-'''
-Добрый день!
-Прошу рассчитать стоимость и срок изготовления: 
- 
-Уголок оц. 50х430х0,7мм — 1800м.
-Уголок оц. 50х460х0,7мм — 176м
-Уголок оц. 50х280х0,7мм — 265м
- 
-Длина 1,25м допускается.
-'''
-'''
-Профиль горизонтaльный ПН-6 (100х40х3000) 0,5мм  - 224шт/1 пал,
-
- Профиль стоечный ПС-6 (100х50х3000) 0,5мм  - 336шт/2 пал ,
-
-  Профиль горизонтальный ПН-2 (50х40х3000) 0,5мм - 1440шт/ 3 пал,
-
- Профиль потолочный ПП-1 (60х27х3000) 0,5мм  -1728шт/ 3 пал,
-
- Профиль (50х40х3000)  горизонтальный ПН-2   0,45мм -480шт/1 пал  ,
-
-Профиль (50х50х3000) стоечный ПС-2   0,45мм - 360шт/ 1 пал  ,
-
-  Профиль (60х27х3000) потолочный ПП-1  0,45мм -576шт/ 1 пал ,
-
- Профиль (75х50х3000) стоечный ПС-4 0,6мм 240шт/ 1 пал.
-0
-'''
