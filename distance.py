@@ -63,11 +63,13 @@ class Find_materials():
         pd.DataFrame: DataFrame, содержащий топовые совпадающие материалы.
         """
         # Разделение запроса на слова и числа
-        words = re.findall(r'\D+', query)  # Найти все нечисловые последовательности
-        numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
-        all = words + numbers
+        # words = re.findall(r'\D+', query)  # Найти все нечисловые последовательности
+        # numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
+        # all = words + numbers
+        all = query.split()
+        print(all)
         # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
-        def count_matches_and_numeric(query_words, query_numbers, material_name):
+        def count_matches_and_numeric( query_numbers, material_name):
             material_words = set(material_name.lower().split())  # Разбиение названия материала на слова
             # match_count = sum(1 for word in query_words if word.lower().strip() in material_words)  # Подсчёт совпадений
             numeric_presence = sum(1 for num in query_numbers if num.strip() in material_words)  # Подсчёт совпадений
@@ -77,7 +79,7 @@ class Find_materials():
 
         # Применение функции подсчёта к каждому материалу
         materials_df["Numeric Presence"] = materials_df["Полное наименование материала"].apply(
-            lambda x: count_matches_and_numeric(words, all, x))
+            lambda x: count_matches_and_numeric(all, x))
 
         # Фильтрация материалов, которые имеют хотя бы одно словесное совпадение и числовые параметры
         # filtered_materials = materials_df[(materials_df["Matches"] > 0) & (materials_df["Numeric Presence"])]
