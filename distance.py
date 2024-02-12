@@ -144,7 +144,6 @@ class Find_materials():
                 .replace(' /к', ' х/к')\
                 .replace('бу та', 'бухта') \
                 .replace('гост', '') + ' '
-            new_mat = new_mat.replace('профтруба', 'труба профил')
             if len([i for i in new_mat if i.isdigit()]) == 0:
                 no_numbers = True
                 continue
