@@ -153,14 +153,20 @@ class Find_materials():
                     .replace('п ', ' п ')
             if 'арматура' in new_mat:
                 new_mat = new_mat.replace(' i', ' a-i')
+
             val_ei, ei = find_quantities_and_units(new_mat)
             # print('Поиск едениц измерения -', end - start)
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
+            poss[-1]['request_text'] = new_mat
+
+            new_mat = new_mat.replace('рулон', 'лист')
+
             ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item: item[2])[-30:][::-1]
             ress = np.array(ress)
             advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.loc[ress[:, 3].astype(np.int32)])
-            print('Advanced -', advanced_search_results.values)
+            # advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
+            # print('Advanced -', advanced_search_results.values)
             ress = advanced_search_results.values
             if new_mat in self.method2.index:
                 true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
@@ -171,7 +177,6 @@ class Find_materials():
                 poss[-1]['ei'] = ei.replace('тн', 'т')
                 poss[-1]['value'] = str(val_ei)
 
-            poss[-1]['request_text'] = new_mat
             print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
 
