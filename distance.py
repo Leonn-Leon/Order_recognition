@@ -11,7 +11,7 @@ import numpy as np
 
 class Find_materials():
     def __init__(self):
-        self.all_materials = pd.read_csv('data/mats.csv')
+        self.all_materials = pd.read_csv('data/mats2.csv')
         self.method2 = pd.read_csv('data/method2.csv', index_col='question')
         self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
         self.all_materials['Полное наименование материала'] = self.all_materials['Полное наименование материала'].apply(
