@@ -173,7 +173,7 @@ class Find_materials():
                 true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
                 ei = true_position["true_ei"]
                 val_ei = true_position["true_value"]
-                ress = [(true_position["num_mat"], true_position["name_mat"])] + ress[:-1]
+                ress = [[true_position["num_mat"], true_position["name_mat"]]] + list(ress[:-1])
             else:
                 poss[-1]['ei'] = ei.replace('тн', 'т')
                 poss[-1]['value'] = str(val_ei)
