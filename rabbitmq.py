@@ -49,7 +49,6 @@ class Order_recognition():
             self.write_logs('Получилось взять ответы МЕТОД 2', 1)
             print('Получилось взять ответы МЕТОД 2', flush=True)
             body = json.loads(content)
-            this_client_only = True if body['spec_mat'] == 'X' else False
             print("METHOD 2 - ", body, flush=True)
             self.write_logs('METHOD 2 - ' + str(body), 1)
             req_Number = body['req_number']
@@ -60,6 +59,7 @@ class Order_recognition():
                     request_text = positions[int(pos['position_id'])]['request_text']
                     true_mat = self.find_mats.all_materials[self.find_mats.all_materials['Материал'].\
                             str.contains(str(int(pos['true_material'])))]['Полное наименование материала'].values[0]
+                    this_client_only = True if pos['spec_mat'] == 'X' else False
                     res = str({'num_mat':str(int(pos['true_material'])),
                                 'name_mat':true_mat,
                                 'true_ei':pos['true_ei'],
