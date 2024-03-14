@@ -157,12 +157,13 @@ class Find_materials():
 
             val_ei, ei = find_quantities_and_units(new_mat)
             # print('Поиск едениц измерения -', end - start)
+            if 'ao ' in new_mat or '"' in new_mat:
+                continue
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
             poss[-1]['request_text'] = new_mat
 
             new_mat = new_mat.replace('рулон', 'лист')
-
             ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item: item[2])[-30:][::-1]
             ress = np.array(ress)
             advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.loc[ress[:, 3].astype(np.int32)])
