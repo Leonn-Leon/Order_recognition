@@ -17,7 +17,7 @@ COPY find_ei.py find_ei.py
 COPY split_by_keys.py split_by_keys.py
 COPY logs logs
 RUN mkdir data
-COPY data/mats2.csv data/mats2.csv
+COPY data/mats3.csv data/mats3.csv
 COPY data/categories.csv data/categories.csv
 COPY data/saves.csv data/saves.csv
 COPY data/method2.csv data/method2.csv
