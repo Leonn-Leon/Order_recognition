@@ -172,10 +172,10 @@ class Find_materials():
             ress = advanced_search_results.values
             if new_mat in self.method2.index:
                 true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
-                ei = true_position["true_ei"]
-                poss[-1]['ei'] = 'шт' if ei == '' else ei
-                val_ei = true_position["true_value"]
-                poss[-1]['value'] = val_ei
+                # ei = true_position["true_ei"]
+                # poss[-1]['ei'] = 'шт' if ei == '' else ei
+                # val_ei = true_position["true_value"]
+                # poss[-1]['value'] = val_ei
                 ress = [[true_position["num_mat"], true_position["name_mat"]]] + list(ress[:-1])
             else:
                 poss[-1]['value'] = str(val_ei)
