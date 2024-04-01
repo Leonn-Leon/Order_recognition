@@ -130,7 +130,6 @@ class Find_materials():
                 .replace('тр ', 'труба ') \
                 .replace('тр. ', 'труба ') \
                 .replace('проф ', 'профиль ')\
-                .replace('профильная', 'проф') \
                 .replace('оцинкованный', 'оц') \
                 .replace('*', ' ') \
                 .replace('метра', 'м ') \
