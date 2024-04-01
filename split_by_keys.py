@@ -28,7 +28,6 @@ class Key_words():
         # Удаление знаков препинания
         # text = re.sub(r'[^\w\s]', ' ', text)
         text = text.replace(',', '.').replace('двутавр', 'профиль')
-        print(text)
         # Токенизация и фильтрация стоп-слов
         words = word_tokenize(text)
         filtered_words = [word for word in words if word not in self.stop_words]
@@ -72,16 +71,16 @@ class Key_words():
             if category:
                 # Находим описание категории в строке
                 start = line.find(category)
-                end = self.find_category_in_line(line[start:], self.key_words, _split=False)
-                current_words = line[start:end]
-                current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
+                # end = self.find_category_in_line(line[start:], self.key_words, _split=False)
+                current_words = line[start:]
+                # current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
                 orders.append(current_words.strip())
-                if end:
-                    line = line[end:]
-            elif current_category_description:
-                # Добавляем описание категории к строке, если она не содержит категории
-                order_detail = f"{current_category_description} {line.strip()}"
-                orders.append(order_detail)
+                # if end:
+                #     line = line[end:]
+            # elif current_category_description:
+            #     Добавляем описание категории к строке, если она не содержит категории
+                # order_detail = f"{current_category_description} {line.strip()}"
+                # orders.append(order_detail)
 
         return orders
 
@@ -96,10 +95,9 @@ class Key_words():
 
     def find_key_words(self, text):
         text = text.lower()  # Приведение текста к нижнему регистру
-        text = self.split_numbers_and_words(text).replace('*', ' ').replace('х',' ')\
-            .replace('тр.', 'труба').replace('пр ', 'профиль ').replace('двутавр', 'профиль')\
-            .replace('угол ', 'уголок ').replace('профтруба', 'труба проф')
+        text = self.split_numbers_and_words(text).replace('пр ', 'профиль ').replace('двутавр', 'профиль')
         # text = self.preprocess_text(text)
+        print('text', text)
         return self.process_order(text)
 
 if __name__ == '__main__':

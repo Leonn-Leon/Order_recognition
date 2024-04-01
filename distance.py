@@ -1,4 +1,6 @@
 from Levenshtein import ratio
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import pairwise_distances
 import pandas as pd
 import uuid
 import json
@@ -11,7 +13,7 @@ import numpy as np
 
 class Find_materials():
     def __init__(self):
-        self.all_materials = pd.read_csv('data/mats2.csv')
+        self.all_materials = pd.read_csv('data/mats3.csv')
         self.method2 = pd.read_csv('data/method2.csv', index_col='question')
         self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
         self.all_materials['Полное наименование материала'] = self.all_materials['Полное наименование материала'].apply(
@@ -21,6 +23,8 @@ class Find_materials():
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
         kw = Key_words()
         self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(kw.split_numbers_and_words)
+        self.vectorizer = TfidfVectorizer()
+        self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
         print('All materials opened!', flush=True)
 
 
@@ -40,15 +44,10 @@ class Find_materials():
         return 1 - intersection / union
 
     def choose_based_on_similarity(self, text):
-        nearest_mats = []
-        for ind, material in enumerate(self.all_materials.iloc[59:].values):
-            distance = ratio(text, material[1])
-            # distance = self.jaccard_distance(text, material[1])
-            try:
-                nearest_mats += [[str(material[0]), material[1], distance, ind+59]]
-            except:
-                print(material)
-        return nearest_mats
+        tfidf_query = self.vectorizer.transform([text])
+        euclidean = pairwise_distances(tfidf_query, self.tfidf_matrix, metric='euclidean').flatten()
+        max_similarity_idxs = np.argsort(euclidean)
+        return max_similarity_idxs
 
     def find_top_materials_advanced(self, query, materials_df, top_n=5):
         """
@@ -67,7 +66,7 @@ class Find_materials():
         # numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
         # all = words + numbers
         all = query.split()
-        print(all)
+        print('second metric -', all)
         # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
         def count_matches_and_numeric( query_numbers, material_name):
             material_words = set(material_name.lower().split())  # Разбиение названия материала на слова
@@ -164,9 +163,9 @@ class Find_materials():
             poss[-1]['request_text'] = new_mat
 
             new_mat = new_mat.replace('рулон', 'лист')
-            ress = sorted(self.choose_based_on_similarity(new_mat), key=lambda item: item[2])[-30:][::-1]
+            ress = self.choose_based_on_similarity(new_mat)
             ress = np.array(ress)
-            advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.loc[ress[:, 3].astype(np.int32)])
+            advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.iloc[ress[:15]])
             # advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
             # print('Advanced -', advanced_search_results.values)
             ress = advanced_search_results.values
