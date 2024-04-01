@@ -3,5 +3,6 @@ aio_pika==9.3.0
 uuid
 asyncio
 nltk==3.8.1
+scikit-learn==1.4.1.post1
 python-Levenshtein
 beautifulsoup4
