@@ -71,16 +71,16 @@ class Key_words():
             if category:
                 # Находим описание категории в строке
                 start = line.find(category)
-                # end = self.find_category_in_line(line[start:], self.key_words, _split=False)
+                end = self.find_category_in_line(line[start:], self.key_words, _split=False)
                 current_words = line[start:]
-                # current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
+                current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
                 orders.append(current_words.strip())
-                # if end:
-                #     line = line[end:]
-            # elif current_category_description:
-            #     Добавляем описание категории к строке, если она не содержит категории
-                # order_detail = f"{current_category_description} {line.strip()}"
-                # orders.append(order_detail)
+                if end:
+                    line = line[end:]
+            elif current_category_description:
+                # Добавляем описание категории к строке, если она не содержит категории
+                order_detail = f"{current_category_description} {line.strip()}"
+                orders.append(order_detail)
 
         return orders
 
