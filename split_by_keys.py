@@ -72,7 +72,7 @@ class Key_words():
                 # Находим описание категории в строке
                 start = line.find(category)
                 end = self.find_category_in_line(line[start:], self.key_words, _split=False)
-                current_words = line[start:]
+                current_words = line[start:end]
                 current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
                 orders.append(current_words.strip())
                 if end:
