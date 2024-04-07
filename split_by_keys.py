@@ -38,6 +38,12 @@ class Key_words():
             for word in line.split():
                 if word in categories:
                     return word
+                if word[-1] == 'ы':
+                    if word[:-1] in categories:
+                        return word
+                if word[-1] == 'и':
+                    if word[:-1] + 'а' in categories:
+                        return word
             return None
         else:
             min_start = 1e5
