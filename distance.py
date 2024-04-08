@@ -3,6 +3,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import pairwise_distances
 import pandas as pd
 import uuid
+import pickle
 import json
 import base64
 from datetime import datetime
@@ -25,6 +26,10 @@ class Find_materials():
         self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(kw.split_numbers_and_words)
         self.vectorizer = TfidfVectorizer()
         self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
+        # with open("data/model.pkl", "wb") as f:
+        #     pickle.dump(self.vectorizer, f)
+        # with open('data/model.pkl', 'rb') as fp:
+        #     self.vectorizer = pickle.load(fp)
         print('All materials opened!', flush=True)
 
 
@@ -43,9 +48,15 @@ class Find_materials():
         union = len(a.union(b))
         return 1 - intersection / union
 
-    def choose_based_on_similarity(self, text):
+    def choose_based_on_similarity(self, text, cat):
         tfidf_query = self.vectorizer.transform([text])
         euclidean = pairwise_distances(tfidf_query, self.tfidf_matrix, metric='euclidean').flatten()
+        tr = self.all_materials["Полное наименование материала"].str.split().apply(lambda x: x[0]) == cat
+        # print(self.all_materials[tr])
+        # print(self.all_materials["Полное наименование материала"].str.split())
+        # print('Вот тут -', tr.sum())
+        if tr.sum() > 0:
+            euclidean[self.all_materials[~tr].index] = 1e3
         max_similarity_idxs = np.argsort(euclidean)
         return max_similarity_idxs
 
@@ -66,6 +77,14 @@ class Find_materials():
         # numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
         # all = words + numbers
         all = query.split()
+        # new_lines = []
+        # for word in all:
+        #     new_word = word
+        #     if word.isdigit():
+        #         if int(word) % 100 == 0:
+        #             new_num = str(int(word) / 1000)
+        #             new_word = new_num
+        #     new_lines += [new_word]
         print('second metric -', all)
         # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
         def count_matches_and_numeric( query_numbers, material_name):
@@ -95,7 +114,7 @@ class Find_materials():
         poss = []
         no_numbers = False
         pos_id = 0
-        for _, row in enumerate(rows):
+        for _, (cat, row) in enumerate(rows):
             around_materials = {}
             min_dis = 1e5
             if len(row.split()) == 0 or row[0]=='+':
@@ -114,24 +133,19 @@ class Find_materials():
             else:
                 new_mat = new_row
             new_mat = new_mat.lower()\
+                .replace('(', ' ') \
+                .replace(')', ' ') \
                 .replace('оцинк ', 'оц ') \
-                .replace(' оц.', ' оц ') \
                 .replace(':', '')
             new_mat = new_mat.replace('шв ', 'швеллер ') \
                 .replace('количестве', '') \
-                .replace('гн ', 'гнутый ') \
-                .replace('гнут ', 'гнутый ') \
-                .replace('нут ', 'гнутый ') \
-                .replace('гут ', 'гнутый ') \
                 .replace('тр ', 'труба ') \
                 .replace('тр. ', 'труба ') \
                 .replace('проф ', 'профиль ')\
-                .replace('оцинкованный', 'оц') \
                 .replace('*', ' ') \
                 .replace('метра', 'м ') \
                 .replace('метров', 'м ')\
                 .replace('мм', '')\
-                .replace(' -', ' ')\
                 .replace('м.', 'м') \
                 .replace('шт', 'шт ') \
                 .replace('мп.', 'мп') \
@@ -146,8 +160,8 @@ class Find_materials():
             if 'швеллер' in new_mat:
                 new_mat = new_mat.replace('у ', ' у ')\
                     .replace('п ', ' п ')
-            if 'арматура' in new_mat:
-                new_mat = new_mat.replace(' i', ' a-i')
+            # if 'арматура' in new_mat:
+            #     new_mat = new_mat.replace(' i', ' a-i')
 
             val_ei, ei = find_quantities_and_units(new_mat)
             # print('Поиск едениц измерения -', end - start)
@@ -156,9 +170,25 @@ class Find_materials():
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
             poss[-1]['request_text'] = new_mat
-
-            new_mat = new_mat.replace('рулон', 'лист')
-            ress = self.choose_based_on_similarity(new_mat)
+            new_mat += ' '
+            if cat == 'рулон':
+                cat = 'лист'
+            new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ').replace('оцинкованный', 'оц')
+            ind = [m.start() for m in re.finditer(f' {val_ei} ', new_mat +' ')][-1]
+            try:
+                new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei} ', ' ')
+            except:
+                pass
+            new_lines = ''
+            for word in new_mat.split():
+                new_word = word
+                if word.isdigit():
+                    if int(word) % 100 == 0:
+                        new_num = str(int(word) / 1000)
+                        new_word = new_num
+                new_lines += new_word + ' '
+            new_mat = new_lines
+            ress = self.choose_based_on_similarity(new_mat, cat)
             ress = np.array(ress)
             advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.iloc[ress[:15]])
             # advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
@@ -174,7 +204,6 @@ class Find_materials():
             else:
                 poss[-1]['value'] = str(val_ei)
                 poss[-1]['ei'] = ei.replace('тн', 'т')
-
             print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
 

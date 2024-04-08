@@ -37,30 +37,30 @@ class Key_words():
         if _split:
             for word in line.split():
                 if word in categories:
-                    return word
+                    return word, word
                 if word[-1] == 'ы':
                     if word[:-1] in categories:
-                        return word
+                        return word[:-1], word
                 if word[-1] == 'и':
                     if word[:-1] + 'а' in categories:
-                        return word
-            return None
+                        return word[:-1] + 'а', word
+            return None, None
         else:
             min_start = 1e5
+            cat = ''
             for category in categories:
                 start = line[15:].find(category)
                 if start != -1:
                     if start < min_start:
                         min_start=start
-            return None if min_start == 1e5 else min_start + 15
+                        cat = category
+            return (None, None) if min_start == 1e5 else (cat, min_start + 15)
 
 
     def process_order(self, input_order):
         lines = input_order.split("\n")
         orders = []
         current_category_description = ""
-
-        # for line in lines:
         indx = 0
         end = None
         while indx < len(lines):
@@ -73,25 +73,26 @@ class Key_words():
                 current_category_description = ''
             if line.strip() == "":
                 continue
-            category = self.find_category_in_line(line, self.key_words)
+            cat, category = self.find_category_in_line(line, self.key_words)
             if category:
                 # Находим описание категории в строке
                 start = line.find(category)
-                end = self.find_category_in_line(line[start:], self.key_words, _split=False)
+                _, end = self.find_category_in_line(line[start:], self.key_words, _split=False)
                 current_words = line[start:end]
                 current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
-                orders.append(current_words.strip())
+                orders.append((cat, current_words.strip()))
                 if end:
                     line = line[end:]
             elif current_category_description:
                 # Добавляем описание категории к строке, если она не содержит категории
                 order_detail = f"{current_category_description} {line.strip()}"
-                orders.append(order_detail)
+                orders.append((current_category_description.split()[0], order_detail))
 
         return orders
 
     def split_numbers_and_words(self, s):
         # Разделяем числа и буквы
+        s = s.lower()
         s = re.sub(r'(?<=\d)(?=[а-яА-Яa-zA-Z])', ' ', s)
         # Разделяем буквы и числа
         s = re.sub(r'(?<=[а-яА-Яa-zA-Z])(?=\d)', ' ', s)
@@ -101,7 +102,7 @@ class Key_words():
 
     def find_key_words(self, text):
         text = text.lower()  # Приведение текста к нижнему регистру
-        text = self.split_numbers_and_words(text).replace('пр ', 'профиль ').replace('двутавр', 'профиль')\
+        text = self.split_numbers_and_words(text).replace('пр ', 'профиль ')\
             .replace('?', '').replace('-', ' ')
         # text = self.preprocess_text(text)
         print('text', text)

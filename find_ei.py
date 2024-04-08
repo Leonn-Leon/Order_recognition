@@ -12,7 +12,7 @@ def find_quantities_and_units(text):
         if unit:
             quantities_and_units.append((quantity, unit))
     if len(quantities_and_units) == 0:
-        return ('1', 'шт')
+        return ('', 'шт')
     return quantities_and_units[-1]
 
 
