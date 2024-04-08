@@ -114,10 +114,6 @@ class Find_materials():
             else:
                 new_mat = new_row
             new_mat = new_mat.lower()\
-                .replace('(', '') \
-                .replace(')', '') \
-                .replace(' -', ' ')\
-                .replace(' —', ' ')\
                 .replace('оцинк ', 'оц ') \
                 .replace(' оц.', ' оц ') \
                 .replace(':', '')
