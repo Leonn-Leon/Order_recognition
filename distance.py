@@ -173,7 +173,7 @@ class Find_materials():
             new_mat += ' '
             if cat == 'рулон':
                 cat = 'лист'
-            new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ').replace('оцинкованный', 'оц')
+            new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ').replace('оцинк', 'оц ')
             ind = [m.start() for m in re.finditer(f' {val_ei} ', new_mat +' ')][-1]
             try:
                 new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei} ', ' ')
