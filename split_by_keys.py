@@ -101,10 +101,27 @@ class Key_words():
         s = s.replace(' -', ' ')
         return s
 
+    def replace_words(self, text, part, category):
+        # Шаблон для поиска слов с корнем "тр"
+        pattern = r'\b'+part+r'[а-яё]*\b'
+        # Замена найденных слов на "труба"
+        replaced_text = re.sub(pattern, category, text)
+        return replaced_text
+
     def find_key_words(self, text):
         text = text.lower()  # Приведение текста к нижнему регистру
-        text = self.split_numbers_and_words(text).replace('пр ', 'профиль ')\
-            .replace('?', '').replace('-', ' ').replace('арм', 'арматура ')
+        text = self.split_numbers_and_words(text).replace('пр ', 'профиль ') \
+            .replace('?', '').replace('-', ' ')
+        text = self.replace_words(text, 'тр', 'труба')
+        text = self.replace_words(text, 'арм', 'арматура')
+        text = self.replace_words(text, 'проф', 'профиль')
+        text = self.replace_words(text, 'лист', 'лист')
+        text = self.replace_words(text, 'угол', 'уголок')
+        text = self.replace_words(text, 'шв', 'швеллер')
+        text = self.replace_words(text, 'штук', 'шт')
+        text = self.replace_words(text, 'метр', 'м')
+        text = self.replace_words(text, 'колич', 'шт')
+        text = self.replace_words(text, 'оц', 'оц')
         ind = text.find('с уваж')
         text = text[:ind]
         print('Я тут -', text)

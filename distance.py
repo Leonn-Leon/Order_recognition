@@ -127,25 +127,13 @@ class Find_materials():
             new_mat = new_mat.lower()\
                 .replace('(', ' ') \
                 .replace(')', ' ') \
-                .replace('оцинк ', 'оц ') \
                 .replace(':', '')
-            new_mat = new_mat.replace('шв ', 'швеллер ') \
-                .replace('количестве', '') \
-                .replace('тр ', 'труба ') \
-                .replace('тр. ', 'труба ') \
-                .replace('проф ', 'профиль ')\
-                .replace('*', ' ') \
-                .replace('метра', 'м ') \
-                .replace('метров', 'м ')\
+            new_mat = new_mat.replace('*', ' ') \
                 .replace('мм', '')\
                 .replace('м.', 'м') \
-                .replace('шт', 'шт ') \
                 .replace('мп.', 'мп') \
                 .replace('кг', 'кг ') \
-                .replace('  ', ' ')\
                 .replace('=', ' ')\
-                .replace(' /к', ' х/к')\
-                .replace('бу та', 'бухта') \
                 .replace('гост', '') + ' '
             if len([i for i in new_mat if i.isdigit()]) == 0:
                 no_numbers = True
@@ -166,7 +154,7 @@ class Find_materials():
             new_mat += ' '
             if cat == 'рулон':
                 cat = 'лист'
-            new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ').replace('оцинк', 'оц ')
+            new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
             try:
                 ind = [m.start() for m in re.finditer(f' {val_ei} ', new_mat +' ')][-1]
                 new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei} ', ' ')
