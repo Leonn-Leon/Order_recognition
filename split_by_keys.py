@@ -49,12 +49,12 @@ class Key_words():
             min_start = 1e5
             cat = ''
             for category in categories:
-                start = line[15:].find(category)
+                start = line.find(category)
                 if start != -1:
                     if start < min_start:
                         min_start=start
                         cat = category
-            return (None, None) if min_start == 1e5 else (cat, min_start + 15)
+            return (None, None) if min_start == 1e5 else (cat, min_start)
 
 
     def process_order(self, input_order):
@@ -63,7 +63,7 @@ class Key_words():
         current_category_description = ""
         indx = 0
         end = None
-        while indx < len(lines):
+        while indx < len(lines) or end is not None:
             if end is None:
                 line = lines[indx]
                 indx += 1
@@ -77,12 +77,13 @@ class Key_words():
             if category:
                 # Находим описание категории в строке
                 start = line.find(category)
-                _, end = self.find_category_in_line(line[start:], self.key_words, _split=False)
-                current_words = line[start:end]
+                _, end = self.find_category_in_line(line[start+len(category):], self.key_words, _split=False)
+                current_words = line[start:(start+len(category)+end if end is not None else None)]
                 current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
                 orders.append((cat, current_words.strip()))
                 if end:
-                    line = line[end:]
+                    line = line[(start+len(category)+end if end is not None else None):]
+                print(line)
             elif current_category_description:
                 # Добавляем описание категории к строке, если она не содержит категории
                 order_detail = f"{current_category_description} {line.strip()}"
@@ -104,8 +105,10 @@ class Key_words():
         text = text.lower()  # Приведение текста к нижнему регистру
         text = self.split_numbers_and_words(text).replace('пр ', 'профиль ')\
             .replace('?', '').replace('-', ' ').replace('арм', 'арматура ')
+        ind = text.find('с уваж')
+        text = text[:ind]
+        print('Я тут -', text)
         # text = self.preprocess_text(text)
-        print('text', text)
         return self.process_order(text)
 
 if __name__ == '__main__':

@@ -77,14 +77,6 @@ class Find_materials():
         # numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
         # all = words + numbers
         all = query.split()
-        # new_lines = []
-        # for word in all:
-        #     new_word = word
-        #     if word.isdigit():
-        #         if int(word) % 100 == 0:
-        #             new_num = str(int(word) / 1000)
-        #             new_word = new_num
-        #     new_lines += [new_word]
         print('second metric -', all)
         # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
         def count_matches_and_numeric( query_numbers, material_name):
@@ -151,6 +143,7 @@ class Find_materials():
                 .replace('мп.', 'мп') \
                 .replace('кг', 'кг ') \
                 .replace('  ', ' ')\
+                .replace('=', ' ')\
                 .replace(' /к', ' х/к')\
                 .replace('бу та', 'бухта') \
                 .replace('гост', '') + ' '
@@ -174,11 +167,11 @@ class Find_materials():
             if cat == 'рулон':
                 cat = 'лист'
             new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ').replace('оцинк', 'оц ')
-            ind = [m.start() for m in re.finditer(f' {val_ei} ', new_mat +' ')][-1]
             try:
+                ind = [m.start() for m in re.finditer(f' {val_ei} ', new_mat +' ')][-1]
                 new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei} ', ' ')
             except:
-                pass
+                self.write_logs('Ошибка с поиском ei', event=0)
             new_lines = ''
             for word in new_mat.split():
                 new_word = word
