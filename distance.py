@@ -1,5 +1,6 @@
 from Levenshtein import ratio
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import SVC
 from sklearn.metrics.pairwise import pairwise_distances
 import pandas as pd
 import uuid
@@ -26,6 +27,7 @@ class Find_materials():
         self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(kw.split_numbers_and_words)
         self.vectorizer = TfidfVectorizer()
         self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
+        # model = SVC()
         # with open("data/model.pkl", "wb") as f:
         #     pickle.dump(self.vectorizer, f)
         # with open('data/model.pkl', 'rb') as fp:
@@ -150,7 +152,6 @@ class Find_materials():
                 continue
             poss+=[{'position_id':str(pos_id)}]
             pos_id += 1
-            poss[-1]['request_text'] = new_mat
             new_mat += ' '
             if cat == 'рулон':
                 cat = 'лист'
@@ -169,12 +170,15 @@ class Find_materials():
                         new_word = new_num
                 new_lines += new_word + ' '
             new_mat = new_lines
+            # ress =  model.predict_proba(new_mat)
+            # ress = np.array(ress)[:50]
             ress = self.choose_based_on_similarity(new_mat, cat)
             ress = np.array(ress)
             advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.iloc[ress[:15]])
             # advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
             # print('Advanced -', advanced_search_results.values)
             ress = advanced_search_results.values
+            poss[-1]['request_text'] = new_mat
             if new_mat in self.method2.index:
                 true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
                 # ei = true_position["true_ei"]
