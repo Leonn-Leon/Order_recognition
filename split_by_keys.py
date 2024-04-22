@@ -114,7 +114,7 @@ class Key_words():
             .replace('?', '').replace('-', ' ')
         text = self.replace_words(text, 'тр', 'труба')
         text = self.replace_words(text, 'арм', 'арматура')
-        text = self.replace_words(text, 'проф', 'профиль')
+        # text = self.replace_words(text, 'проф', 'профиль')
         text = self.replace_words(text, 'лист', 'лист')
         text = self.replace_words(text, 'угол', 'уголок')
         text = self.replace_words(text, 'шв', 'швеллер')
