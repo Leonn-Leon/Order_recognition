@@ -37,14 +37,8 @@ class Key_words():
         if _split:
             for word in line.split():
                 if word in categories:
-                    return word, word
-                if word[-1] == 'ы':
-                    if word[:-1] in categories:
-                        return word[:-1], word
-                if word[-1] == 'и':
-                    if word[:-1] + 'а' in categories:
-                        return word[:-1] + 'а', word
-            return None, None
+                    return word
+            return None
         else:
             min_start = 1e5
             cat = ''
@@ -73,14 +67,14 @@ class Key_words():
                 current_category_description = ''
             if line.strip() == "":
                 continue
-            cat, category = self.find_category_in_line(line, self.key_words)
+            category = self.find_category_in_line(line, self.key_words)
             if category:
                 # Находим описание категории в строке
                 start = line.find(category)
                 _, end = self.find_category_in_line(line[start+len(category):], self.key_words, _split=False)
                 current_words = line[start:(start+len(category)+end if end is not None else None)]
                 current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
-                orders.append((cat, current_words.strip()))
+                orders.append((category, current_words.strip()))
                 if end:
                     line = line[(start+len(category)+end if end is not None else None):]
                 print(line)
@@ -98,7 +92,8 @@ class Key_words():
         # Разделяем буквы и числа
         s = re.sub(r'(?<=[а-яА-Яa-zA-Z])(?=\d)', ' ', s)
         s = re.sub(r'(\d+),(\d+)', r'\1.\2', s)
-        s = s.replace(' -', ' ')
+        s = re.sub(r'([а-яА-Яa-zA-Z])\.', r'\1', s)
+        s = re.sub(r'[^\w\s.]', ' ', s)
         return s
 
     def replace_words(self, text, part, category):
@@ -110,8 +105,7 @@ class Key_words():
 
     def find_key_words(self, text):
         text = text.lower()  # Приведение текста к нижнему регистру
-        text = self.split_numbers_and_words(text).replace('пр ', 'профиль ') \
-            .replace('?', '').replace('-', ' ')
+        # text = self.split_numbers_and_words(text)
         text = self.replace_words(text, 'тр', 'труба')
         text = self.replace_words(text, 'арм', 'арматура')
         # text = self.replace_words(text, 'проф', 'профиль')
@@ -122,8 +116,8 @@ class Key_words():
         text = self.replace_words(text, 'метр', 'м')
         text = self.replace_words(text, 'колич', 'шт')
         text = self.replace_words(text, 'оц', 'оц')
-        ind = text.find('с уваж')
-        text = text[:ind]
+        # ind = text.find('с уваж')
+        # text = text[:ind]
         print('Я тут -', text)
         # text = self.preprocess_text(text)
         return self.process_order(text)

@@ -23,8 +23,8 @@ class Find_materials():
         self.all_materials['Материал'] = self.all_materials['Материал'].apply(str)
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
-        kw = Key_words()
-        self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(kw.split_numbers_and_words)
+        self.kw = Key_words()
+        self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(self.kw.split_numbers_and_words)
         self.vectorizer = TfidfVectorizer()
         self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
         # model = SVC()
@@ -114,28 +114,12 @@ class Find_materials():
             if len(row.split()) == 0 or row[0]=='+':
                 continue
             new_row = ' '.join(row.split())
-            if (ord(new_row[0]) > 65 and ord(new_row[0]) < 123):
-                continue
-            if new_row[0].isdigit():
-                if len(new_row.split()) == 1:
-                    continue
-                if no_numbers:
-                    new_mat = new_mat + new_row
-                    no_numbers = False
-                else:
-                    new_mat = ' '.join(new_mat.split()[:-len(new_row.split())])+ ' ' + new_row
-            else:
-                new_mat = new_row
-            new_mat = new_mat.lower()\
-                .replace('(', ' ') \
-                .replace(')', ' ') \
-                .replace(':', '')
+            new_mat = new_row
+            poss += [{'position_id': str(pos_id)}]
+            poss[-1]['request_text'] = new_mat
+            new_mat = self.kw.split_numbers_and_words(new_mat)
             new_mat = new_mat.replace('*', ' ') \
                 .replace('мм', '')\
-                .replace('м.', 'м') \
-                .replace('мп.', 'мп') \
-                .replace('кг', 'кг ') \
-                .replace('=', ' ')\
                 .replace('гост', '') + ' '
             if len([i for i in new_mat if i.isdigit()]) == 0:
                 no_numbers = True
@@ -165,7 +149,7 @@ class Find_materials():
             for word in new_mat.split():
                 new_word = word
                 if word.isdigit():
-                    if int(word) % 100 == 0:
+                    if int(word) % 100 == 0 and len(word) >= 4:
                         new_num = str(int(word) / 1000)
                         new_word = new_num
                 new_lines += new_word + ' '
@@ -178,7 +162,7 @@ class Find_materials():
             # advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
             # print('Advanced -', advanced_search_results.values)
             ress = advanced_search_results.values
-            poss[-1]['request_text'] = new_mat
+            # poss[-1]['request_text'] = new_mat
             if new_mat in self.method2.index:
                 true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
                 # ei = true_position["true_ei"]
@@ -186,9 +170,8 @@ class Find_materials():
                 # val_ei = true_position["true_value"]
                 # poss[-1]['value'] = val_ei
                 ress = [[true_position["num_mat"], true_position["name_mat"]]] + list(ress[:-1])
-            else:
-                poss[-1]['value'] = str(val_ei)
-                poss[-1]['ei'] = ei.replace('тн', 'т')
+            poss[-1]['value'] = str(val_ei)
+            poss[-1]['ei'] = ei.replace('тн', 'т')
             print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
 
