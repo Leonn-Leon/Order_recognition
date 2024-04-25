@@ -117,6 +117,7 @@ class Find_materials():
             new_mat = new_row
             poss += [{'position_id': str(pos_id)}]
             poss[-1]['request_text'] = new_mat
+            pos_id += 1
             new_mat = self.kw.split_numbers_and_words(new_mat)
             new_mat = new_mat.replace('*', ' ') \
                 .replace('мм', '')\
@@ -134,8 +135,6 @@ class Find_materials():
             # print('Поиск едениц измерения -', end - start)
             if 'ao ' in new_mat or '"' in new_mat:
                 continue
-            poss+=[{'position_id':str(pos_id)}]
-            pos_id += 1
             new_mat += ' '
             if cat == 'рулон':
                 cat = 'лист'
