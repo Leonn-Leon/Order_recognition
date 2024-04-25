@@ -115,26 +115,21 @@ class Find_materials():
                 continue
             new_row = ' '.join(row.split())
             new_mat = new_row
-            poss += [{'position_id': str(pos_id)}]
-            poss[-1]['request_text'] = new_mat
-            pos_id += 1
-            new_mat = self.kw.split_numbers_and_words(new_mat)
-            new_mat = new_mat.replace('*', ' ') \
-                .replace('мм', '')\
-                .replace('гост', '') + ' '
+
             if len([i for i in new_mat if i.isdigit()]) == 0:
-                no_numbers = True
+                continue
+            if 'ao ' in new_mat or '"' in new_mat:
                 continue
             if 'швеллер' in new_mat:
                 new_mat = new_mat.replace('у ', ' у ')\
                     .replace('п ', ' п ')
-            # if 'арматура' in new_mat:
-            #     new_mat = new_mat.replace(' i', ' a-i')
-
+            poss += [{'position_id': str(pos_id)}]
+            poss[-1]['request_text'] = new_mat
+            pos_id += 1
+            new_mat = self.kw.split_numbers_and_words(new_mat)
             val_ei, ei = find_quantities_and_units(new_mat)
             # print('Поиск едениц измерения -', end - start)
-            if 'ao ' in new_mat or '"' in new_mat:
-                continue
+
             new_mat += ' '
             if cat == 'рулон':
                 cat = 'лист'
