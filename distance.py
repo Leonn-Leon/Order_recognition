@@ -158,7 +158,7 @@ class Find_materials():
             ress = advanced_search_results.values
             # poss[-1]['request_text'] = new_mat
             if poss[-1]['request_text'] in self.method2.index:
-                true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
+                true_position = json.loads(base64.b64decode(self.method2.loc[poss[-1]['request_text']].answer).decode('utf-8').replace("'", '"'))
                 # ei = true_position["true_ei"]
                 # poss[-1]['ei'] = 'шт' if ei == '' else ei
                 # val_ei = true_position["true_value"]
