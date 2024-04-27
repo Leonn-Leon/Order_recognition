@@ -57,8 +57,9 @@ class Order_recognition():
                 true_positions = body['positions']
                 for ind, pos in enumerate(true_positions):
                     request_text = positions[int(pos['position_id'])]['request_text']
-                    true_mat = self.find_mats.all_materials[self.find_mats.all_materials['Материал'].\
-                            str.contains(str(int(pos['true_material'])))]['Полное наименование материала'].values[0]
+                    # true_mat = self.find_mats.all_materials[self.find_mats.all_materials['Материал'].\
+                    #         str.contains(str(int(pos['true_material'])))]['Полное наименование материала'].values[0]
+                    true_mat = str(int(pos['true_material']))
                     if 'spec_mat' in pos.keys():
                         this_client_only = True if pos['spec_mat'] == 'X' else False
                     else:
