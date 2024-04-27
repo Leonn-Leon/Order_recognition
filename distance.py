@@ -108,6 +108,7 @@ class Find_materials():
         poss = []
         no_numbers = False
         pos_id = 0
+        self.method2 = pd.read_csv('data/method2.csv', index_col='question')
         for _, (cat, row) in enumerate(rows):
             around_materials = {}
             min_dis = 1e5
