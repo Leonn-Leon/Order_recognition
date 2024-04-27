@@ -160,16 +160,15 @@ class Find_materials():
             # poss[-1]['request_text'] = new_mat
             if poss[-1]['request_text'] in self.method2.index:
                 true_position = json.loads(base64.b64decode(self.method2.loc[poss[-1]['request_text']].answer).decode('utf-8').replace("'", '"'))
-                # ei = true_position["true_ei"]
-                # poss[-1]['ei'] = 'шт' if ei == '' else ei
-                # val_ei = true_position["true_value"]
-                # poss[-1]['value'] = val_ei
-                ress = [[true_position["num_mat"], true_position["name_mat"]]] + list(ress[:-1])
+                itog = []
+                for ind, i in enumerate(ress):
+                    if i[0] != true_position["num_mat"]:
+                        itog += [i]
+                ress = [[true_position["num_mat"], true_position["name_mat"]]] + (itog[:-1] if len(itog)==5 else itog)
             poss[-1]['value'] = str(val_ei)
             poss[-1]['ei'] = ei.replace('тн', 'т')
             print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
-
             for ind, pos in enumerate(ress):
                 poss[-1]['material'+str(ind+1)+'_id'] = '0'*(18-len(str(pos[0])))+str(pos[0])
 
