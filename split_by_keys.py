@@ -137,10 +137,9 @@ class Key_words():
         return replaced_text
 
     def return_replace(self, text):
-        print(self.need_to_replace)
         for match, category in self.need_to_replace.items():
-            text = text.replace(category, match)
-            # text = self.replace_first(text, category, match)
+            text = text.replace(category+' ', match+' ')
+            # text = self.replace_first(text, category+' ', match+' ')
         return text
 
     # def replace_first(self, input_string, old_word, new_word):
@@ -165,8 +164,9 @@ if __name__ == '__main__':
 
     # Обработка письма клиента
     client_message = """
-    Армат A-III 0.7м или балку 35Б1 С245 12 м. балки 35Б1 С245 12 м.
-    256 48"""
+    Армат A-III 0.7м или балку 35Б1 С245 12 м.
+    балка 35Б1 С245 12 м.
+    """
     cl = Key_words()
     client_requests = cl.find_key_words(client_message)
 
