@@ -16,18 +16,20 @@ import numpy as np
 class Find_materials():
     def __init__(self):
         self.all_materials = pd.read_csv('data/mats3.csv')
-        self.method2 = pd.read_csv('data/method2.csv', index_col='question')
+        self.method2 = pd.read_csv('data/method2.csv')#, index_col='question')
+        self.kw = Key_words()
+        self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x)[0])
+        self.method2.index = self.method2['question']
         self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
         self.all_materials['Полное наименование материала'] = self.all_materials['Полное наименование материала'].apply(
             lambda x: x.replace(', ', ' '))
         self.all_materials['Материал'] = self.all_materials['Материал'].apply(str)
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
-        self.kw = Key_words()
         self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(self.kw.split_numbers_and_words)
         self.vectorizer = TfidfVectorizer()
         self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
-        # model = SVC()
+        # self.model = SVC()
         # with open("data/model.pkl", "wb") as f:
         #     pickle.dump(self.vectorizer, f)
         # with open('data/model.pkl', 'rb') as fp:
@@ -102,13 +104,36 @@ class Find_materials():
 
         return sorted_materials.head(top_n)
 
+    def new_mat_prep(self, new_mat):
+        # new_mat = new_mat.replace('/', '')
+        new_mat = self.kw.split_numbers_and_words(new_mat)
+        val_ei, ei = find_quantities_and_units(new_mat)
+        # print('Поиск едениц измерения -', end - start)
+
+        new_mat += ' '
+        new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
+        try:
+            ind = [m.start() for m in re.finditer(f' {val_ei} ', new_mat + ' ')][-1]
+            new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei} ', ' ')
+        except:
+            self.write_logs('Ошибка с поиском ei', event=0)
+        new_lines = ''
+        for word in new_mat.split():
+            new_word = word
+            if word.isdigit():
+                if int(word) % 100 == 0 and len(word) >= 4:
+                    new_num = str(int(word) / 1000)
+                    new_word = new_num
+            new_lines += new_word + ' '
+        new_mat = new_lines
+        return new_mat, val_ei, ei
+
     def find_mats(self, rows):
         results = []
         results += [{"req_Number": str(uuid.uuid4())}]
         poss = []
         no_numbers = False
         pos_id = 0
-        self.method2 = pd.read_csv('data/method2.csv', index_col='question')
         for _, (cat, row) in enumerate(rows):
             around_materials = {}
             min_dis = 1e5
@@ -116,7 +141,6 @@ class Find_materials():
                 continue
             new_row = ' '.join(row.split())
             new_mat = new_row
-
             if len([i for i in new_mat if i.isdigit()]) == 0:
                 continue
             if 'ao ' in new_mat or '"' in new_mat:
@@ -127,29 +151,12 @@ class Find_materials():
             poss += [{'position_id': str(pos_id)}]
             poss[-1]['request_text'] = new_mat
             pos_id += 1
-            new_mat = self.kw.split_numbers_and_words(new_mat)
-            val_ei, ei = find_quantities_and_units(new_mat)
-            # print('Поиск едениц измерения -', end - start)
-
-            new_mat += ' '
+            ###############################
+            new_mat, val_ei, ei = self.new_mat_prep(new_mat)
+            #################################
             if cat == 'рулон':
                 cat = 'лист'
-            new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
-            try:
-                ind = [m.start() for m in re.finditer(f' {val_ei} ', new_mat +' ')][-1]
-                new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei} ', ' ')
-            except:
-                self.write_logs('Ошибка с поиском ei', event=0)
-            new_lines = ''
-            for word in new_mat.split():
-                new_word = word
-                if word.isdigit():
-                    if int(word) % 100 == 0 and len(word) >= 4:
-                        new_num = str(int(word) / 1000)
-                        new_word = new_num
-                new_lines += new_word + ' '
-            new_mat = new_lines
-            # ress =  model.predict_proba(new_mat)
+            # ress = self.model.predict_proba(new_mat)
             # ress = np.array(ress)[:50]
             ress = self.choose_based_on_similarity(new_mat, cat)
             ress = np.array(ress)
@@ -158,8 +165,10 @@ class Find_materials():
             # print('Advanced -', advanced_search_results.values)
             ress = advanced_search_results.values
             # poss[-1]['request_text'] = new_mat
-            if poss[-1]['request_text'] in self.method2.index:
-                true_position = json.loads(base64.b64decode(self.method2.loc[poss[-1]['request_text']].answer).decode('utf-8').replace("'", '"'))
+            # if poss[-1]['request_text'] in self.method2.index:
+            if new_mat in self.method2.index:
+                print('Нашёл')
+                true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
                 itog = []
                 for ind, i in enumerate(ress):
                     if i[0] != true_position["num_mat"]:

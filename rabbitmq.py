@@ -57,6 +57,7 @@ class Order_recognition():
                 true_positions = body['positions']
                 for ind, pos in enumerate(true_positions):
                     request_text = positions[int(pos['position_id'])]['request_text']
+                    request_text, _, _ = self.find_mats.new_mat_prep(request_text)
                     try:
                         true_mat = self.find_mats.all_materials[self.find_mats.all_materials['Материал'].\
                             str.contains(str(int(pos['true_material'])))]['Полное наименование материала'].values[0]

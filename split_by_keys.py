@@ -35,6 +35,16 @@ class Key_words():
 
     def find_category_in_line(self, line, categories, _split=True, past_category=None):
         if _split:
+            # line = self.replace_words(line, 'тр', 'труба')
+            # line = self.replace_words(line, 'арм', 'арматура')
+            # line = self.replace_words(line, 'лист', 'лист')
+            # line = self.replace_words(line, 'угол', 'уголок')
+            # line = self.replace_words(line, 'шв', 'швеллер')
+            # line = self.replace_words(line, 'штук', 'шт')
+            # line = self.replace_words(line, 'метр', 'м')
+            # line = self.replace_words(line, 'тон', 'тн')
+            # line = self.replace_words(line, 'колич', 'шт')
+            # line = self.replace_words(line, 'оц', 'оц')
             for word in line.split():
                 if word in categories:
                     return word
@@ -93,12 +103,18 @@ class Key_words():
     def split_numbers_and_words(self, s):
         # Разделяем числа и буквы
         s = s.lower()
+        s = s.replace('/', '').replace('х', ' ')
+        matches = re.findall(r'\bст\w*\d+\b', s)
+        for i in matches:
+            s = s.replace(i, '')
         s = re.sub(r'(?<=\d)(?=[а-яА-Яa-zA-Z])', ' ', s)
         # Разделяем буквы и числа
         s = re.sub(r'(?<=[а-яА-Яa-zA-Z])(?=\d)', ' ', s)
         s = re.sub(r'(\d+),(\d+)', r'\1.\2', s)
-        s = re.sub(r'([а-яА-Яa-zA-Z])\.', r'\1', s)
+        s = re.sub(r'([а-яА-Яa-zA-Z])\.', r'\1 ', s)
         s = re.sub(r'[^\w\s.]', ' ', s)
+        for i in matches:
+            s += ' ' + i
         return s
 
     def replace_words(self, text, part, category):
@@ -119,6 +135,7 @@ class Key_words():
         text = self.replace_words(text, 'шв', 'швеллер')
         text = self.replace_words(text, 'штук', 'шт')
         text = self.replace_words(text, 'метр', 'м')
+        text = self.replace_words(text, 'тон', 'тн')
         text = self.replace_words(text, 'колич', 'шт')
         text = self.replace_words(text, 'оц', 'оц')
         # ind = text.find('с уваж')
