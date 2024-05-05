@@ -8,6 +8,7 @@ from nltk.tokenize import word_tokenize
 class Key_words():
 
     def __init__(self):
+        self.need_to_replace = {}
         try:
             nltk.data.find('corpora/stopwords')
         except LookupError:
@@ -35,16 +36,6 @@ class Key_words():
 
     def find_category_in_line(self, line, categories, _split=True, past_category=None):
         if _split:
-            # line = self.replace_words(line, 'тр', 'труба')
-            # line = self.replace_words(line, 'арм', 'арматура')
-            # line = self.replace_words(line, 'лист', 'лист')
-            # line = self.replace_words(line, 'угол', 'уголок')
-            # line = self.replace_words(line, 'шв', 'швеллер')
-            # line = self.replace_words(line, 'штук', 'шт')
-            # line = self.replace_words(line, 'метр', 'м')
-            # line = self.replace_words(line, 'тон', 'тн')
-            # line = self.replace_words(line, 'колич', 'шт')
-            # line = self.replace_words(line, 'оц', 'оц')
             for word in line.split():
                 if word in categories:
                     return word
@@ -81,6 +72,7 @@ class Key_words():
                 current_category_description = ''
             if line.strip() == "":
                 continue
+            line = self.replace_words(line)
             category = self.find_category_in_line(line, self.key_words)
             cat = category
             if category:
@@ -90,13 +82,16 @@ class Key_words():
                                                     past_category=cat)
                 current_words = line[start:(start+len(category)+end if end is not None else None)]
                 current_category_description = " ".join(word for word in current_words.split() if not word.isdigit())
-                orders.append((category, current_words.strip()))
+                current_words = self.return_replace(current_words)
+                orders.append((category, current_words))
                 if end:
                     line = line[(start+len(category)+end if end is not None else None):]
+                line = self.return_replace(line)
             elif current_category_description:
                 # Добавляем описание категории к строке, если она не содержит категории
                 order_detail = f"{current_category_description} {line.strip()}"
-                orders.append((current_category_description.split()[0], order_detail))
+                orders.append((current_category_description.split()[0], self.return_replace(order_detail)))
+                self.need_to_replace = {}
 
         return orders
 
@@ -117,37 +112,61 @@ class Key_words():
             s += ' ' + i
         return s
 
-    def replace_words(self, text, part, category):
-        # Шаблон для поиска слов с корнем "тр"
-        pattern = r'\b'+part+r'[а-яё]*\b'
-        # Замена найденных слов на "труба"
-        replaced_text = re.sub(pattern, category, text)
+    def replace_words(self, text):
+        # Шаблон для поиска слов с корнем
+        changes = {'тр': 'труба',
+                   'арм': 'арматура',
+                   'балк': 'балка',
+                   'лист': 'лист',
+                   'угол': 'уголок',
+                   'шв': 'швеллер',
+                   'штук': 'шт',
+                   'метр': 'м',
+                   'тон': 'тн',
+                   'колич': 'шт',
+                   'оц': 'оц'
+                }
+        replaced_text = text
+        # self.need_to_replace = {}
+        for part, category in changes.items():
+            pattern = r'\b'+part+r'[а-яё]*\b'
+            matches = re.findall(pattern, replaced_text)
+            for match in matches:
+                replaced_text = replaced_text.replace(match, category)
+                self.need_to_replace[match] = category
         return replaced_text
+
+    def return_replace(self, text):
+        print(self.need_to_replace)
+        for match, category in self.need_to_replace.items():
+            text = text.replace(category, match)
+            # text = self.replace_first(text, category, match)
+        return text
+
+    # def replace_first(self, input_string, old_word, new_word):
+    #     # Ищем первое вхождение слова в строке
+    #     index = input_string.find(old_word)
+    #     if index != -1:
+    #         # Заменяем только первое вхождение
+    #         new_string = input_string[:index] + new_word + input_string[index + len(old_word):]
+    #         return new_string
+    #     else:
+    #         # Если слово не найдено, возвращаем исходную строку
+    #         return input_string
 
     def find_key_words(self, text):
         text = text.lower()  # Приведение текста к нижнему регистру
         # text = self.split_numbers_and_words(text)
-        text = self.replace_words(text, 'тр', 'труба')
-        text = self.replace_words(text, 'арм', 'арматура')
-        # text = self.replace_words(text, 'проф', 'профиль')
-        text = self.replace_words(text, 'лист', 'лист')
-        text = self.replace_words(text, 'угол', 'уголок')
-        text = self.replace_words(text, 'шв', 'швеллер')
-        text = self.replace_words(text, 'штук', 'шт')
-        text = self.replace_words(text, 'метр', 'м')
-        text = self.replace_words(text, 'тон', 'тн')
-        text = self.replace_words(text, 'колич', 'шт')
-        text = self.replace_words(text, 'оц', 'оц')
-        # ind = text.find('с уваж')
-        # text = text[:ind]
+        # text = self.replace_words(text)
         print('Я тут -', text)
-        # text = self.preprocess_text(text)
         return self.process_order(text)
 
 if __name__ == '__main__':
 
     # Обработка письма клиента
-    client_message = "Арматура A-III 0.7м или балка 35Б1 С245 12 м."
+    client_message = """
+    Армат A-III 0.7м или балку 35Б1 С245 12 м. балки 35Б1 С245 12 м.
+    256 48"""
     cl = Key_words()
     client_requests = cl.find_key_words(client_message)
 

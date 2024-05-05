@@ -150,6 +150,7 @@ class Find_materials():
                     .replace('п ', ' п ')
             poss += [{'position_id': str(pos_id)}]
             poss[-1]['request_text'] = new_mat
+            new_mat = self.kw.replace_words(new_mat)
             pos_id += 1
             ###############################
             new_mat, val_ei, ei = self.new_mat_prep(new_mat)
