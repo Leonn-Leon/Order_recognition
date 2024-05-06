@@ -21,8 +21,9 @@ class Find_materials():
         self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x)[0])
         self.method2.index = self.method2['question']
         self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
-        self.all_materials['Полное наименование материала'] = self.all_materials['Полное наименование материала'].apply(
-            lambda x: x.replace(', ', ' '))
+        self.all_materials = self.all_materials[~self.all_materials['Полное наименование материала'].str.contains('НЕКОНД')]
+        self.all_materials.reset_index(inplace=True)
+        del self.all_materials['index']
         self.all_materials['Материал'] = self.all_materials['Материал'].apply(str)
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
@@ -52,16 +53,25 @@ class Find_materials():
         union = len(a.union(b))
         return 1 - intersection / union
 
+    # def choose_based_on_similarity(self, text, cat):
+    #     tfidf_query = self.vectorizer.transform([text])
+    #     euclidean = pairwise_distances(tfidf_query, self.tfidf_matrix, metric='euclidean').flatten()
+    #     tr = self.all_materials["Полное наименование материала"].str.split().apply(lambda x: x[0]) == cat
+    #     # print(self.all_materials[tr])
+    #     # print(self.all_materials["Полное наименование материала"].str.split())
+    #     # print('Вот тут -', tr.sum())
+    #     if tr.sum() > 0:
+    #         euclidean[self.all_materials[~tr].index] = 1e3
+    #     max_similarity_idxs = np.argsort(euclidean)
+    #     return max_similarity_idxs
+
     def choose_based_on_similarity(self, text, cat):
-        tfidf_query = self.vectorizer.transform([text])
-        euclidean = pairwise_distances(tfidf_query, self.tfidf_matrix, metric='euclidean').flatten()
+        # Levenstain = self.all_materials["Полное наименование материала"].apply(lambda x: ratio(text, x))
+        Jacaard = self.all_materials["Полное наименование материала"].apply(lambda x: self.jaccard_distance(text, x[:len(text)]))
         tr = self.all_materials["Полное наименование материала"].str.split().apply(lambda x: x[0]) == cat
-        # print(self.all_materials[tr])
-        # print(self.all_materials["Полное наименование материала"].str.split())
-        # print('Вот тут -', tr.sum())
         if tr.sum() > 0:
-            euclidean[self.all_materials[~tr].index] = 1e3
-        max_similarity_idxs = np.argsort(euclidean)
+            Jacaard[self.all_materials[~tr].index] = 1e3
+        max_similarity_idxs = np.argsort(Jacaard)
         return max_similarity_idxs
 
     def find_top_materials_advanced(self, query, materials_df, top_n=5):
@@ -83,7 +93,7 @@ class Find_materials():
         all = query.split()
         print('second metric -', all)
         # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
-        def count_matches_and_numeric( query_numbers, material_name):
+        def count_matches_and_numeric(query_numbers, material_name):
             material_words = set(material_name.lower().split())  # Разбиение названия материала на слова
             # match_count = sum(1 for word in query_words if word.lower().strip() in material_words)  # Подсчёт совпадений
             numeric_presence = sum(1 for num in query_numbers if num.strip() in material_words)  # Подсчёт совпадений
@@ -99,8 +109,8 @@ class Find_materials():
         # filtered_materials = materials_df[(materials_df["Matches"] > 0) & (materials_df["Numeric Presence"])]
 
         # Сортировка по количеству совпадений, наличию числовых параметров и, наконец, по длине названия
-        sorted_materials = materials_df.sort_values(by=["Numeric Presence", "Name Length"],
-                                                          ascending=[False, True])
+        sorted_materials = materials_df.sort_values(by=["Numeric Presence"],#, "Name Length"],
+                                                          ascending=[False])
 
         return sorted_materials.head(top_n)
 
@@ -161,7 +171,7 @@ class Find_materials():
             # ress = np.array(ress)[:50]
             ress = self.choose_based_on_similarity(new_mat, cat)
             ress = np.array(ress)
-            advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.iloc[ress[:15]])
+            advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.iloc[ress[:25]])
             # advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
             # print('Advanced -', advanced_search_results.values)
             ress = advanced_search_results.values

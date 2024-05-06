@@ -98,10 +98,12 @@ class Key_words():
     def split_numbers_and_words(self, s):
         # Разделяем числа и буквы
         s = s.lower()
-        s = s.replace('/', '').replace('х', ' ')
+        s = s.replace('/', '')
         matches = re.findall(r'\bст\w*\d+\b', s)
         for i in matches:
             s = s.replace(i, '')
+        s = re.sub(r'(\d)x(\d)', r'\1 \2', s)
+        s = re.sub(r'(\d)х(\d)', r'\1 \2', s)
         s = re.sub(r'(?<=\d)(?=[а-яА-Яa-zA-Z])', ' ', s)
         # Разделяем буквы и числа
         s = re.sub(r'(?<=[а-яА-Яa-zA-Z])(?=\d)', ' ', s)
