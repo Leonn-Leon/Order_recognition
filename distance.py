@@ -16,10 +16,12 @@ import numpy as np
 class Find_materials():
     def __init__(self):
         self.all_materials = pd.read_csv('data/mats3.csv')
-        self.method2 = pd.read_csv('data/method2.csv')#, index_col='question')
+        self.method2 = pd.read_csv('data/method2.csv')
         self.kw = Key_words()
         self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x)[0])
-        self.method2.index = self.method2['question']
+        self.method2.reset_index(drop=True, inplace=True)
+        # self.method2.index = self.method2['question']
+        # self.method2.drop(['question'], axis=1, inplace=True)
         self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
         self.all_materials = self.all_materials[~self.all_materials['Полное наименование материала'].str.contains('НЕКОНД')]
         self.all_materials.reset_index(inplace=True)
@@ -177,14 +179,26 @@ class Find_materials():
             ress = advanced_search_results.values
             # poss[-1]['request_text'] = new_mat
             # if poss[-1]['request_text'] in self.method2.index:
-            if new_mat in self.method2.index:
+            if new_mat in self.method2.question.to_list():
                 print('Нашёл')
-                true_position = json.loads(base64.b64decode(self.method2.loc[new_mat].answer).decode('utf-8').replace("'", '"'))
+                foundes = self.method2[self.method2.question == new_mat].answer.to_list()
+                true_positions = []
+                for pos in foundes[::-1]:
+                    temp = json.loads(base64.b64decode(pos).decode('utf-8').replace("'", '"'))
+                    if temp not in true_positions:
+                        true_positions += [temp]
                 itog = []
                 for ind, i in enumerate(ress):
-                    if i[0] != true_position["num_mat"]:
+                    for tp in true_positions:
+                        if i[0] == tp["num_mat"]:
+                            break
+                    else:
                         itog += [i]
-                ress = [[true_position["num_mat"], true_position["name_mat"]]] + (itog[:-1] if len(itog)==5 else itog)
+                ress = []
+                for tp in true_positions:
+                    ress += [[tp["num_mat"], tp["name_mat"]]]
+                ress += itog
+                ress = ress[:5]
             poss[-1]['value'] = str(val_ei)
             poss[-1]['ei'] = ei.replace('тн', 'т')
             print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')

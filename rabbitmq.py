@@ -76,9 +76,12 @@ class Order_recognition():
                                 'true_value':pos['true_value'],
                                 'spec_mat':str(this_client_only)})
                     res = base64.b64encode(bytes(res, 'utf-8'))
-                    self.find_mats.method2.loc[request_text] = res.decode('utf-8')
-                self.find_mats.method2.to_csv('data/method2.csv')
+                    # self.find_mats.method2.loc[request_text] = res.decode('utf-8')
+                    # print(self.find_mats.method2.index)
+                    self.find_mats.method2.loc[len(self.find_mats.method2.index)] = [request_text, res.decode('utf-8')]
+                self.find_mats.method2.to_csv('data/method2.csv', index=False)
             else:
+                self.write_logs('Не нашёл такого письма', event=0)
                 print('Не нашёл такого письма', flush=True)
     async def consumer(self,
             msg: aio_pika.IncomingMessage,
