@@ -3,3 +3,7 @@ first_queue = "get_message"
 second_queue = "save_truth"
 exchange = "ai"
 routing_key = "orderrecognition.save_truth"
+Authorization_AIM = "t1.9euelZqencyXy5mLm4mblpXLms2Mxu3rnpWaipXIy4ubmcmajJKPnpPKlpTl8_cXDT9N-e93NXhF_t3z91c7PE3573c1eEX-zef1656Vmp2RlJGYlJaJxo2Jj5eJi5Sc7_zF656Vmp2RlJGYlJaJxo2Jj5eJi5Sc.jNCDFrJZPTtZ44OBRsCsH_m5spCuwObFL_r_YezlU2N_6r6QNzbm10Y7yfYW92UK91KjZpfELC3bVPsrLVpqDA"
+xfolderid = "b1gob9uom3r70b2es0lp"
+gpt_version_id = 'bt1riolsv2bps3bogad6'
+gpt_url = 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion'

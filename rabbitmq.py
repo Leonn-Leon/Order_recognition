@@ -9,6 +9,7 @@ from datetime import datetime
 from functools import partial
 from hash2text import text_from_hash
 from split_by_keys import Key_words
+from yandexgpt import custom_yandex_gpt
 import config as conf
 # from config import connection_url, first_queue, second_queue
 
@@ -31,7 +32,9 @@ class Order_recognition():
             content = text_from_hash(hash)
             print('Text - ', content.split('\n'), flush=True)
         kw = Key_words()
-        clear_email = kw.find_key_words(content)
+        ygpt = custom_yandex_gpt()
+        clear_email = ygpt.get_pos(content)
+        # clear_email = kw.find_key_words(content)
         # Отправляем распознаннaй текст(!) на поиск материалов
         print('Очищенное сообщение -', clear_email)
         results = str(self.find_mats.find_mats(clear_email))
@@ -100,7 +103,9 @@ class Order_recognition():
             content = text_from_hash(body['email'])
             # print('Text - ', content)
             kw = Key_words()
-            clear_email = kw.find_key_words(content)
+            ygpt = custom_yandex_gpt()
+            clear_email = ygpt.get_pos(content)
+            # clear_email = kw.find_key_words(content)
             # Отправляем распознанный текст(!) на поиск материалов
             print('Clear email - ', clear_email)
             results = str(self.find_mats.find_mats(clear_email))

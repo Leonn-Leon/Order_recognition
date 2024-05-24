@@ -15,9 +15,11 @@ COPY rabbitmq.py rabbitmq.py
 COPY hash2text.py hash2text.py
 COPY find_ei.py find_ei.py
 COPY split_by_keys.py split_by_keys.py
+COPY yandexgpt.py yandexgpt.py
 COPY logs logs
 RUN mkdir data
 COPY data/mats3.csv data/mats3.csv
+COPY data/msgs.csv data/msgs.csv
 COPY data/categories.csv data/categories.csv
 COPY data/saves.csv data/saves.csv
 COPY data/method2.csv data/method2.csv

@@ -67,14 +67,14 @@ class Find_materials():
     #     max_similarity_idxs = np.argsort(euclidean)
     #     return max_similarity_idxs
 
-    def choose_based_on_similarity(self, text, cat):
-        # Levenstain = self.all_materials["Полное наименование материала"].apply(lambda x: ratio(text, x))
-        Jacaard = self.all_materials["Полное наименование материала"].apply(lambda x: self.jaccard_distance(text, x[:len(text)]))
-        tr = self.all_materials["Полное наименование материала"].str.split().apply(lambda x: x[0]) == cat
-        if tr.sum() > 0:
-            Jacaard[self.all_materials[~tr].index] = 1e3
-        max_similarity_idxs = np.argsort(Jacaard)
-        return max_similarity_idxs
+    def choose_based_on_similarity(self, text):
+        Levenstain = self.all_materials["Полное наименование материала"].apply(lambda x: ratio(text, x))
+        # Jacaard = self.all_materials["Полное наименование материала"].apply(lambda x: self.jaccard_distance(text, x[:len(text)]))
+        # tr = self.all_materials["Полное наименование материала"].str.split().apply(lambda x: x[0]) == cat
+        # if tr.sum() > 0:
+        #     Jacaard[self.all_materials[~tr].index] = 1e3
+        max_similarity_idxs = np.argsort(Levenstain)
+        return max_similarity_idxs[::-1]
 
     def find_top_materials_advanced(self, query, materials_df, top_n=5):
         """
@@ -144,34 +144,27 @@ class Find_materials():
         results = []
         results += [{"req_Number": str(uuid.uuid4())}]
         poss = []
-        no_numbers = False
         pos_id = 0
-        for _, (cat, row) in enumerate(rows):
-            around_materials = {}
-            min_dis = 1e5
+        for _, (row, ei, val_ei) in enumerate(rows):
             if len(row.split()) == 0 or row[0]=='+':
                 continue
             new_row = ' '.join(row.split())
             new_mat = new_row
-            if len([i for i in new_mat if i.isdigit()]) == 0:
-                continue
-            if 'ao ' in new_mat or '"' in new_mat:
-                continue
-            if 'швеллер' in new_mat:
-                new_mat = new_mat.replace('у ', ' у ')\
-                    .replace('п ', ' п ')
             poss += [{'position_id': str(pos_id)}]
             poss[-1]['request_text'] = new_mat
+            poss[-1]['value'] = str(val_ei.split()[0])
+            ei = ei.split()[0].replace('тн', 'т').replace('.', '')
+            if ei not in ['т', 'м', 'кг', 'м2', 'мп']:
+                ei = 'шт'
+            poss[-1]['ei'] = ei
             new_mat = self.kw.replace_words(new_mat)
             pos_id += 1
             ###############################
-            new_mat, val_ei, ei = self.new_mat_prep(new_mat)
+            # new_mat, val_ei, ei = self.new_mat_prep(new_mat)
             #################################
-            if cat == 'рулон':
-                cat = 'лист'
             # ress = self.model.predict_proba(new_mat)
             # ress = np.array(ress)[:50]
-            ress = self.choose_based_on_similarity(new_mat, cat)
+            ress = self.choose_based_on_similarity(new_mat)
             ress = np.array(ress)
             advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.iloc[ress[:25]])
             # advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
@@ -199,8 +192,6 @@ class Find_materials():
                     ress += [[tp["num_mat"], tp["name_mat"]]]
                 ress += itog
                 ress = ress[:5]
-            poss[-1]['value'] = str(val_ei)
-            poss[-1]['ei'] = ei.replace('тн', 'т')
             print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
             print(ress, end ='\n----\n')
             for ind, pos in enumerate(ress):
