@@ -15,7 +15,7 @@ import numpy as np
 
 class Find_materials():
     def __init__(self):
-        self.all_materials = pd.read_csv('data/mats3.csv')
+        self.all_materials = pd.read_csv('data/mats4.csv')
         self.method2 = pd.read_csv('data/method2.csv')
         self.kw = Key_words()
         self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x)[0])
@@ -69,7 +69,7 @@ class Find_materials():
 
     def choose_based_on_similarity(self, text):
         Levenstain = self.all_materials["Полное наименование материала"].apply(lambda x: ratio(text, x))
-        # Jacaard = self.all_materials["Полное наименование материала"].apply(lambda x: self.jaccard_distance(text, x[:len(text)]))
+        # Jacaard = self.all_materials["Полное наименование материала"].apply(lambda x: self.jaccard_distance(text, x))
         # tr = self.all_materials["Полное наименование материала"].str.split().apply(lambda x: x[0]) == cat
         # if tr.sum() > 0:
         #     Jacaard[self.all_materials[~tr].index] = 1e3
@@ -160,13 +160,13 @@ class Find_materials():
             new_mat = self.kw.replace_words(new_mat)
             pos_id += 1
             ###############################
-            # new_mat, val_ei, ei = self.new_mat_prep(new_mat)
+            new_mat, _, _  = self.new_mat_prep(new_mat)
             #################################
             # ress = self.model.predict_proba(new_mat)
             # ress = np.array(ress)[:50]
             ress = self.choose_based_on_similarity(new_mat)
             ress = np.array(ress)
-            advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.iloc[ress[:25]])
+            advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.iloc[ress[:15]])
             # advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
             # print('Advanced -', advanced_search_results.values)
             ress = advanced_search_results.values
