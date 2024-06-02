@@ -13,8 +13,8 @@ def html_from_xml(xml_data):
 
 # Функция для преобразования HTML в текст
 def convert_html_to_text(html_content):
-    soup = BeautifulSoup(html_content, 'html.parser')
-    return soup.get_text().replace('\r\n', ' ')
+    soup = BeautifulSoup(html_content)
+    return soup.get_text('\n').replace('\r\n', ' ')
 
 def xml_from_hash(hash):
     content = base64.standard_b64decode(base64.standard_b64decode(hash)).decode('utf-8')

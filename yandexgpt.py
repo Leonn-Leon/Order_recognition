@@ -40,10 +40,13 @@ class custom_yandex_gpt():
         log.close()
 
 
-    def get_pos(self, text:str):
+    def get_pos(self, text:str, save=False, bag=False):
         while '\n\n' in text:
             text = text.replace('\n\n', '\n')
         self.msgs += [{"role": "user", "text": text.replace('\xa0', ' ').replace('"', "''")}]
+        if bag:
+            print(self.msgs[-1]['text'])
+            print('-' * 15)
         prompt = self.req
         prompt['messages'] += [self.msgs[-1]]
         start = time.time()
@@ -53,12 +56,13 @@ class custom_yandex_gpt():
         self.write_logs(str(res.text))
         print('Время на запрос, ', time.time() - start)
         answer = json.loads(res.text)['result']['alternatives'][0]['message']['text']
-        self.msgs += [{"role": "assistant", "text": answer}]
-        pd.DataFrame(self.msgs).to_csv("data/msgs.csv")
+        if save:
+            self.msgs += [{"role": "assistant", "text": answer}]
+            pd.DataFrame(self.msgs).to_csv("data/msgs.csv")
 
         return self.split_answer(answer)
 
-    def split_answer(self, answer):
+    def split_answer(self,answer):
         answer = answer.split('\n')
         answer_ei = []
         for pos in answer:
@@ -79,11 +83,9 @@ if __name__ == "__main__":
                 h = json.loads(line[50:].replace("'", '"'))['email']
                 if h not in hashs and h != '':
                     hashs += [h]
-    for h in hashs[18:]:
+    for h in hashs[-1:]:
         text = text_from_hash(h)
-        print(text)
-        print('-'*15)
-        print(ygpt.get_pos(text))
+        print(ygpt.get_pos(text, save=True, bag=True))
         break
     # print(y_gpt().get_pos(text))
 # Synchronous completion example
