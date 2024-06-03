@@ -16,9 +16,13 @@ COPY hash2text.py hash2text.py
 COPY find_ei.py find_ei.py
 COPY split_by_keys.py split_by_keys.py
 COPY yandexgpt.py yandexgpt.py
+COPY Use_models.py Use_models.py
 COPY logs logs
 RUN mkdir data
-COPY data/mats4.csv data/mats4.csv
+COPY data/for_zero.csv data/for_zero.csv
+COPY data/main_model.pkl data/main_model.pkl
+COPY data/models data/models
+COPY data/mats5.csv data/mats5.csv
 COPY data/msgs.csv data/msgs.csv
 COPY data/categories.csv data/categories.csv
 COPY data/saves.csv data/saves.csv

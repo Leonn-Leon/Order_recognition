@@ -1,7 +1,5 @@
 from Levenshtein import ratio
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import SVC
-from sklearn.metrics.pairwise import pairwise_distances
 import pandas as pd
 import uuid
 import pickle
@@ -12,10 +10,12 @@ from find_ei import find_quantities_and_units
 from split_by_keys import Key_words
 import re
 import numpy as np
+from Use_models import Use_models
 
 class Find_materials():
     def __init__(self):
-        self.all_materials = pd.read_csv('data/mats4.csv')
+        self.models = Use_models()
+        self.all_materials = pd.read_csv('data/mats5.csv')
         self.method2 = pd.read_csv('data/method2.csv')
         self.kw = Key_words()
         self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x)[0])
@@ -29,14 +29,10 @@ class Find_materials():
         self.all_materials['Материал'] = self.all_materials['Материал'].apply(str)
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
-        self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(self.kw.split_numbers_and_words)
+        # self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(self.kw.split_numbers_and_words)
         self.vectorizer = TfidfVectorizer()
         self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
-        # self.model = SVC()
-        # with open("data/model.pkl", "wb") as f:
-        #     pickle.dump(self.vectorizer, f)
-        # with open('data/model.pkl', 'rb') as fp:
-        #     self.vectorizer = pickle.load(fp)
+
         print('All materials opened!', flush=True)
 
 
@@ -67,12 +63,14 @@ class Find_materials():
     #     max_similarity_idxs = np.argsort(euclidean)
     #     return max_similarity_idxs
 
-    def choose_based_on_similarity(self, text):
+    def choose_based_on_similarity(self, text, first_ierar):
         Levenstain = self.all_materials["Полное наименование материала"].apply(lambda x: ratio(text, x))
+        # print(self.all_materials[self.all_materials['Название иерархии-1']
+        #                                 == first_ierar]["Полное наименование материала"])
         # Jacaard = self.all_materials["Полное наименование материала"].apply(lambda x: self.jaccard_distance(text, x))
-        # tr = self.all_materials["Полное наименование материала"].str.split().apply(lambda x: x[0]) == cat
-        # if tr.sum() > 0:
-        #     Jacaard[self.all_materials[~tr].index] = 1e3
+        tr = self.all_materials['Название иерархии-1'] == first_ierar
+        if tr.sum() > 0:
+            Levenstain[self.all_materials[~tr].index] = 0
         max_similarity_idxs = np.argsort(Levenstain)
         return max_similarity_idxs[::-1]
 
@@ -162,11 +160,11 @@ class Find_materials():
             ###############################
             new_mat, _, _  = self.new_mat_prep(new_mat)
             #################################
-            # ress = self.model.predict_proba(new_mat)
-            # ress = np.array(ress)[:50]
-            ress = self.choose_based_on_similarity(new_mat)
+            first_ierar = self.models.get_pred(new_mat)
+            ress = self.choose_based_on_similarity(new_mat, first_ierar)
             ress = np.array(ress)
-            advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials.iloc[ress[:15]])
+            advanced_search_results = self.find_top_materials_advanced(new_mat,
+                                    self.all_materials[['Материал', "Полное наименование материала"]].iloc[ress[:15]])
             # advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
             # print('Advanced -', advanced_search_results.values)
             ress = advanced_search_results.values
