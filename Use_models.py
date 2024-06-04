@@ -2,6 +2,8 @@ import pandas as pd
 from sklearn.svm import SVC
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pickle
+from split_by_keys import Key_words
+import re
 
 class Use_models():
     def __init__(self):
@@ -16,7 +18,14 @@ class Use_models():
         self.tfidf.fit(X)
         self.all_zeros = sorted(list(set(self.data['Название иерархии-0'].to_list())))
 
-    def get_pred(self, text):
+    def get_pred(self, text, bag=False):
+        part = 'стальн'
+        pattern = r'\b' + part + r'[а-яё]*\b'
+        matches = re.findall(pattern, text)
+        for match in matches:
+            text = text.replace(match, '')
+
+
         x_pred = self.tfidf.transform([text])
         y_pred = self.main_model.predict(x_pred)[0]
 
@@ -24,6 +33,10 @@ class Use_models():
             model_1 = pickle.load(f)
 
         zero = self.all_zeros[y_pred]
+        if bag:
+            print(self.main_model.predict_proba(x_pred))
+            print(self.all_zeros)
+            print('ИЕР-0 =', zero)
         sort_data = self.data[self.data['Название иерархии-0'] == zero]
         firsts = sorted(list(set(sort_data['Название иерархии-1'].to_list())))
         X_1 = sort_data['Полное наименование материала']
@@ -39,9 +52,9 @@ class Use_models():
             return
         new_row = self.data[self.data['Название иерархии-1'] == true_first].iloc[0].to_list()[:-1]+[text]
         self.data.iloc[self.data.shape[0]] = new_row
-
         ind = self.all_zeros.index(new_row[0])
         self.data.to_csv(self.data_path)
+
         sort_data = self.data[self.data['Название иерархии-0'] == new_row[0]]
         print(sort_data.shape)
         # Выбор признаков и целевой переменной
@@ -60,6 +73,26 @@ class Use_models():
             pickle.dump(svc_model, f)
         print('Done!!!')
 
+    def fit_zeros(self):
+        # Обучается долго!!!
+        X = self.data['Полное наименование материала']
+        y = self.data['Название иерархии-0']
+        self.all_zeros = sorted(list(set(self.data['Название иерархии-0'].to_list())))
+        y = [self.all_zeros.index(i) for i in y]
+        tfidf = TfidfVectorizer()
+        X_tfidf = tfidf.fit_transform(X)
+        print('TF-Idf Done!')
+        svm = SVC(random_state=42, kernel='linear', probability=True)
+        print('SVC start!')
+        svm.fit(X_tfidf, y)
+        with open('data/main_model.pkl', 'wb') as f:
+            pickle.dump(svm, f)
+        print('Done!!!')
+
 if __name__ == '__main__':
-    # print(Use_models().get_pred('Труба 50х20'))
-    Use_models().fit('Труба 50х20', 'Труба профильная')
+    text = 'Труба стальная 159*4 (6метров) 2 шт'
+    kw = Key_words()
+    text = kw.split_numbers_and_words(text)
+    print(text[:-15])
+    print(Use_models().get_pred(text, bag=True))
+    # Use_models().fit('Труба 50х20', 'Труба профильная')
