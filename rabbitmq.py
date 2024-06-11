@@ -60,16 +60,19 @@ class Order_recognition():
                 positions = json.loads(self.find_mats.saves.loc[req_Number]['positions'].replace("'", '"'))['positions']
                 true_positions = body['positions']
                 for ind, pos in enumerate(true_positions):
+                    if int(pos['true_material']) == int(positions[int(pos['position_id'])]['material1_id']):
+                        continue
                     request_text = positions[int(pos['position_id'])]['request_text']
                     request_text, _, _ = self.find_mats.new_mat_prep(request_text)
+                    request_text = request_text.strip()
                     try:
                         true_mat = self.find_mats.all_materials[self.find_mats.all_materials['Материал'].\
                             str.contains(str(int(pos['true_material'])))]['Полное наименование материала'].values[0]
                         true_first = self.find_mats.all_materials[self.find_mats.all_materials['Материал']. \
                             str.contains(str(int(pos['true_material'])))]['Название иерархии-1'].values[0]
                         # true_mat = str(int(pos['true_material']))
+                        print('Отправляем обучать !')
                         Use_models().fit(request_text, true_first)
-                        print('Отправили обучать !')
                     except:
                         self.write_logs('Не нашёл такого материала', event=0)
                         continue
@@ -91,6 +94,7 @@ class Order_recognition():
             else:
                 self.write_logs('Не нашёл такого письма', event=0)
                 print('Не нашёл такого письма', flush=True)
+            print("Метод 2 всё")
     async def consumer(self,
             msg: aio_pika.IncomingMessage,
             channel: aio_pika.RobustChannel,

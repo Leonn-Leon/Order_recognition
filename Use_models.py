@@ -58,13 +58,13 @@ class Use_models():
             print('Не дообучаем!')
             return
         new_row = self.data_first[self.data_first['Название иерархии-1'] == true_first].iloc[0].to_list()[:-1]+[text]
-        print('new_row - ', self.data_first.loc[self.data_first.shape[0]-1])
+        print('new_row - ', new_row)
         self.data_first.loc[self.data_first.shape[0]] = new_row
         ind = self.all_zeros.index(new_row[0])
         self.data_first[['Название иерархии-0', 'Название иерархии-1', 'Полное наименование материала']].to_csv(self.data_path_first, index=False)
 
         sort_data = self.data_first[self.data_first['Название иерархии-0'] == new_row[0]]
-        print(sort_data.shape)
+        # print(sort_data.shape)
         # Выбор признаков и целевой переменной
         X = sort_data['Полное наименование материала']
         y = sort_data['Название иерархии-1']
@@ -98,9 +98,10 @@ class Use_models():
         print('Done!!!')
 
 if __name__ == '__main__':
-    text = 'лист 6 09г2с 1.5 3 7шт'
+    text = 'лист 8 09г2с 1.5 3 4шт'
     kw = Key_words()
     text = kw.split_numbers_and_words(text)
+    print(Use_models().get_pred(text))
     print(Use_models().fit(text, true_first='Лист Г/К НЛГ 1.5-12'))
-    print(Use_models().get_pred(text, bag=True))
+    print(Use_models().get_pred(text))
     # Use_models().fit('Труба 50х20', 'Труба профильная')
