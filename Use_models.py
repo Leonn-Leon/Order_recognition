@@ -55,10 +55,10 @@ class Use_models():
 
     def fit(self, text, true_first):
         if text in self.data_first.to_numpy()[:, 2]:
-            print('Не дообучаем!')
+            print('Не дообучаем!', flush=True)
             return
         new_row = self.data_first[self.data_first['Название иерархии-1'] == true_first].iloc[0].to_list()[:-1]+[text]
-        print('new_row - ', new_row)
+        print('new_row - ', new_row, flush=True)
         self.data_first.loc[self.data_first.shape[0]] = new_row
         ind = self.all_zeros.index(new_row[0])
         self.data_first[['Название иерархии-0', 'Название иерархии-1', 'Полное наименование материала']].to_csv(self.data_path_first, index=False)
@@ -79,7 +79,7 @@ class Use_models():
 
         with open('data/models/' + str(ind) + '_model.pkl', 'wb') as f:
             pickle.dump(svc_model, f)
-        print('Done!!!')
+        print('Done!!!', flush=True)
 
     def fit_zeros(self):
         # Обучается долго!!!

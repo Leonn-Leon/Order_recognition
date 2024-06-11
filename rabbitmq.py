@@ -71,7 +71,7 @@ class Order_recognition():
                         true_first = self.find_mats.all_materials[self.find_mats.all_materials['Материал']. \
                             str.contains(str(int(pos['true_material'])))]['Название иерархии-1'].values[0]
                         # true_mat = str(int(pos['true_material']))
-                        print('Отправляем обучать !')
+                        print('Отправляем обучать !', flush=True)
                         Use_models().fit(request_text, true_first)
                     except:
                         self.write_logs('Не нашёл такого материала', event=0)
@@ -94,7 +94,7 @@ class Order_recognition():
             else:
                 self.write_logs('Не нашёл такого письма', event=0)
                 print('Не нашёл такого письма', flush=True)
-            print("Метод 2 всё")
+            print("Метод 2 всё", flush=True)
     async def consumer(self,
             msg: aio_pika.IncomingMessage,
             channel: aio_pika.RobustChannel,
