@@ -12,7 +12,6 @@ from split_by_keys import Key_words
 from yandexgpt import custom_yandex_gpt
 import config as conf
 # from config import connection_url, first_queue, second_queue
-from Use_models import Use_models
 
 class Order_recognition():
 
@@ -72,7 +71,7 @@ class Order_recognition():
                             str.contains(str(int(pos['true_material'])))]['Название иерархии-1'].values[0]
                         # true_mat = str(int(pos['true_material']))
                         print('Отправляем обучать !', flush=True)
-                        Use_models().fit(request_text, true_first)
+                        self.find_mats.models.fit(request_text, true_first)
                     except:
                         self.write_logs('Не нашёл такого материала', event=0)
                         continue
