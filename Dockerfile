@@ -20,6 +20,7 @@ COPY Use_models.py Use_models.py
 COPY logs logs
 RUN mkdir data
 COPY data/for_zero.csv data/for_zero.csv
+COPY data/for_firsts.csv data/for_firsts.csv
 COPY data/main_model.pkl data/main_model.pkl
 COPY data/models data/models
 COPY data/mats5.csv data/mats5.csv
