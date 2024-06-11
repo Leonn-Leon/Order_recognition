@@ -13,7 +13,7 @@ class custom_yandex_gpt():
     def __init__(self):
         self.headers = {"Authorization": "Bearer " + Authorization_AIM,
                    "x-folder-id": xfolderid }
-        df = pd.read_csv("data/msgs.csv", index_col=0)
+        df = pd.read_csv("data/msgs_ei_marked.csv", index_col=0)
         self.msgs = df.to_numpy()
         self.msgs = [{"role":i[0], "text":i[1].replace('\xa0', ' ').replace('"', "''")} for i in self.msgs]
         self.req = {
