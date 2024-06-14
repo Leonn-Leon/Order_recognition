@@ -123,8 +123,8 @@ class Find_materials():
         new_mat += ' '
         new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
         try:
-            ind = [m.start() for m in re.finditer(f' {val_ei} ', new_mat + ' ')][-1]
-            new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei} ', ' ')
+            ind = [m.start() for m in re.finditer(f' {val_ei}{ei}', new_mat + ' ')][-1]
+            new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei}{ei}', ' ')
         except:
             self.write_logs('Ошибка с поиском ei', event=0)
         new_lines = ''
