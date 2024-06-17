@@ -136,7 +136,7 @@ class Find_materials():
                     new_word = new_num
             new_lines += new_word + ' '
         new_mat = new_lines
-        return new_mat, val_ei, ei
+        return new_mat.strip(), val_ei, ei
 
     def find_mats(self, rows):
         results = []
@@ -170,6 +170,7 @@ class Find_materials():
             ress = advanced_search_results.values
             # poss[-1]['request_text'] = new_mat
             # if poss[-1]['request_text'] in self.method2.index:
+            print('Вот это ищем', new_mat)
             if new_mat in self.method2.question.to_list():
                 print('Нашёл')
                 foundes = self.method2[self.method2.question == new_mat].answer.to_list()
