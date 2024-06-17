@@ -1,5 +1,6 @@
 from Levenshtein import ratio
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import pairwise_distances
 import pandas as pd
 import uuid
 import pickle
@@ -51,17 +52,17 @@ class Find_materials():
         union = len(a.union(b))
         return 1 - intersection / union
 
-    # def choose_based_on_similarity(self, text, cat):
-    #     tfidf_query = self.vectorizer.transform([text])
-    #     euclidean = pairwise_distances(tfidf_query, self.tfidf_matrix, metric='euclidean').flatten()
-    #     tr = self.all_materials["Полное наименование материала"].str.split().apply(lambda x: x[0]) == cat
-    #     # print(self.all_materials[tr])
-    #     # print(self.all_materials["Полное наименование материала"].str.split())
-    #     # print('Вот тут -', tr.sum())
-    #     if tr.sum() > 0:
-    #         euclidean[self.all_materials[~tr].index] = 1e3
-    #     max_similarity_idxs = np.argsort(euclidean)
-    #     return max_similarity_idxs
+    def TF_Idf_similarity(self, text, first_ierar):
+        tfidf_query = self.vectorizer.transform([text])
+        euclidean = pairwise_distances(tfidf_query, self.tfidf_matrix, metric='euclidean').flatten()
+        tr = self.all_materials['Название иерархии-1'] == first_ierar
+        # print(self.all_materials[tr])
+        # print(self.all_materials["Полное наименование материала"].str.split())
+        # print('Вот тут -', tr.sum())
+        if tr.sum() > 0:
+            euclidean[self.all_materials[~tr].index] = 1e3
+        max_similarity_idxs = np.argsort(euclidean)
+        return max_similarity_idxs
 
     def choose_based_on_similarity(self, text, first_ierar):
         Levenstain = self.all_materials["Полное наименование материала"].apply(lambda x: ratio(text, x))
@@ -162,6 +163,7 @@ class Find_materials():
             #################################
             first_ierar = self.models.get_pred(new_mat)
             ress = self.choose_based_on_similarity(new_mat, first_ierar)
+            # ress = self.TF_Idf_similarity(new_mat, first_ierar)
             ress = np.array(ress)
             advanced_search_results = self.find_top_materials_advanced(new_mat,
                                     self.all_materials[['Материал', "Полное наименование материала"]].iloc[ress[:15]])
