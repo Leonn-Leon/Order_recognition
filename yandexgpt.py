@@ -55,7 +55,11 @@ class custom_yandex_gpt():
         self.write_logs('Время на запрос, ' + str(time.time() - start))
         self.write_logs(str(res.text))
         print('Время на запрос, ', time.time() - start)
-        answer = json.loads(res.text)['result']['alternatives'][0]['message']['text']
+        try:
+            answer = json.loads(res.text)['result']['alternatives'][0]['message']['text']
+        except:
+            self.write_logs(res.text, event=0)
+            print(res.text)
         if save:
             self.msgs += [{"role": "assistant", "text": answer}]
             pd.DataFrame(self.msgs).to_csv("data/msgs.csv")
