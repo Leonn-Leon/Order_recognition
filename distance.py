@@ -20,7 +20,7 @@ class Find_materials():
         self.otgruzki = pd.read_csv('data/otgruzki.csv', sep=';')
         self.method2 = pd.read_csv('data/method2.csv')
         self.kw = Key_words()
-        self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x)[0])
+        self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x))
         self.method2.reset_index(drop=True, inplace=True)
         # self.method2.index = self.method2['question']
         # self.method2.drop(['question'], axis=1, inplace=True)
@@ -121,16 +121,9 @@ class Find_materials():
         # new_mat = new_mat.replace('/', '')
 
         new_mat = self.kw.split_numbers_and_words(new_mat)
-        val_ei, ei = find_quantities_and_units(new_mat)
         # print('Поиск едениц измерения -', end - start)
 
         new_mat += ' '
-        new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
-        try:
-            ind = [m.start() for m in re.finditer(f' {val_ei}{ei}', new_mat + ' ')][-1]
-            new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei}{ei}', ' ')
-        except:
-            self.write_logs('Ошибка с поиском ei', event=0)
         new_lines = ''
         for word in new_mat.split():
             new_word = word
@@ -140,7 +133,7 @@ class Find_materials():
                     new_word = new_num
             new_lines += new_word + ' '
         new_mat = new_lines
-        return new_mat.strip(), val_ei, ei
+        return new_mat.strip()
 
     def find_mats(self, rows):
         results = []
@@ -154,7 +147,8 @@ class Find_materials():
             new_mat = new_row
             poss += [{'position_id': str(pos_id)}]
             poss[-1]['request_text'] = new_mat
-            poss[-1]['value'] = str(val_ei.split()[0])
+            val_ei = str(val_ei.split()[0])
+            poss[-1]['value'] = val_ei
             ei = ei.split()[0].replace('тн', 'т').replace('.', '')
             if ei not in ['т', 'м', 'кг', 'м2', 'мп']:
                 ei = 'шт'
@@ -162,7 +156,14 @@ class Find_materials():
             new_mat = self.kw.replace_words(new_mat)
             pos_id += 1
             ###############################
-            new_mat, _, _  = self.new_mat_prep(new_mat)
+            new_mat  = self.new_mat_prep(new_mat)
+            # print(val_ei, ei)
+            try:
+                ind = [m.start() for m in re.finditer(f' {val_ei}{ei}', new_mat + ' ')][-1]
+                new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei}{ei}', ' ')
+                new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
+            except:
+                self.write_logs('Ошибка с поиском ei', event=0)
             #################################
             first_ierar = self.models.get_pred(new_mat)
             ress = self.choose_based_on_similarity(new_mat, first_ierar)
@@ -204,7 +205,7 @@ class Find_materials():
         results[0]["positions"] = poss
         self.saves.loc[results[0]["req_Number"]] = ["{'positions':"+str(results[0]["positions"])+"}"]
         self.saves.to_csv('data/saves.csv')
-        print(results)
+        # print(results)
         return str(results)
 
 
