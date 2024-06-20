@@ -17,6 +17,7 @@ class Find_materials():
     def __init__(self):
         self.models = Use_models()
         self.all_materials = pd.read_csv('data/mats5.csv')
+        self.otgruzki = pd.read_csv('data/otgruzki.csv', sep=';')
         self.method2 = pd.read_csv('data/method2.csv')
         self.kw = Key_words()
         self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x)[0])
@@ -25,6 +26,7 @@ class Find_materials():
         # self.method2.drop(['question'], axis=1, inplace=True)
         self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
         self.all_materials = self.all_materials[~self.all_materials['Полное наименование материала'].str.contains('НЕКОНД')]
+        self.all_materials = self.all_materials[self.all_materials['Материал'].apply(lambda x: x in self.otgruzki['Код материала'])]
         self.all_materials.reset_index(inplace=True)
         del self.all_materials['index']
         self.all_materials['Материал'] = self.all_materials['Материал'].apply(str)
@@ -117,6 +119,7 @@ class Find_materials():
 
     def new_mat_prep(self, new_mat):
         # new_mat = new_mat.replace('/', '')
+
         new_mat = self.kw.split_numbers_and_words(new_mat)
         val_ei, ei = find_quantities_and_units(new_mat)
         # print('Поиск едениц измерения -', end - start)

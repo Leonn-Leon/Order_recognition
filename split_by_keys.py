@@ -98,7 +98,8 @@ class Key_words():
     def split_numbers_and_words(self, s):
         # Разделяем числа и буквы
         s = s.lower()+' '
-        s = s.replace('/', '')
+        s = self.replace_words(s)
+        s = s.replace('/', '').replace(' шт', 'шт')
         matches = re.findall(r'\bст\w*\d+\b', s)
         for i in matches:
             s = s.replace(i, '')
@@ -118,7 +119,8 @@ class Key_words():
 
     def replace_words(self, text):
         # Шаблон для поиска слов с корнем
-        changes = {'тр': 'труба',
+        changes = {'профильн':'проф',
+                   'тр': 'труба',
                    'арм': 'арматура',
                    'балк': 'балка',
                    'лист': 'лист',
