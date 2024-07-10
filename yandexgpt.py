@@ -13,7 +13,7 @@ class custom_yandex_gpt():
     def __init__(self):
         self.headers = {"Authorization": "Bearer " + Authorization_AIM,
                    "x-folder-id": xfolderid }
-        df = pd.read_csv("data/msgs_ei_marked.csv", index_col=0)
+        df = pd.read_csv("data/msgs_ei.csv", index_col=0)
         self.msgs = df.to_numpy()
         self.msgs = [{"role":i[0], "text":i[1].replace('\xa0', ' ').replace('"', "''")} for i in self.msgs]
         self.req = {
@@ -35,9 +35,8 @@ class custom_yandex_gpt():
         event = 'EVENT' if event == 1 else 'ERROR'
         date_time = datetime.now().astimezone()
         file_name = './logs/' + str(date_time.date()) + '.txt'
-        log = open(file_name, 'a')
-        log.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
-        log.close()
+        with open(file_name, 'a', encoding="utf-8") as file:
+            file.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
 
 
     def get_pos(self, text:str, save=False, bag=False):
@@ -62,7 +61,7 @@ class custom_yandex_gpt():
             print(res.text)
         if save:
             self.msgs += [{"role": "assistant", "text": answer}]
-            pd.DataFrame(self.msgs).to_csv("data/msgs.csv")
+            pd.DataFrame(self.msgs).to_csv("data/msgs_ei.csv")
 
         return self.split_answer(answer)
 

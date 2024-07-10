@@ -100,6 +100,8 @@ class Key_words():
         s = s.lower()+' '
         s = self.replace_words(s)
         s = s.replace('/', '').replace(' шт', 'шт').replace(' по ', ' ')
+        if 'уголок' in s:
+            s = s.replace('гост', '')
         matches = re.findall(r'\bст\w*\d+\b', s)
         for i in matches:
             s = s.replace(i, '')

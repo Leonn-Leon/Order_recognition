@@ -1,6 +1,6 @@
 import pandas as pd
 import json
-df = pd.read_csv("data/msgs_ei_marked.csv", index_col=0)
+df = pd.read_csv("data/msgs_ei.csv", index_col=0)
 itog = {"request": [{"role":"system", "text":df.iloc[0].text}, {"role":"user", "text":""}], "response":""}
 for i in df.to_numpy()[1:]:
     if i[0] == "user":
@@ -19,4 +19,5 @@ for i in df.to_numpy()[1:]:
         # Нужно рекурсивно заменить \n\n на \n
         # В msgs дубликатов нет я проверил
         itog["response"] = i[1].replace('"', "''").replace('\r', ' ')
+        print(len(itog["request"][0]["text"])+len(itog["request"][1]["text"]), len(itog["response"]))
         print(json.dumps(itog, ensure_ascii=False))

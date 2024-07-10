@@ -18,14 +18,12 @@ class Order_recognition():
     def __init__(self):
         self.find_mats = Find_materials()
 
-
     def write_logs(self, text, event=1):
         event = 'EVENT' if event == 1 else 'ERROR'
         date_time = datetime.now().astimezone()
         file_name = './logs/' + str(date_time.date()) + '.txt'
-        log = open(file_name, 'a')
-        log.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
-        log.close()
+        with open(file_name, 'a', encoding="utf-8") as file:
+            file.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
 
     def consumer_test(self, hash:str=None, content:str=None):
         if content is None:

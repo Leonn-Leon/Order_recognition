@@ -38,14 +38,12 @@ class Find_materials():
 
         print('All materials opened!', flush=True)
 
-
     def write_logs(self, text, event=1):
         event = 'EVENT' if event == 1 else 'ERROR'
         date_time = datetime.now().astimezone()
         file_name = './logs/' + str(date_time.date()) + '.txt'
-        log = open(file_name, 'a')
-        log.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
-        log.close()
+        with open(file_name, 'a', encoding="utf-8") as file:
+            file.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
 
     def jaccard_distance(self, str1, str2):
         a = set(str1)
