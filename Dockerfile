@@ -25,7 +25,7 @@ COPY data/for_firsts.csv data/for_firsts.csv
 COPY data/main_model.pkl data/main_model.pkl
 COPY data/models data/models
 COPY data/mats5.csv data/mats5.csv
-COPY data/msgs_ei_marked.csv data/msgs_ei_marked.csv
+COPY data/msgs_ei.csv data/msgs_ei.csv
 COPY data/categories.csv data/categories.csv
 COPY data/saves.csv data/saves.csv
 COPY data/method2.csv data/method2.csv
