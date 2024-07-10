@@ -13,7 +13,7 @@ def html_from_xml(xml_data):
 
 # Функция для преобразования HTML в текст
 def convert_html_to_text(html_content):
-    soup = BeautifulSoup(html_content)
+    soup = BeautifulSoup(html_content, features="html.parser")
     return soup.get_text('\n').replace('\r\n', ' ')
 
 def xml_from_hash(hash):
