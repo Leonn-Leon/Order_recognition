@@ -1,6 +1,6 @@
 connection_url = "RMQ_AI_URL"
 # amqp://ai:XRKh02eFLTKjMJErcpoy@esb-dev-rmq01.spk.ru:5672/
-first_queue = "get_message"
+first_queue = "find_request_result"
 second_queue = "save_truth"
 exchange = "ai"
 routing_key = "orderrecognition.save_truth"
