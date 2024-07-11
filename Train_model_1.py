@@ -11,7 +11,6 @@ data_path = 'data/for_firsts.csv'
 print('Берём сохранённые данные')
 data = pd.read_csv(data_path)
 
-# Фильтрация данных для группы "Сорт"
 all_zeros = sorted(list(set(data['Название иерархии-0'].to_list())))
 for ind, zero in enumerate(all_zeros):
     print(zero)
