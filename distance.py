@@ -159,9 +159,17 @@ class Find_materials():
             try:
                 ind = [m.start() for m in re.finditer(f' {val_ei}{ei}', new_mat + ' ')][-1]
                 new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei}{ei}', ' ')
-                new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
             except:
-                self.write_logs('Ошибка с поиском ei', event=0)
+                try:
+                    ind = [m.start() for m in re.finditer(f' {val_ei} {ei}', new_mat + ' ')][-1]
+                    new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei} {ei}', ' ')
+                except:
+                    try:
+                        ind = [m.start() for m in re.finditer(f' {ei} {val_ei}', new_mat + ' ')][-1]
+                        new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {ei} {val_ei}', ' ')
+                    except:
+                        new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
+                        self.write_logs('Ошибка с поиском ei', event=0)
             #################################
             first_ierar = self.models.get_pred(new_mat)
             ress = self.choose_based_on_similarity(new_mat, first_ierar)
