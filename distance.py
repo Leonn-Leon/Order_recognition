@@ -154,7 +154,7 @@ class Find_materials():
             new_mat = self.kw.replace_words(new_mat)
             pos_id += 1
             ###############################
-            new_mat  = self.new_mat_prep(new_mat)
+            new_mat = self.new_mat_prep(new_mat)
             # print(val_ei, ei)
             try:
                 ind = [m.start() for m in re.finditer(f' {val_ei}{ei}', new_mat + ' ')][-1]
@@ -218,7 +218,7 @@ class Find_materials():
 if __name__ == '__main__':
     print('Введите наименования ниже для поиска их в базе:')
     rows = []
-    find_mats  = Find_materials()
+    find_mats = Find_materials()
     while True:
         try:
             line = input()

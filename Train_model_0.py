@@ -4,6 +4,28 @@ from sklearn.svm import SVC
 import pickle
 import os
 from split_by_keys import Key_words
+from distance import Find_materials
+import Train_model_1
+import Fit_method2
+
+
+def new_mat_prep(new_mat):
+    # new_mat = new_mat.replace('/', '')
+
+    new_mat = kw.split_numbers_and_words(new_mat)
+    # print('Поиск едениц измерения -', end - start)
+
+    new_mat += ' '
+    new_lines = ''
+    for word in new_mat.split():
+        new_word = word
+        if word.isdigit():
+            if int(word) % 100 == 0 and len(word) >= 4:
+                new_num = str(int(word) / 1000)
+                new_word = new_num
+        new_lines += new_word + ' '
+    new_mat = new_lines
+    return new_mat.strip()
 
 # Загрузка данных
 data_path = 'data/for_zero.csv'
@@ -16,12 +38,13 @@ if not os.path.isfile(data_path):
     # data = data[~data['Полное наименование материала'].str.contains("DIY")]
     kw = Key_words()
     data["Полное наименование материала"] = data["Полное наименование материала"].apply(
-        kw.split_numbers_and_words)
+        new_mat_prep)
     data["Полное наименование материала"] = data["Полное наименование материала"].apply(lambda x: x.replace('профильная', 'проф'))
     data[['Название иерархии-0', 'Название иерархии-1', 'Полное наименование материала']].iloc[1:].to_csv(
         'data/for_firsts.csv', index=False)
     data = data[['Название иерархии-0', 'Полное наименование материала']]
     data.iloc[1:].to_csv('data/for_zero.csv', index=False)
+    Fit_method2.add_method2()
 else:
     print('Берём сохранённые данные')
     data = pd.read_csv(data_path)
@@ -53,4 +76,5 @@ print('SVC start!')
 svm.fit(X_tfidf, y)
 with open('data/main_model.pkl', 'wb') as f:
     pickle.dump(svm, f)
-print('Done!!!')
+print('Done Train 0!!!')
+Train_model_1.train()
