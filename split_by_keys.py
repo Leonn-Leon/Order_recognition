@@ -108,6 +108,7 @@ class Key_words():
         s = re.sub(r'(\d)x(\d)', r'\1 \2', s)
         s = re.sub(r'(\d)х(\d)', r'\1 \2', s)
         s = re.sub(r'(\d)м ', r'\1 ', s)
+        s = re.sub(r'(\d)мм ', r'\1 ', s)
         s = re.sub(r'(\d) п ', r'\1п ', s)
         s = re.sub(r'(\d) у ', r'\1у ', s)
         # s = re.sub(r'(?<=\d)(?=[а-яА-Яa-zA-Z])', ' ', s)
