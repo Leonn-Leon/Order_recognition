@@ -64,20 +64,21 @@ class custom_yandex_gpt():
             text = text.replace('\n\n', '\n')
         text = text.split('\n')
         ress = []
-        for i in range(len(text)):
+        for i in range(len(text)//30+1):
             res = self.get_pos('\n'.join(text[i*30:(i+1)*30]))
+            # print('jtfg )))', res)
             if len(res) != 0:
-                ress += self.get_pos('\n'.join(text[i*30:(i+1)*30]))
+                ress += res
         return ress
 
     def get_pos(self, text:str, save=False, bag=False):
         # self.update_token()
         self.msgs += [{"role": "user", "text": text.replace('\xa0', ' ').replace('"', "''")}]
         if bag:
-            print(self.msgs[-1]['text'])
+            print('bag - ',self.msgs[-1]['text'])
             print('-' * 15)
-        prompt = self.req
-        prompt['messages'] += [self.msgs[-1]]
+        prompt = self.req.copy()
+        prompt['messages'] = [prompt['messages'][0], self.msgs[-1]]
         start = time.time()
         res = requests.post(gpt_url,
                             headers=self.headers, json=prompt)
@@ -104,7 +105,7 @@ class custom_yandex_gpt():
         for pos in answer:
             s = pos.split('|')
             if len(s) < 3:
-                answer_ei += [(s, 'шт', '1')]
+                answer_ei += [(pos, '1', 'шт')]
                 # continue
             else:
                 answer_ei += [(s[-3], s[-2], s[-1])]
