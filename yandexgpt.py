@@ -104,8 +104,10 @@ class custom_yandex_gpt():
         for pos in answer:
             s = pos.split('|')
             if len(s) < 3:
-                continue
-            answer_ei += [(s[-3], s[-2], s[-1])]
+                answer_ei += [(s, 'шт', '1')]
+                # continue
+            else:
+                answer_ei += [(s[-3], s[-2], s[-1])]
         return answer_ei
 
 if __name__ == "__main__":
