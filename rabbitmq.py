@@ -31,7 +31,8 @@ class Order_recognition():
             print('Text - ', content.split('\n'), flush=True)
         kw = Key_words()
         ygpt = custom_yandex_gpt()
-        clear_email = ygpt.get_pos(content)
+        # clear_email = ygpt.get_pos(content)
+        clear_email = ygpt.big_mail(content)
         # clear_email = kw.find_key_words(content)
         # Отправляем распознаннaй текст(!) на поиск материалов
         print('Очищенное сообщение -', clear_email)

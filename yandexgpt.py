@@ -20,7 +20,7 @@ class custom_yandex_gpt():
             "modelUri": "ds://"+gpt_version_id,
             "completionOptions": {
                 "stream": False,
-                "temperature": 0.4,
+                "temperature": 0.3,
                 "maxTokens": "4000"
             },
             "messages": [
@@ -30,6 +30,7 @@ class custom_yandex_gpt():
                 }
             ]
         }
+
 
     def get_iam_token(self):
         # Replace the next line with your service account ID and private key.
@@ -58,13 +59,20 @@ class custom_yandex_gpt():
         with open(file_name, 'a', encoding="utf-8") as file:
             file.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
 
-    # def big_mail(self, text):
-    #     if len(text) > 2000
+    def big_mail(self, text):
+        while '\n\n' in text:
+            text = text.replace('\n\n', '\n')
+        text = text.split('\n')
+        ress = []
+        for i in range(len(text)):
+            res = self.get_pos('\n'.join(text[i*30:(i+1)*30]))
+            print(res)
+            if len(res) != 0:
+                ress += [self.get_pos('\n'.join(text[i*30:(i+1)*30]))]
+        return ress
 
     def get_pos(self, text:str, save=False, bag=False):
         # self.update_token()
-        while '\n\n' in text:
-            text = text.replace('\n\n', '\n')
         self.msgs += [{"role": "user", "text": text.replace('\xa0', ' ').replace('"', "''")}]
         if bag:
             print(self.msgs[-1]['text'])
@@ -85,8 +93,11 @@ class custom_yandex_gpt():
         if save:
             self.msgs += [{"role": "assistant", "text": answer}]
             pd.DataFrame(self.msgs).to_csv("data/msgs_ei.csv")
-
-        return self.split_answer(answer)
+        try:
+            return self.split_answer(answer)
+        except:
+            print('Пустое письмо')
+            return []
 
     def split_answer(self,answer):
         answer = answer.split('\n')
