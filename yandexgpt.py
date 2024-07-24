@@ -83,7 +83,7 @@ class custom_yandex_gpt():
                             headers=self.headers, json=prompt)
         self.write_logs('Время на запрос, ' + str(time.time() - start))
         self.write_logs(str(res.text))
-        print('Время на запрос, ', time.time() - start)
+        print('Время на запрос, ', time.time() - start, flush=True)
         try:
             answer = json.loads(res.text)['result']['alternatives'][0]['message']['text']
         except:
