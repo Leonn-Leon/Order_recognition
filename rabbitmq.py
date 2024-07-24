@@ -68,13 +68,18 @@ class Order_recognition():
                         true_first = self.find_mats.all_materials[self.find_mats.all_materials['Материал']
                                                      == (str(int(pos['true_material'])))]['Название иерархии-1'].values[0]
                         # true_mat = str(int(pos['true_material']))
+
+                    except:
+                        self.write_logs('Не нашёл такого материала'+str(pos['true_material']), event=0)
+                        continue
+                    try:
                         print(self.find_mats.all_materials[self.find_mats.all_materials['Материал']
                                                            == (str(int(pos['true_material'])))])
                         print('Отправляем обучать !', flush=True)
                         self.write_logs('Отправляем обучать ! ' + request_text + '|' + true_first)
                         self.find_mats.models.fit(request_text, true_first)
                     except:
-                        self.write_logs('Не нашёл такого материала', event=0)
+                        self.write_logs('Не смог обучить модельки для '+str(pos['true_material']), event=0)
                         continue
 
                     if 'spec_mat' in pos.keys():
@@ -105,10 +110,13 @@ class Order_recognition():
             content = msg.body
             if 'true_value' in str(content):
                 return
-            self.write_logs('Получилось взять письмо из очереди', 1)
+            self.write_logs('Получилось взять письмо из очереди', 0)
             print('Получилось взять письмо из очереди', flush=True)
             body = json.loads(content)
             self.write_logs('Body - ' + str(body), 1)
+            if len(body['email']) == 0:
+                print('Письмо пустое!!!', flush=True)
+                self.write_logs('Письмо пустое!!!', 1)
             content = text_from_hash(body['email'])
             # print('Text - ', content)
             kw = Key_words()

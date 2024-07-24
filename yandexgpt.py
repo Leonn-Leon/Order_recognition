@@ -20,8 +20,8 @@ class custom_yandex_gpt():
             "modelUri": "ds://"+gpt_version_id,
             "completionOptions": {
                 "stream": False,
-                "temperature": 0.3,
-                "maxTokens": "3000"
+                "temperature": 0.4,
+                "maxTokens": "4000"
             },
             "messages": [
                 {
@@ -31,6 +31,26 @@ class custom_yandex_gpt():
             ]
         }
 
+    def get_iam_token(self):
+        # Replace the next line with your service account ID and private key.
+        service_account_id = "ajejim1e6tkg6qt4dtf3"
+        key_id = "<your-key-id>"
+        private_key = "<your-private-key>"
+
+        payload = {
+            "yandexPassportOauthToken": private_key
+        }
+
+        response = requests.post(f"https://iam.api.cloud.yandex.net/iam/v1/tokens", json=payload)
+        if response.status_code == 201:
+            return response.json()['iamToken']
+        else:
+            return None  # Handle error appropriately
+
+    def update_token(self):
+        self.iam_token = self.get_iam_token()
+        self.headers["Authorization"] = "Bearer " + self.iam_token
+
     def write_logs(self, text, event=1):
         event = 'EVENT' if event == 1 else 'ERROR'
         date_time = datetime.now().astimezone()
@@ -38,8 +58,11 @@ class custom_yandex_gpt():
         with open(file_name, 'a', encoding="utf-8") as file:
             file.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
 
+    # def big_mail(self, text):
+    #     if len(text) > 2000
 
     def get_pos(self, text:str, save=False, bag=False):
+        # self.update_token()
         while '\n\n' in text:
             text = text.replace('\n\n', '\n')
         self.msgs += [{"role": "user", "text": text.replace('\xa0', ' ').replace('"', "''")}]
