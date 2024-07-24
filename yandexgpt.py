@@ -66,9 +66,8 @@ class custom_yandex_gpt():
         ress = []
         for i in range(len(text)):
             res = self.get_pos('\n'.join(text[i*30:(i+1)*30]))
-            print(res)
             if len(res) != 0:
-                ress += [self.get_pos('\n'.join(text[i*30:(i+1)*30]))]
+                ress += self.get_pos('\n'.join(text[i*30:(i+1)*30]))
         return ress
 
     def get_pos(self, text:str, save=False, bag=False):
