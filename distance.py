@@ -26,7 +26,7 @@ class Find_materials():
         # self.method2.drop(['question'], axis=1, inplace=True)
         self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
         self.all_materials = self.all_materials[~self.all_materials['Полное наименование материала'].str.contains('НЕКОНД')]
-        self.all_materials = self.all_materials[self.all_materials['Материал'].apply(lambda x: x in self.otgruzki['Код материала'])]
+        # self.all_materials = self.all_materials[self.all_materials['Материал'].apply(lambda x: x in self.otgruzki['Код материала'])]
         self.all_materials.reset_index(inplace=True)
         del self.all_materials['index']
         self.all_materials['Материал'] = self.all_materials['Материал'].apply(str)
