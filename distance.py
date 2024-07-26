@@ -18,6 +18,7 @@ class Find_materials():
         self.models = Use_models()
         self.all_materials = pd.read_csv('data/mats5.csv')
         self.otgruzki = pd.read_csv('data/otgruzki.csv', sep=';')
+        self.otgruzki['Код материала'] = self.otgruzki['Код материала'].apply(lambda x: str(int(x)))
         self.method2 = pd.read_csv('data/method2.csv')
         self.kw = Key_words()
         self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x))
@@ -26,10 +27,12 @@ class Find_materials():
         # self.method2.drop(['question'], axis=1, inplace=True)
         self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
         self.all_materials = self.all_materials[~self.all_materials['Полное наименование материала'].str.contains('НЕКОНД')]
-        # self.all_materials = self.all_materials[self.all_materials['Материал'].apply(lambda x: x in self.otgruzki['Код материала'])]
+        self.all_materials['Материал'] = self.all_materials['Материал'].apply(str)
+        # print(self.otgruzki['Код материала'].values)
+        # self.all_materials = self.all_materials[self.all_materials['Материал'].loc[['95608']]]
+        self.all_materials = self.all_materials[self.all_materials['Материал'].apply(lambda x: x in self.otgruzki['Код материала'].values)]
         self.all_materials.reset_index(inplace=True)
         del self.all_materials['index']
-        self.all_materials['Материал'] = self.all_materials['Материал'].apply(str)
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
         # self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(self.kw.split_numbers_and_words)
