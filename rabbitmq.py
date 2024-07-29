@@ -171,16 +171,16 @@ class Order_recognition():
 
         async with connection:
             channel = await connection.channel()
-            queue = await channel.declare_queue(conf.first_queue, timeout=50000)
+            queue = await channel.declare_queue(conf.first_queue, timeout=90000)
             # через partial прокидываем в наш обработчик сам канал
-            await queue.consume(partial(self.consumer, channel=channel), timeout=50000)
+            await queue.consume(partial(self.consumer, channel=channel), timeout=90000)
             print('Слушаем очередь', flush=True)
 
 
-            queue2 = await channel.declare_queue(conf.second_queue, timeout=50000)
-            await queue2.bind(exchange=conf.exchange, routing_key=conf.routing_key, timeout=50000)
+            queue2 = await channel.declare_queue(conf.second_queue, timeout=90000)
+            await queue2.bind(exchange=conf.exchange, routing_key=conf.routing_key, timeout=90000)
             # через partial прокидываем в наш обработчик сам канал
-            await queue2.consume(partial(self.save_truth), timeout=50000)
+            await queue2.consume(partial(self.save_truth), timeout=90000)
             print('Слушаем очередь2', flush=True)
             try:
                 await asyncio.Future()

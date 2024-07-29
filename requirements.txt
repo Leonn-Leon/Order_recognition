@@ -7,3 +7,5 @@ scikit-learn==1.4.1.post1
 python-Levenshtein
 beautifulsoup4==4.12.3
 requests
+PyJWT
+cryptography
