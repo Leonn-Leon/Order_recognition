@@ -148,7 +148,10 @@ class Find_materials():
             new_mat = new_row
             poss += [{'position_id': str(pos_id)}]
             poss[-1]['request_text'] = new_mat
-            val_ei = str(val_ei.split()[0])
+            try:
+                val_ei = str(val_ei.split()[0])
+            except:
+                print('|'+val_ei+'|')
             poss[-1]['value'] = val_ei
             ei = ei.split()[0].replace('тн', 'т').replace('.', '')
             if ei not in ['т', 'м', 'кг', 'м2', 'мп']:

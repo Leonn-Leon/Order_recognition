@@ -78,8 +78,8 @@ class custom_yandex_gpt():
             text = text.replace('\n\n', '\n')
         text = text.split('\n')
         ress = []
-        for i in range(len(text)//30+1):
-            res = self.get_pos('\n'.join(text[i*30:(i+1)*30]))
+        for i in range(len(text)//20+1):
+            res = self.get_pos('\n'.join(text[i*20:(i+1)*20]))
             # print('jtfg )))', res)
             if len(res) != 0:
                 ress += res
