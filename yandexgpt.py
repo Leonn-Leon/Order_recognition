@@ -119,7 +119,8 @@ class custom_yandex_gpt():
         for pos in answer:
             s = pos.split('|')
             if len(s) < 3:
-                answer_ei += [(pos, '1', 'шт')]
+                if len(pos) != 0:
+                    answer_ei += [(pos, 'шт', '1')]
                 # continue
             else:
                 answer_ei += [(s[-3], s[-2], s[-1])]
