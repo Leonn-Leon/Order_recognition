@@ -73,13 +73,13 @@ class custom_yandex_gpt():
         with open(file_name, 'a', encoding="utf-8") as file:
             file.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
 
-    def big_mail(self, text):
+    def big_mail(self, text, save=False):
         while '\n\n' in text:
             text = text.replace('\n\n', '\n')
         text = text.split('\n')
         ress = []
         for i in range(len(text)//20+1):
-            res = self.get_pos('\n'.join(text[i*20:(i+1)*20]))
+            res = self.get_pos('\n'.join(text[i*20:(i+1)*20]), save=save)
             # print('jtfg )))', res)
             if len(res) != 0:
                 ress += res

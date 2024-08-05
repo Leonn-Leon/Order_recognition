@@ -12,7 +12,7 @@ import Fit_method2
 def new_mat_prep(new_mat):
     # new_mat = new_mat.replace('/', '')
 
-    new_mat = kw.split_numbers_and_words(new_mat)
+    new_mat = Key_words().split_numbers_and_words(new_mat)
     # print('Поиск едениц измерения -', end - start)
 
     new_mat += ' '
@@ -30,24 +30,16 @@ def new_mat_prep(new_mat):
 # Загрузка данных
 data_path = 'data/for_zero.csv'
 if not os.path.isfile(data_path):
-    file_path = 'data/Mats_with_eirar.csv'
+    file_path = 'data/mats5.csv'
     data = pd.read_csv(file_path)
     print('Data opened!')
-    # data = data[['Название иерархии-0', 'Полное наименование материала']]
-    data['Полное наименование материала'] = data['Полное наименование материала'].str.replace('DIY', ' ')
-    # data = data[~data['Полное наименование материала'].str.contains("DIY")]
-    kw = Key_words()
-    data["Полное наименование материала"] = data["Полное наименование материала"].apply(
-        new_mat_prep)
-    data["Полное наименование материала"] = data["Полное наименование материала"].apply(lambda x: x.replace('профильная', 'проф'))
-    data[['Название иерархии-0', 'Название иерархии-1', 'Полное наименование материала']].iloc[1:].to_csv(
-        'data/for_firsts.csv', index=False)
+    data1 = data[['Название иерархии-0', 'Название иерархии-1', 'Полное наименование материала']]
+    data1.to_csv('data/for_firsts.csv', index=False)
     data = data[['Название иерархии-0', 'Полное наименование материала']]
-    data.iloc[1:].to_csv('data/for_zero.csv', index=False)
+    data.to_csv(data_path, index=False)
     Fit_method2.add_method2()
-else:
-    print('Берём сохранённые данные')
-    data = pd.read_csv(data_path)
+print('Берём сохранённые данные')
+data = pd.read_csv(data_path)
 
 # Выбор признаков и целевой переменной
 X = data['Полное наименование материала']

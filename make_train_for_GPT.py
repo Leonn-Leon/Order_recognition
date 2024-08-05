@@ -19,5 +19,5 @@ for i in df.to_numpy()[1:]:
         # Нужно рекурсивно заменить \n\n на \n
         # В msgs дубликатов нет я проверил
         itog["response"] = i[1].replace('"', "''").replace('\r', ' ')
-        print(len(itog["request"][0]["text"])+len(itog["request"][1]["text"]), len(itog["response"]))
+        # print(len(itog["request"][0]["text"])+len(itog["request"][1]["text"]), len(itog["response"]))
         print(json.dumps(itog, ensure_ascii=False))

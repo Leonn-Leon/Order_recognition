@@ -2,6 +2,25 @@ from Use_models import Use_models
 import pandas as pd
 import json
 import base64
+from split_by_keys import Key_words
+
+def new_mat_prep(new_mat):
+    # new_mat = new_mat.replace('/', '')
+
+    new_mat = Key_words().split_numbers_and_words(new_mat)
+    # print('Поиск едениц измерения -', end - start)
+
+    new_mat += ' '
+    new_lines = ''
+    for word in new_mat.split():
+        new_word = word
+        if word.isdigit():
+            if int(word) % 100 == 0 and len(word) >= 4:
+                new_num = str(int(word) / 1000)
+                new_word = new_num
+        new_lines += new_word + ' '
+    new_mat = new_lines
+    return new_mat.strip()
 
 def add_method2():
     data = pd.read_csv('data/mats5.csv')
@@ -9,6 +28,7 @@ def add_method2():
     models = Use_models()
     method2 = pd.read_csv('data/method2.csv')
     method2.reset_index(drop=True, inplace=True)
+    method2['question'] = method2['question'].apply(lambda x: new_mat_prep(x))
     method2 = method2.to_numpy()
 
     data_path_zero = 'data/for_zero.csv'
