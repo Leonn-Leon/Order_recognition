@@ -147,6 +147,7 @@ class Order_recognition():
             if len(body['email']) == 0:
                 print('Письмо пустое!!!', flush=True)
                 self.write_logs('Письмо пустое!!!', 1)
+            content = text_from_hash(body['email'])
             await self.start_analize_email(content, msg, channel)
             # my_thread = Thread(target=self.start_analize_email, args=[content, msg, channel])
             # my_thread.start()
