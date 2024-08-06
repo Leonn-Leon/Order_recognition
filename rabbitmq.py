@@ -188,7 +188,7 @@ class Order_recognition():
             await queue2.bind(exchange=conf.exchange, routing_key=conf.routing_key, timeout=10000)
             # через partial прокидываем в наш обработчик сам канал
             await queue2.consume(partial(self.save_truth), timeout=10000)
-            print('Слушаем очередь2', flush=True)
+            print('Слушаем очередь 2', flush=True)
             try:
                 await asyncio.Future()
             except Exception:
