@@ -78,8 +78,8 @@ class custom_yandex_gpt():
             text = text.replace('\n\n', '\n')
         text = text.split('\n')
         ress = []
-        for i in range(len(text)//20+1):
-            res = self.get_pos('\n'.join(text[i*20:(i+1)*20]), save=save)
+        for i in range(len(text)//25+1):
+            res = self.get_pos('\n'.join(text[i*25:(i+1)*25]), save=save)
             # print('jtfg )))', res)
             if len(res) != 0:
                 ress += res
@@ -94,8 +94,15 @@ class custom_yandex_gpt():
         prompt = self.req.copy()
         prompt['messages'] = [prompt['messages'][0], self.msgs[-1]]
         start = time.time()
-        res = requests.post(gpt_url,
-                            headers=self.headers, json=prompt)
+        _try = 0
+        while _try<10:
+            res = requests.post(gpt_url,
+                                headers=self.headers, json=prompt)
+            # print(str(res.text))
+            if 'error' not in res.text:
+                print('Вышел!', _try)
+                break
+            _try += 1
         self.write_logs('Время на запрос, ' + str(time.time() - start))
         self.write_logs(str(res.text))
         print('Время на запрос, ', time.time() - start, flush=True)
