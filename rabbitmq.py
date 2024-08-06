@@ -103,7 +103,8 @@ class Order_recognition():
                 print('Не нашёл такого письма', flush=True)
             print("Метод 2 всё", flush=True)
 
-    def start_analize_email(self, content, msg, channel):
+    async def start_analize_email(self, content, msg, channel):
+        print('Начало потока!', flush=True)
         ygpt = custom_yandex_gpt()
         clear_email = ygpt.big_mail(content)
         # Отправляем распознанный текст(!) на поиск материалов
@@ -117,7 +118,7 @@ class Order_recognition():
             # отправляем ответ в default exchange
             print('Отправляем результат', flush=True)
             self.write_logs('Отправляем результaт', 1)
-            channel.default_exchange.publish(
+            await channel.default_exchange.publish(
                 message=aio_pika.Message(
                     content_type='application/json',
                     body=str.encode(results.replace("'", '"')[1:-1]),
@@ -127,6 +128,7 @@ class Order_recognition():
                 routing_key=msg.reply_to,  # самое важное
 
             )
+        print('Конец!', flush=True)
 
     async def consumer(self,
             msg: aio_pika.IncomingMessage,
