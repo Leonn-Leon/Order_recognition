@@ -98,10 +98,10 @@ class Use_models():
         print('Done!!!')
 
 if __name__ == '__main__':
-    text = 'арматура а400 10'
+    text = "лист нлг 6 2 6 09г2с 19281 ф 6.00"
     kw = Key_words()
     text = kw.split_numbers_and_words(text)
     print(Use_models().get_pred(text, bag=True))
-    # print(Use_models().fit(text, true_first='Лист Г/К НЛГ 1.5-12'))
+    print(Use_models().fit(text, true_first='Лист Г/К НЛГ 1.5-12'))
     # print(Use_models().get_pred(text))
     # Use_models().fit('Труба 50х20', 'Труба профильная')

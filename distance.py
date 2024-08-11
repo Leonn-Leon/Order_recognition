@@ -15,6 +15,7 @@ from Use_models import Use_models
 
 class Find_materials():
     def __init__(self):
+        pd.options.mode.copy_on_write = True
         self.models = Use_models()
         self.all_materials = pd.read_csv('data/mats6.csv')
         self.method2 = pd.read_csv('data/method2.csv')
@@ -61,16 +62,18 @@ class Find_materials():
         max_similarity_idxs = np.argsort(euclidean)
         return max_similarity_idxs
 
-    def choose_based_on_similarity(self, text, first_ierar):
-        Levenstain = self.all_materials["Полное наименование материала"].apply(lambda x: ratio(text, x))
-        # print(self.all_materials[self.all_materials['Название иерархии-1']
-        #                                 == first_ierar]["Полное наименование материала"])
-        # Jacaard = self.all_materials["Полное наименование материала"].apply(lambda x: self.jaccard_distance(text, x))
-        tr = self.all_materials['Название иерархии-1'] == first_ierar
+    def choose_based_on_similarity(self, text, first_ierar, ress=None):
+        materials_df = self.all_materials[['Материал', "Полное наименование материала", "Название иерархии-1"]].iloc[ress[:15]]
+        materials_df["Levenstain"] = materials_df["Полное наименование материала"].apply(lambda x: ratio(text, x))
+        tr = materials_df['Название иерархии-1'] == first_ierar
         if tr.sum() > 0:
-            Levenstain[self.all_materials[~tr].index] = 0
-        max_similarity_idxs = np.argsort(Levenstain)
-        return max_similarity_idxs[::-1]
+            materials_df.loc["Levenstain", materials_df[~tr].index] = 0
+        sorted_materials = materials_df.sort_values(by=["Levenstain"],#, "Name Length"],
+                                                          ascending=[False])
+        print("Simularity5")
+        return sorted_materials[['Материал', "Полное наименование материала"]].head(5)
+        # max_similarity_idxs = np.argsort(Levenstain)
+        # return max_similarity_idxs[::-1]
 
     def find_top_materials_advanced(self, query, materials_df, top_n=5):
         """
@@ -94,10 +97,13 @@ class Find_materials():
         def count_matches_and_numeric(query_numbers, material_name):
             material_words = set(material_name.lower().split())  # Разбиение названия материала на слова
             # match_count = sum(1 for word in query_words if word.lower().strip() in material_words)  # Подсчёт совпадений
-            numeric_presence = sum(1 for num in query_numbers if num.strip() in material_words)  # Подсчёт совпадений
+            numeric_presence = sum((3 if num.strip().replace('.', '').isdigit()
+                  or num[:-1].strip().replace('.', '').isdigit() else 1) \
+            * (1 - query_numbers.index(num) / len(query_numbers)) ** 2
+            for num in query_numbers if num.strip() in material_words)  # Подсчёт совпадений
             # numeric_presence = any(
             #     num in material_name for num in query_numbers)  # Проверка наличия числовых параметров
-            return numeric_presence
+            return round(numeric_presence, 3)
 
         # Применение функции подсчёта к каждому материалу
         materials_df["Numeric Presence"] = materials_df["Полное наименование материала"].apply(
@@ -107,10 +113,11 @@ class Find_materials():
         # filtered_materials = materials_df[(materials_df["Matches"] > 0) & (materials_df["Numeric Presence"])]
 
         # Сортировка по количеству совпадений, наличию числовых параметров и, наконец, по длине названия
-        sorted_materials = materials_df.sort_values(by=["Numeric Presence"],#, "Name Length"],
-                                                          ascending=[False])
-
-        return sorted_materials.head(top_n)
+        # sorted_materials = materials_df.sort_values(by=["Numeric Presence"],#, "Name Length"],
+        #                                                   ascending=[False])
+        # return sorted_materials.head(top_n)
+        max_similarity_idxs = np.argsort(materials_df["Numeric Presence"])
+        return max_similarity_idxs[::-1]
 
     def new_mat_prep(self, new_mat):
         # new_mat = new_mat.replace('/', '')
@@ -172,16 +179,15 @@ class Find_materials():
                         self.write_logs('Ошибка с поиском ei', event=0)
             #################################
             first_ierar = self.models.get_pred(new_mat)
-            ress = self.choose_based_on_similarity(new_mat, first_ierar)
-            # ress = self.TF_Idf_similarity(new_mat, first_ierar)
-            ress = np.array(ress)
+            tr = self.all_materials['Название иерархии-1'] == first_ierar
+            materials_df = self.all_materials[tr]
             advanced_search_results = self.find_top_materials_advanced(new_mat,
-                                    self.all_materials[['Материал', "Полное наименование материала"]].iloc[ress[:15]])
-            # advanced_search_results = self.find_top_materials_advanced(new_mat, self.all_materials)
-            # print('Advanced -', advanced_search_results.values)
+                                    materials_df[['Материал', "Полное наименование материала"]])
             ress = advanced_search_results.values
-            # poss[-1]['request_text'] = new_mat
-            # if poss[-1]['request_text'] in self.method2.index:
+            # ress = self.choose_based_on_similarity(new_mat, first_ierar, ress)
+            ress = materials_df[['Материал', "Полное наименование материала"]].iloc[ress[:5]]
+            ress = ress.values
+            # ress = advanced_search_results.values
             print('Вот это ищем', new_mat)
             if new_mat in self.method2.question.to_list():
                 print('Нашёл')
