@@ -95,12 +95,25 @@ class Find_materials():
         print('second metric -', all)
         # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
         def count_matches_and_numeric(query_numbers, material_name):
-            material_words = set(material_name.lower().split())  # Разбиение названия материала на слова
+            material_words = material_name.lower().split()  # Разбиение названия материала на слова
             # match_count = sum(1 for word in query_words if word.lower().strip() in material_words)  # Подсчёт совпадений
-            numeric_presence = sum((3 if num.strip().replace('.', '').isdigit()
-                  or num[:-1].strip().replace('.', '').isdigit() else 1) \
-            * (1 - query_numbers.index(num) / len(query_numbers)) ** 2
-            for num in query_numbers if num.strip() in material_words)  # Подсчёт совпадений
+            query_numbers = [(num.strip() if num.strip() in material_words else (num[:-1].strip() if num[:-1].strip() in material_words else
+                              (num[1:].strip() if num[1:].strip() in material_words else ""))) for num in query_numbers]
+
+            # numeric_presence = sum((1 if num.replace('.', '').isdigit() else 1)
+            #                        * (1 - query_numbers.index(num) / len(query_numbers))**2
+            #                       for num in material_words if num in query_numbers)  # Подсчёт совпадений
+
+            numeric_presence = sum((1 if num.replace('.', '').isdigit() else 1)
+                                   * (7/(material_words.index(num)+1))
+                                   for num in material_words if num in query_numbers)
+            numeric_presence += sum((1 if num.replace('.', '').isdigit() else 1)
+                                   * (7 / (query_numbers.index(num) + 1))
+                                   for num in query_numbers if num in material_words)
+            # numeric_presence -= sum((1 if num.replace('.', '').isdigit() else 1)
+            #                        * (5/(material_words.index(num)+1))**2
+            #                       for num in material_words if num not in query_numbers)
+
             # numeric_presence = any(
             #     num in material_name for num in query_numbers)  # Проверка наличия числовых параметров
             return round(numeric_presence, 3)

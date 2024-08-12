@@ -102,6 +102,9 @@ class custom_yandex_gpt():
             if 'error' not in res.text:
                 print('Вышел!', _try)
                 break
+            elif res.status_code == 400:
+                print('Вышел c с ошибкой!', _try)
+                break
             else:
                 print("Ошибка у YandexGPT:", res.text)
             time.sleep(0.3)
