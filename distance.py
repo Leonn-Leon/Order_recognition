@@ -97,19 +97,42 @@ class Find_materials():
         def count_matches_and_numeric(query_numbers, material_name):
             material_words = material_name.lower().split()  # Разбиение названия материала на слова
             # match_count = sum(1 for word in query_words if word.lower().strip() in material_words)  # Подсчёт совпадений
-            query_numbers = [(num.strip() if num.strip() in material_words else (num[:-1].strip() if num[:-1].strip() in material_words else
-                              (num[1:].strip() if num[1:].strip() in material_words else ""))) for num in query_numbers]
-
+            coincidences = []
+            k = 0
+            for num in query_numbers:
+                num = num.strip()
+                if num in material_words:
+                    coincidences += [[material_words.index(num), num]]
+                    k+=1
+                    continue
+                elif num.isdigit():
+                    coincidences += [""]
+                    continue
+                elif num[:-1].isdigit():
+                    if num[:-1] in material_words:
+                        coincidences += [[material_words.index(num[:-1]), num[:-1]]]
+                        k += 1
+                        continue
+                elif num[1:].isdigit():
+                    if num[1:] in material_words:
+                        coincidences += [[material_words.index(num[1:]), num[1:]]]
+                        k += 1
+                        continue
+                coincidences += [""]
+            # арматура 30 11.7 а240 34028 16 11.70
             # numeric_presence = sum((1 if num.replace('.', '').isdigit() else 1)
             #                        * (1 - query_numbers.index(num) / len(query_numbers))**2
             #                       for num in material_words if num in query_numbers)  # Подсчёт совпадений
 
-            numeric_presence = sum((1 if num.replace('.', '').isdigit() else 1)
-                                   * (7/(material_words.index(num)+1))
-                                   for num in material_words if num in query_numbers)
-            numeric_presence += sum((1 if num.replace('.', '').isdigit() else 1)
-                                   * (7 / (query_numbers.index(num) + 1))
-                                   for num in query_numbers if num in material_words)
+            # numeric_presence = sum(1
+            #                        * max(len(material_words)-(material_words.index(num)+1), 1)
+            #                        for num in material_words if num in coincidences)
+            _size = len(coincidences)
+            numeric_presence = sum(((_size-ind)/(abs(num[0]-ind)+1))**3
+                                   for ind, num in enumerate(coincidences) if num != "")
+            # _size = len(material_words)
+            # numeric_presence += sum((_size - ind) ** 3
+            #                        for ind, num in enumerate(material_words) if num in coincidences)
             # numeric_presence -= sum((1 if num.replace('.', '').isdigit() else 1)
             #                        * (5/(material_words.index(num)+1))**2
             #                       for num in material_words if num not in query_numbers)
@@ -171,6 +194,7 @@ class Find_materials():
             if ei not in ['т', 'м', 'кг', 'м2', 'мп']:
                 ei = 'шт'
             poss[-1]['ei'] = ei
+            print(new_mat)
             new_mat = self.kw.replace_words(new_mat)
             pos_id += 1
             ###############################
@@ -193,7 +217,7 @@ class Find_materials():
             #################################
             first_ierar = self.models.get_pred(new_mat)
             tr = self.all_materials['Название иерархии-1'] == first_ierar
-            materials_df = self.all_materials[tr]
+            materials_df = self.all_materials#[tr]
             advanced_search_results = self.find_top_materials_advanced(new_mat,
                                     materials_df[['Материал', "Полное наименование материала"]])
             ress = advanced_search_results.values
