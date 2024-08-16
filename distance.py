@@ -17,22 +17,20 @@ class Find_materials():
     def __init__(self):
         pd.options.mode.copy_on_write = True
         self.models = Use_models()
-        self.all_materials = pd.read_csv('data/mats6.csv')
+        self.all_materials = pd.read_csv('data/mats.csv')
+        self.otgruzki = pd.read_csv('data/otgruzki.csv', sep=';')
+        self.otgruzki['Код материала'] = self.otgruzki['Код материала'].apply(lambda x: int(x))
         self.method2 = pd.read_csv('data/method2.csv')
         self.kw = Key_words()
         self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x))
         self.method2.reset_index(drop=True, inplace=True)
-        # self.method2.index = self.method2['question']
-        # self.method2.drop(['question'], axis=1, inplace=True)
         self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
         self.all_materials.reset_index(inplace=True)
         del self.all_materials['index']
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
-        # self.all_materials["Полное наименование материала"] = self.all_materials["Полное наименование материала"].apply(self.kw.split_numbers_and_words)
         self.vectorizer = TfidfVectorizer()
-        # self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
-        self.tfidf_matrix = self.vectorizer.fit_transform(pd.read_csv('data/mats5.csv')["Полное наименование материала"])
+        self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
 
         print('All materials opened!', flush=True)
 
@@ -96,7 +94,6 @@ class Find_materials():
         # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
         def count_matches_and_numeric(query_numbers, material_name):
             material_words = material_name.lower().split()  # Разбиение названия материала на слова
-            # match_count = sum(1 for word in query_words if word.lower().strip() in material_words)  # Подсчёт совпадений
             coincidences = []
             k = 0
             for num in query_numbers:
@@ -119,39 +116,26 @@ class Find_materials():
                         k += 1
                         continue
                 coincidences += [""]
-            # арматура 30 11.7 а240 34028 16 11.70
-            # numeric_presence = sum((1 if num.replace('.', '').isdigit() else 1)
-            #                        * (1 - query_numbers.index(num) / len(query_numbers))**2
-            #                       for num in material_words if num in query_numbers)  # Подсчёт совпадений
 
-            # numeric_presence = sum(1
-            #                        * max(len(material_words)-(material_words.index(num)+1), 1)
-            #                        for num in material_words if num in coincidences)
             _size = len(coincidences)
             numeric_presence = sum(((_size-ind)/(abs(num[0]-ind)+1))**3
                                    for ind, num in enumerate(coincidences) if num != "")
-            # _size = len(material_words)
-            # numeric_presence += sum((_size - ind) ** 3
-            #                        for ind, num in enumerate(material_words) if num in coincidences)
-            # numeric_presence -= sum((1 if num.replace('.', '').isdigit() else 1)
-            #                        * (5/(material_words.index(num)+1))**2
-            #                       for num in material_words if num not in query_numbers)
 
-            # numeric_presence = any(
-            #     num in material_name for num in query_numbers)  # Проверка наличия числовых параметров
+            if 'арматура 30' in material_name:
+                print(coincidences, numeric_presence)
             return round(numeric_presence, 3)
 
         # Применение функции подсчёта к каждому материалу
         materials_df["Numeric Presence"] = materials_df["Полное наименование материала"].apply(
             lambda x: count_matches_and_numeric(all, x))
+        try:
+            # print(materials_df["Материал"].tolist()[:5], self.otgruzki['Код материала'].tolist()[:5])
+            materials_df.loc[~materials_df["Материал"].isin(self.otgruzki['Код материала'].tolist()),
+                                                            "Numeric Presence"] -= 200
 
-        # Фильтрация материалов, которые имеют хотя бы одно словесное совпадение и числовые параметры
-        # filtered_materials = materials_df[(materials_df["Matches"] > 0) & (materials_df["Numeric Presence"])]
-
-        # Сортировка по количеству совпадений, наличию числовых параметров и, наконец, по длине названия
-        # sorted_materials = materials_df.sort_values(by=["Numeric Presence"],#, "Name Length"],
-        #                                                   ascending=[False])
-        # return sorted_materials.head(top_n)
+            # print(materials_df[materials_df["Полное наименование материала"].str.contains('арматура 30')])
+        except Exception as exc:
+            print(exc)
         max_similarity_idxs = np.argsort(materials_df["Numeric Presence"])
         return max_similarity_idxs[::-1]
 
@@ -217,7 +201,7 @@ class Find_materials():
             #################################
             first_ierar = self.models.get_pred(new_mat)
             tr = self.all_materials['Название иерархии-1'] == first_ierar
-            materials_df = self.all_materials#[tr]
+            materials_df = self.all_materials[tr]
             advanced_search_results = self.find_top_materials_advanced(new_mat,
                                     materials_df[['Материал', "Полное наименование материала"]])
             ress = advanced_search_results.values

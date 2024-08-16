@@ -11,12 +11,12 @@ data = data[~data['Полное наименование материала'].st
 fm = Find_materials()
 data["Полное наименование материала"] = data["Полное наименование материала"].apply(
     fm.new_mat_prep)
-otgruzki = pd.read_csv('data/otgruzki.csv', sep=';')
-otgruzki['Код материала'] = otgruzki['Код материала'].apply(lambda x: str(int(x)))
+# otgruzki = pd.read_csv('data/otgruzki.csv', sep=';')
+# otgruzki['Код материала'] = otgruzki['Код материала'].apply(lambda x: str(int(x)))
 data = data[~data['Полное наименование материала'].str.contains('НЕКОНД')]
 data['Материал'] = data['Материал'].apply(str)
-data = data[data['Материал'].apply(lambda x: x in otgruzki['Код материала'].values)]
-data.iloc[1:].to_csv('data/mats5.csv', index=False)
+# data = data[data['Материал'].apply(lambda x: x in otgruzki['Код материала'].values)]
+data.iloc[1:].to_csv('data/mats.csv', index=False)
 ##########################
 
 # all_materials = pd.read_csv('data/mats5.csv')
