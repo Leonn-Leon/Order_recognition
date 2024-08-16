@@ -29,7 +29,7 @@ COPY data/msgs_ei.csv data/msgs_ei.csv
 COPY data/categories.csv data/categories.csv
 COPY data/saves.csv data/saves.csv
 COPY data/method2.csv data/method2.csv
-COPY data/mats6.csv data/mats.csv
+COPY data/mats.csv data/mats.csv
 COPY data/ygpt_keys.json data/ygpt_keys.json
 
 
