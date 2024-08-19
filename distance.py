@@ -99,7 +99,9 @@ class Find_materials():
             for num in query_numbers:
                 num = num.strip()
                 if num in material_words:
-                    coincidences += [[material_words.index(num), num]]
+                    ind = material_words.index(num)
+                    coincidences += [[ind, num]]
+                    material_words[ind] = ""
                     k+=1
                     continue
                 elif num.isdigit():
@@ -107,12 +109,16 @@ class Find_materials():
                     continue
                 elif num[:-1].isdigit():
                     if num[:-1] in material_words:
-                        coincidences += [[material_words.index(num[:-1]), num[:-1]]]
+                        ind = material_words.index(num[:-1])
+                        coincidences += [[ind, num[:-1]]]
+                        material_words[ind] = ""
                         k += 1
                         continue
                 elif num[1:].isdigit():
                     if num[1:] in material_words:
-                        coincidences += [[material_words.index(num[1:]), num[1:]]]
+                        ind = material_words.index(num[1:])
+                        coincidences += [[ind, num[1:]]]
+                        material_words[ind] = ""
                         k += 1
                         continue
                 coincidences += [""]
@@ -121,7 +127,7 @@ class Find_materials():
             numeric_presence = sum(((_size-ind)/(abs(num[0]-ind)+1))**3
                                    for ind, num in enumerate(coincidences) if num != "")
 
-            if 'арматура 30' in material_name:
+            if 'труба проф' in material_name:
                 print(coincidences, numeric_presence)
             return round(numeric_presence, 3)
 
@@ -198,6 +204,7 @@ class Find_materials():
                     except:
                         new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
                         self.write_logs('Ошибка с поиском ei', event=0)
+
             #################################
             first_ierar = self.models.get_pred(new_mat)
             tr = self.all_materials['Название иерархии-1'] == first_ierar
