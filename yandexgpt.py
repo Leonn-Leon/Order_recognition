@@ -8,6 +8,7 @@ import requests
 from datetime import datetime
 from config import Authorization_AIM, xfolderid, gpt_version_id, gpt_url
 import jwt
+from thread import Thread
 
 
 class custom_yandex_gpt():
@@ -77,37 +78,55 @@ class custom_yandex_gpt():
         while '\n\n' in text:
             text = text.replace('\n\n', '\n')
         text = text.split('\n')
-        ress = []
-        for i in range(len(text)//20+1):
-            res = self.get_pos('\n'.join(text[i*20:(i+1)*20]), save=save)
-            # print('jtfg )))', res)
-            if len(res) != 0:
-                ress += res
-        return ress
 
-    def get_pos(self, text:str, save=False, bag=False):
+        kols = len(text)//15+1
+        self.ress = [""]*kols
+        my_threads = []
+        for i in range(kols):
+            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[i*15:(i+1)*15]), i, save, False])]
+            my_threads[-1].start()
+            # res = self.get_pos('\n'.join(text[i*20:(i+1)*20]), save=save)
+            # if len(res) != 0:
+            #     ress += res
+
+        for ind, thread in enumerate(my_threads):
+            thread.join()
+            print(f"Завершили {ind+1} поток")
+
+        self.ress = [mini_r for r in self.ress for mini_r in r if r != '']
+        print("RESSS", self.ress)
+        return self.ress
+
+    def get_pos(self, text:str, idx:int, save=False, bag=False):
         self.update_token()
         self.msgs += [{"role": "user", "text": text.replace('\xa0', ' ').replace('"', "''")}]
+        if len(self.msgs[-1]['text'])<10:
+            self.ress[idx] = ""
         if bag:
             print('bag - ',self.msgs[-1]['text'])
             print('-' * 15)
         prompt = self.req.copy()
         prompt['messages'] = [prompt['messages'][0], self.msgs[-1]]
-        start = time.time()
+        # start = time.time()
         _try = 0
-        while _try<10:
-            res = requests.post(gpt_url,
-                                headers=self.headers, json=prompt)
+        while _try<40:
+            start = time.time()
+            try:
+                res = requests.post(gpt_url,
+                                    headers=self.headers, json=prompt)
+            except Exception as exc:
+                self.write_logs("Не получилось отправить запрос в YaGPT"+str(exc))
+                print("Не получилось отправить запрос в YaGPT"+str(exc), flush=True)
             # print(str(res.text))
             if 'error' not in res.text:
                 print('Вышел!', _try)
                 break
             elif res.status_code == 400:
-                print('Вышел c с ошибкой!', _try)
+                print('Ошибка в письме', _try, prompt['messages'][-1])
                 break
             else:
-                print("Ошибка у YandexGPT:", res.text)
-            time.sleep(0.3)
+                print("Ошибка у YandexGPT:", _try, res.text)
+            time.sleep(1)
             _try += 1
         self.write_logs('Время на запрос, ' + str(time.time() - start))
         self.write_logs(str(res.text))
@@ -121,10 +140,12 @@ class custom_yandex_gpt():
             self.msgs += [{"role": "assistant", "text": answer}]
             pd.DataFrame(self.msgs).to_csv("data/msgs_ei.csv")
         try:
-            return self.split_answer(answer)
+            self.ress[idx] = self.split_answer(answer)
+            # return self.split_answer(answer)
         except:
             print('Не получилось распознать')
-            return []
+            self.ress[idx] = ""
+            # return []
 
     def split_answer(self,answer):
         answer = answer.split('\n')

@@ -124,11 +124,11 @@ class Find_materials():
                 coincidences += [""]
 
             _size = len(coincidences)
-            numeric_presence = sum(((_size-ind)/(abs(num[0]-ind)+1))**3
+            numeric_presence = sum(((_size-ind)/(abs(num[0]-ind)+1))**2
                                    for ind, num in enumerate(coincidences) if num != "")
 
-            if 'труба проф' in material_name:
-                print(coincidences, numeric_presence)
+            # if 'труба проф' in material_name:
+            #     print(coincidences, numeric_presence)
             return round(numeric_presence, 3)
 
         # Применение функции подсчёта к каждому материалу
