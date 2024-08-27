@@ -107,6 +107,7 @@ class Key_words():
             s = s.replace(i, '')
         s = re.sub(r'(\d)x(\d)', r'\1 \2', s)
         s = re.sub(r'(\d)х(\d)', r'\1 \2', s)
+        s = re.sub(r'(\d)х(\d)', r'\1 \2', s)
         s = re.sub(r'(\d)м ', r'\1 ', s)
         s = re.sub(r'(\d)мм ', r'\1 ', s)
         s = re.sub(r'(\d) п ', r'\1п ', s)

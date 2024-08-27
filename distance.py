@@ -208,7 +208,7 @@ class Find_materials():
             #################################
             first_ierar = self.models.get_pred(new_mat)
             tr = self.all_materials['Название иерархии-1'] == first_ierar
-            materials_df = self.all_materials[tr]
+            materials_df = self.all_materials#[tr]
             advanced_search_results = self.find_top_materials_advanced(new_mat,
                                     materials_df[['Материал', "Полное наименование материала"]])
             ress = advanced_search_results.values

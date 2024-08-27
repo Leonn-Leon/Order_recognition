@@ -30,7 +30,7 @@ def new_mat_prep(new_mat):
 # Загрузка данных
 data_path = 'data/for_zero.csv'
 if not os.path.isfile(data_path):
-    file_path = 'data/mats5.csv'
+    file_path = 'data/mats.csv'
     data = pd.read_csv(file_path)
     print('Data opened!')
     data1 = data[['Название иерархии-0', 'Название иерархии-1', 'Полное наименование материала']]
@@ -38,8 +38,9 @@ if not os.path.isfile(data_path):
     data = data[['Название иерархии-0', 'Полное наименование материала']]
     data.to_csv(data_path, index=False)
     Fit_method2.add_method2()
-print('Берём сохранённые данные')
-data = pd.read_csv(data_path)
+else:
+    print('Берём сохранённые данные')
+    data = pd.read_csv(data_path)
 
 # Выбор признаков и целевой переменной
 X = data['Полное наименование материала']
@@ -52,14 +53,18 @@ tfidf = TfidfVectorizer()
 X_tfidf = tfidf.fit_transform(X)
 print('TF-Idf Done!')
 
-with open('data/main_model.pkl', 'rb') as f:
-    model = pickle.load(f)
+if os.path.isfile('data/main_model.pkl'):
+    with open('data/main_model.pkl', 'rb') as f:
+        model = pickle.load(f)
+else:
+    print("Модели нет, создаём новую")
 
 try:
     model.predict(X_tfidf[0:1])
     raise 'Обучать не надо'
 except Exception as exc:
     print(exc)
+    print("Обучаем")
     pass
 
 # Метод опорных векторов
