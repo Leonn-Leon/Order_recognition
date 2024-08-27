@@ -1,4 +1,5 @@
 import base64
+import json
 import xml.etree.ElementTree as ET
 import html
 from bs4 import BeautifulSoup
@@ -21,7 +22,10 @@ def xml_from_hash(hash):
     return content
 def text_from_hash(hash):
     content = xml_from_hash(hash)
-    html_content = html_from_xml(content)
+    try:
+        html_content = html_from_xml(content)
+    except:
+        html_content = json.loads(content)["fileContent"]
     text = convert_html_to_text(html_content)
     return text
 
