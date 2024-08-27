@@ -9,7 +9,7 @@ class Use_models():
     def __init__(self):
         self.data_path_zero = 'data/for_zero.csv'
         self.data_path_first = 'data/for_firsts.csv'
-        self.data_zero  = pd.read_csv(self.data_path_zero)
+        self.data_zero = pd.read_csv(self.data_path_zero)
         self.data_first = pd.read_csv(self.data_path_first)
 
         with open('data/main_model.pkl', 'rb') as f:
@@ -44,7 +44,7 @@ class Use_models():
             print(self.all_zeros)
             print('ИЕР-0 =', zero)
 
-        sort_data = self.data_first[self.data_first['Название иерархии-0'] == zero]
+        sort_data = self.dфta_first[self.data_first['Название иерархии-0'] == zero]
         firsts = sorted(list(set(sort_data['Название иерархии-1'].to_list())))
         X_1 = sort_data['Полное наименование материала']
         tfidf_1 = TfidfVectorizer()
