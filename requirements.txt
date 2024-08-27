@@ -10,4 +10,3 @@ requests
 PyJWT
 cryptography
 thread
-json
