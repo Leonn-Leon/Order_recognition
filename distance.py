@@ -90,6 +90,7 @@ class Find_materials():
         # numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
         # all = words + numbers
         all = query.split()
+        all = [(i[:-2] if i[-2:]==".0" else i) for i in all]
         print('second metric -', all)
         # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
         def count_matches_and_numeric(query_numbers, material_name):
@@ -124,10 +125,10 @@ class Find_materials():
                 coincidences += [""]
 
             _size = len(coincidences)
-            numeric_presence = sum(((_size-ind)/(abs(num[0]-ind)+1))**2
+            numeric_presence = sum(((_size-ind)/(abs(num[0]-ind)+1))**0.1
                                    for ind, num in enumerate(coincidences) if num != "")
 
-            # if 'труба проф' in material_name:
+            # if 'труба' in material_name and "труба" in query_numbers:
             #     print(coincidences, numeric_presence)
             return round(numeric_presence, 3)
 
@@ -208,7 +209,7 @@ class Find_materials():
             #################################
             first_ierar = self.models.get_pred(new_mat)
             tr = self.all_materials['Название иерархии-1'] == first_ierar
-            materials_df = self.all_materials#[tr]
+            materials_df = self.all_materials[tr]
             advanced_search_results = self.find_top_materials_advanced(new_mat,
                                     materials_df[['Материал', "Полное наименование материала"]])
             ress = advanced_search_results.values
