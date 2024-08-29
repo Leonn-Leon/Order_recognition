@@ -7,7 +7,7 @@ import pickle
 import json
 import base64
 from datetime import datetime
-from find_ei import find_quantities_and_units
+from thread import Thread
 from split_by_keys import Key_words
 import re
 import numpy as np
@@ -17,7 +17,7 @@ class Find_materials():
     def __init__(self):
         pd.options.mode.copy_on_write = True
         self.models = Use_models()
-        self.all_materials = pd.read_csv('data/mats.csv')
+        self.all_materials = pd.read_csv('data/mats.csv', dtype=str)
         self.otgruzki = pd.read_csv('data/otgruzki.csv', sep=';')
         self.otgruzki['Код материала'] = self.otgruzki['Код материала'].apply(lambda x: int(x))
         self.method2 = pd.read_csv('data/method2.csv')
@@ -104,25 +104,26 @@ class Find_materials():
                     coincidences += [[ind, num]]
                     material_words[ind] = ""
                     k+=1
-                    continue
+                    # continue
                 elif num.isdigit():
                     coincidences += [""]
-                    continue
+                    # continue
                 elif num[:-1].isdigit():
                     if num[:-1] in material_words:
                         ind = material_words.index(num[:-1])
                         coincidences += [[ind, num[:-1]]]
                         material_words[ind] = ""
                         k += 1
-                        continue
+                        # continue
                 elif num[1:].isdigit():
                     if num[1:] in material_words:
                         ind = material_words.index(num[1:])
                         coincidences += [[ind, num[1:]]]
                         material_words[ind] = ""
                         k += 1
-                        continue
-                coincidences += [""]
+                        # continue
+                else:
+                    coincidences += [""]
 
             _size = len(coincidences)
             numeric_presence = sum(((_size-ind)/(abs(num[0]-ind)+1))**0.1
@@ -164,90 +165,102 @@ class Find_materials():
         new_mat = new_lines
         return new_mat.strip()
 
-    def find_mats(self, rows):
-        results = []
-        results += [{"req_Number": str(uuid.uuid4())}]
-        poss = []
-        pos_id = 0
-        for _, (row, ei, val_ei) in enumerate(rows):
-            if len(row.split()) == 0 or row[0]=='+':
-                continue
-            new_row = ' '.join(row.split())
-            new_mat = new_row
-            poss += [{'position_id': str(pos_id)}]
-            poss[-1]['request_text'] = new_mat
+    def paralell_rows(self, rows):
+        rows = [(i, i2, i3) for i, i2, i3 in rows if len(i.split()) > 1 and i[0] != '+']
+        kols = len(rows)
+        my_threads = []
+        self.results = [""]
+        self.poss = [""]*kols
+        self.results[0] = [{"req_Number": str(uuid.uuid4())}]
+        for idx, (row, ei, val_ei) in enumerate(rows):
+            # self.find_mats(row, ei, val_ei)
             try:
-                val_ei = str(val_ei.split()[0])
-            except:
-                print('|'+val_ei+'|')
-            poss[-1]['value'] = val_ei
-            ei = ei.split()[0].replace('тн', 'т').replace('.', '')
-            if ei not in ['т', 'м', 'кг', 'м2', 'мп']:
-                ei = 'шт'
-            poss[-1]['ei'] = ei
-            print(new_mat)
-            new_mat = self.kw.replace_words(new_mat)
-            pos_id += 1
-            ###############################
-            new_mat = self.new_mat_prep(new_mat)
-            # print(val_ei, ei)
+                my_threads += [Thread(target=self.find_mats, args=[row, ei, val_ei, idx])]
+                my_threads[-1].start()
+            except Exception as exc:
+                print(exc)
+
+        for ind, thread in enumerate(my_threads):
+            thread.join()
+            print(f"Завершили {ind + 1} поток")
+
+        print(self.poss)
+        self.results[0]["positions"] = self.poss
+        self.saves.loc[self.results[0]["req_Number"]] = ["{'positions':" + str(self.results[0]["positions"]) + "}"]
+        self.saves.to_csv('data/saves.csv')
+        # print(self.results)
+        return str(self.results)
+
+    def find_mats(self, row:str, ei:str, val_ei:str, idx:int):
+        new_row = ' '.join(row.split())
+        new_mat = new_row
+        self.poss[idx] = {'position_id': str(idx)}
+        self.poss[idx]['request_text'] = new_mat
+        try:
+            val_ei = str(val_ei.split()[0])
+        except:
+            print('|'+val_ei+'|')
+        self.poss[idx]['value'] = val_ei
+        ei = ei.split()[0].replace('тн', 'т').replace('.', '')
+        if ei not in ['т', 'м', 'кг', 'м2', 'мп']:
+            ei = 'шт'
+        self.poss[idx]['ei'] = ei
+        print(new_mat)
+        new_mat = self.kw.replace_words(new_mat)
+        ###############################
+        new_mat = self.new_mat_prep(new_mat)
+        # print(val_ei, ei)
+        try:
+            ind = [m.start() for m in re.finditer(f' {val_ei}{ei}', new_mat + ' ')][-1]
+            new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei}{ei}', ' ')
+        except:
             try:
-                ind = [m.start() for m in re.finditer(f' {val_ei}{ei}', new_mat + ' ')][-1]
-                new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei}{ei}', ' ')
+                ind = [m.start() for m in re.finditer(f' {val_ei} {ei}', new_mat + ' ')][-1]
+                new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei} {ei}', ' ')
             except:
                 try:
-                    ind = [m.start() for m in re.finditer(f' {val_ei} {ei}', new_mat + ' ')][-1]
-                    new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei} {ei}', ' ')
+                    ind = [m.start() for m in re.finditer(f' {ei} {val_ei}', new_mat + ' ')][-1]
+                    new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {ei} {val_ei}', ' ')
                 except:
-                    try:
-                        ind = [m.start() for m in re.finditer(f' {ei} {val_ei}', new_mat + ' ')][-1]
-                        new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {ei} {val_ei}', ' ')
-                    except:
-                        new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
-                        self.write_logs('Ошибка с поиском ei', event=0)
+                    new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
+                    self.write_logs('Ошибка с поиском ei', event=0)
 
-            #################################
-            # first_ierar = self.models.get_pred(new_mat)
-            # tr = self.all_materials['Название иерархии-1'] == first_ierar
-            materials_df = self.all_materials#[tr]
-            advanced_search_results = self.find_top_materials_advanced(new_mat,
-                                    materials_df[['Материал', "Полное наименование материала"]])
-            ress = advanced_search_results.values
-            # ress = self.choose_based_on_similarity(new_mat, first_ierar, ress)
-            ress = materials_df[['Материал', "Полное наименование материала"]].iloc[ress[:5]]
-            ress = ress.values
-            # ress = advanced_search_results.values
-            print('Вот это ищем', new_mat)
-            if new_mat in self.method2.question.to_list():
-                print('Нашёл')
-                foundes = self.method2[self.method2.question == new_mat].answer.to_list()
-                true_positions = []
-                for pos in foundes[::-1]:
-                    temp = json.loads(base64.b64decode(pos).decode('utf-8').replace("'", '"'))
-                    if temp not in true_positions:
-                        true_positions += [temp]
-                itog = []
-                for ind, i in enumerate(ress):
-                    for tp in true_positions:
-                        if i[0] == tp["num_mat"]:
-                            break
-                    else:
-                        itog += [i]
-                ress = []
+        #################################
+        # first_ierar = self.models.get_pred(new_mat)
+        # tr = self.all_materials['Название иерархии-1'] == first_ierar
+        materials_df = self.all_materials#[tr]
+        advanced_search_results = self.find_top_materials_advanced(new_mat,
+                                materials_df[['Материал', "Полное наименование материала"]])
+        ress = advanced_search_results.values
+        # ress = self.choose_based_on_similarity(new_mat, first_ierar, ress)
+        ress = materials_df[['Материал', "Полное наименование материала"]].iloc[ress[:5]]
+        ress = ress.values
+        # ress = advanced_search_results.values
+        print('Вот это ищем', new_mat)
+        if new_mat in self.method2.question.to_list():
+            print('Нашёл')
+            foundes = self.method2[self.method2.question == new_mat].answer.to_list()
+            true_positions = []
+            for pos in foundes[::-1]:
+                temp = json.loads(base64.b64decode(pos).decode('utf-8').replace("'", '"'))
+                if temp not in true_positions:
+                    true_positions += [temp]
+            itog = []
+            for ind, i in enumerate(ress):
                 for tp in true_positions:
-                    ress += [[tp["num_mat"], tp["name_mat"]]]
-                ress += itog
-                ress = ress[:5]
-            print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
-            print(ress, end ='\n----\n')
-            for ind, pos in enumerate(ress):
-                poss[-1]['material'+str(ind+1)+'_id'] = '0'*(18-len(str(pos[0])))+str(pos[0])
-
-        results[0]["positions"] = poss
-        self.saves.loc[results[0]["req_Number"]] = ["{'positions':"+str(results[0]["positions"])+"}"]
-        self.saves.to_csv('data/saves.csv')
-        # print(results)
-        return str(results)
+                    if i[0] == tp["num_mat"]:
+                        break
+                else:
+                    itog += [i]
+            ress = []
+            for tp in true_positions:
+                ress += [[tp["num_mat"], tp["name_mat"]]]
+            ress += itog
+            ress = ress[:5]
+        # print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
+        # print(ress, end ='\n----\n')
+        for ind, pos in enumerate(ress):
+            self.poss[idx]['material'+str(ind+1)+'_id'] = '0'*(18-len(str(pos[0])))+str(pos[0])
 
 
 if __name__ == '__main__':
