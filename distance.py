@@ -171,7 +171,7 @@ class Find_materials():
         my_threads = []
         self.results = [""]
         self.poss = [""]*kols
-        self.results[0] = [{"req_Number": str(uuid.uuid4())}]
+        self.results[0] = {"req_Number": str(uuid.uuid4())}
         for idx, (row, ei, val_ei) in enumerate(rows):
             # self.find_mats(row, ei, val_ei)
             try:
@@ -184,11 +184,11 @@ class Find_materials():
             thread.join()
             print(f"Завершили {ind + 1} поток")
 
-        print(self.poss)
+        # print(self.poss)
         self.results[0]["positions"] = self.poss
         self.saves.loc[self.results[0]["req_Number"]] = ["{'positions':" + str(self.results[0]["positions"]) + "}"]
         self.saves.to_csv('data/saves.csv')
-        # print(self.results)
+        # print("results -", self.results)
         return str(self.results)
 
     def find_mats(self, row:str, ei:str, val_ei:str, idx:int):
