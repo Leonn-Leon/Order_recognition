@@ -233,9 +233,9 @@ class Find_materials():
         self.poss[idx]['ei'] = ei
 
         #################################
-        # first_ierar = self.models.get_pred(new_mat)
-        # tr = self.all_materials['Название иерархии-1'] == first_ierar
-        materials_df = self.all_materials#[tr]
+        first_ierar = self.models.get_pred(new_mat)
+        tr = self.all_materials['Название иерархии-1'] == first_ierar
+        materials_df = self.all_materials[tr]
         advanced_search_results = self.find_top_materials_advanced(new_mat,
                                 materials_df[['Материал', "Полное наименование материала"]])
         ress = advanced_search_results.values
@@ -243,6 +243,7 @@ class Find_materials():
         ress = materials_df[['Материал', "Полное наименование материала"]].iloc[ress[:5]]
         ress = ress.values
         # ress = advanced_search_results.values
+        print(ress)
         print('Вот это ищем', new_mat)
         if new_mat in self.method2.question.to_list():
             print('Нашёл')
