@@ -147,9 +147,11 @@ class Find_materials():
         max_similarity_idxs = np.argsort(materials_df["Numeric Presence"])
         return max_similarity_idxs[::-1]
 
-    def new_mat_prep(self, new_mat):
+    def new_mat_prep(self, new_mat:str, val_ei:str=None, ei:str=None):
         # new_mat = new_mat.replace('/', '')
 
+        new_mat = ' '.join(new_mat.split())
+        new_mat = self.kw.replace_words(new_mat)
         new_mat = self.kw.split_numbers_and_words(new_mat)
         # print('Поиск едениц измерения -', end - start)
 
@@ -163,52 +165,18 @@ class Find_materials():
                     new_word = new_num
             new_lines += new_word + ' '
         new_mat = new_lines
+        if val_ei and ei:
+            return self.find_ei(new_mat, val_ei, ei)
         return new_mat.strip()
 
-    def paralell_rows(self, rows):
-        rows = [(i, i2, i3) for i, i2, i3 in rows if len(i.split()) > 1 and i[0] != '+']
-        kols = len(rows)
-        my_threads = []
-        self.results = [""]
-        self.poss = [""]*kols
-        self.results[0] = {"req_Number": str(uuid.uuid4())}
-        for idx, (row, ei, val_ei) in enumerate(rows):
-            # self.find_mats(row, ei, val_ei)
-            try:
-                my_threads += [Thread(target=self.find_mats, args=[row, ei, val_ei, idx])]
-                my_threads[-1].start()
-            except Exception as exc:
-                print(exc)
-
-        for ind, thread in enumerate(my_threads):
-            thread.join()
-            print(f"Завершили {ind + 1} поток")
-
-        # print(self.poss)
-        self.results[0]["positions"] = self.poss
-        self.saves.loc[self.results[0]["req_Number"]] = ["{'positions':" + str(self.results[0]["positions"]) + "}"]
-        self.saves.to_csv('data/saves.csv')
-        # print("results -", self.results)
-        return str(self.results)
-
-    def find_mats(self, row:str, ei:str, val_ei:str, idx:int):
-        new_row = ' '.join(row.split())
-        new_mat = new_row
-        self.poss[idx] = {'position_id': str(idx)}
-        self.poss[idx]['request_text'] = new_mat
+    def find_ei(self, new_mat, val_ei, ei):
         try:
             val_ei = str(val_ei.split()[0])
         except:
             print('|'+val_ei+'|')
-        self.poss[idx]['value'] = val_ei
         ei = ei.split()[0].replace('тн', 'т').replace('.', '')
         if ei not in ['т', 'м', 'кг', 'м2', 'мп']:
             ei = 'шт'
-        self.poss[idx]['ei'] = ei
-        print(new_mat)
-        new_mat = self.kw.replace_words(new_mat)
-        ###############################
-        new_mat = self.new_mat_prep(new_mat)
         # print(val_ei, ei)
         try:
             ind = [m.start() for m in re.finditer(f' {val_ei}{ei}', new_mat + ' ')][-1]
@@ -224,6 +192,45 @@ class Find_materials():
                 except:
                     new_mat = new_mat.replace('рулон', 'лист').replace(f' {ei} ', ' ')
                     self.write_logs('Ошибка с поиском ei', event=0)
+
+        return new_mat.strip(), val_ei, ei
+
+    def paralell_rows(self, rows):
+        rows = [(i, i2, i3) for i, i2, i3 in rows if len(i.split()) > 1 and i[0] != '+']
+        kols = len(rows)
+        my_threads = []
+        self.results = [""]
+        self.poss = [""]*kols
+        self.results[0] = {"req_Number": str(uuid.uuid4())}
+        for idx, (row, ei, val_ei) in enumerate(rows):
+            # self.find_mats(row, ei, val_ei)
+            try:
+                my_threads += [Thread(target=self.find_mats, args=[row, val_ei, ei, idx])]
+                my_threads[-1].start()
+            except Exception as exc:
+                print(exc)
+
+        for ind, thread in enumerate(my_threads):
+            thread.join()
+            print(f"Завершили {ind + 1} поток")
+
+        # print(self.poss)
+        self.results[0]["positions"] = self.poss
+        self.saves.loc[self.results[0]["req_Number"]] = ["{'positions':" + str(self.results[0]["positions"]) + "}"]
+        self.saves.to_csv('data/saves.csv')
+        # print("results -", self.results)
+        return str(self.results)
+
+    def find_mats(self, row:str, val_ei:str, ei:str, idx:int):
+        self.poss[idx] = {'position_id': str(idx)}
+        self.poss[idx]['request_text'] = row
+        ###############################
+        new_mat, val_ei, ei = self.new_mat_prep(row, val_ei, ei)
+        print(new_mat)
+
+
+        self.poss[idx]['value'] = val_ei
+        self.poss[idx]['ei'] = ei
 
         #################################
         # first_ierar = self.models.get_pred(new_mat)
