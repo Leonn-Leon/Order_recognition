@@ -24,7 +24,9 @@ def train():
 
         # Преобразование текстовых данных в числовые признаки с помощью TF-IDF
         tfidf = TfidfVectorizer()
-        X_tfidf = tfidf.fit_transform(X)
+        cats = pd.read_csv('data/categories.csv')["Filtered_Description"]
+        tfidf = tfidf.fit(cats)
+        X_tfidf = tfidf.transform(X)
 
         try:
             with open('data/models/' + str(ind) + '_model.pkl', 'rb') as f:

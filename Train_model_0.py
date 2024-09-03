@@ -50,7 +50,10 @@ y = [all_zeros.index(i) for i in y]
 
 # Преобразование текстовых данных в числовые признаки с помощью TF-IDF
 tfidf = TfidfVectorizer()
-X_tfidf = tfidf.fit_transform(X)
+cats = pd.read_csv('data/categories.csv')["Filtered_Description"]
+tfidf = tfidf.fit(cats)
+X_tfidf = tfidf.transform(X)
+
 print('TF-Idf Done!')
 
 if os.path.isfile('data/main_model.pkl'):

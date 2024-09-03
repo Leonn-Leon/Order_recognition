@@ -196,7 +196,7 @@ class Find_materials():
         return new_mat.strip(), val_ei, ei
 
     def paralell_rows(self, rows):
-        rows = [(i, i2, i3) for i, i2, i3 in rows if len(i.split()) > 1 and i[0] != '+']
+        rows = [(i, i2, i3) for i, i2, i3 in rows if len(i.split()) > 2 and i[0] != '+']
         kols = len(rows)
         my_threads = []
         self.results = [""]
@@ -234,6 +234,7 @@ class Find_materials():
 
         #################################
         first_ierar = self.models.get_pred(new_mat)
+        print(new_mat, "ИЕР-1", first_ierar)
         tr = self.all_materials['Название иерархии-1'] == first_ierar
         materials_df = self.all_materials[tr]
         advanced_search_results = self.find_top_materials_advanced(new_mat,
