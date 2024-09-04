@@ -17,7 +17,7 @@ class Use_models():
         with open('data/main_model.pkl', 'rb') as f:
             self.main_model = pickle.load(f)
 
-        X_zero = self.data_zero['Полное наименование материала']
+        # X_zero = self.data_zero['Полное наименование материала']
         self.tfidf = TfidfVectorizer()
         self.cats = pd.read_csv('data/categories.csv')["Filtered_Description"]
         self.tfidf = self.tfidf.fit(self.cats)
@@ -78,7 +78,7 @@ class Use_models():
         X_tfidf = self.tfidf.transform(X)
 
         print("Обучение ИЕР 1 уровня")
-        svc_model = SVC(random_state=42)
+        svc_model = SVC(random_state=42, probability=True)
         svc_model.fit(X_tfidf, y)
 
         with open('data/models/' + str(ind) + '_model.pkl', 'wb') as f:
@@ -107,7 +107,7 @@ class Use_models():
         X_tfidf = self.tfidf.transform(X)
 
         print("Обучение ИЕР 0 уровня")
-        svm = SVC(random_state=42, kernel='linear', probability=True)
+        svm = SVC(random_state=42, probability=True)
         print('SVC start!')
         svm.fit(X_tfidf, y)
         self.main_model = svm
@@ -120,9 +120,11 @@ class Use_models():
         print('Done!!!', flush=True)
 
 if __name__ == '__main__':
-    text = "труба 60 60 2 6"
+    import Train_model_0 as tr
+    text = "Плоский лист цинк 0,4"
     kw = Key_words()
-    text = kw.split_numbers_and_words(text)
+    text = tr.new_mat_prep(text)
+    print("преобразовааный:", text)
     print('Первая иерархия', Use_models().get_pred(text, bag=True))
     ##########
     # print(Use_models().fit(text, true_first='Труба профильная', true_zero=''))

@@ -12,6 +12,7 @@ from split_by_keys import Key_words
 import re
 import numpy as np
 from Use_models import Use_models
+import pymorphy3
 
 class Find_materials():
     def __init__(self):
@@ -150,6 +151,8 @@ class Find_materials():
     def new_mat_prep(self, new_mat:str, val_ei:str=None, ei:str=None):
         # new_mat = new_mat.replace('/', '')
 
+        morph = pymorphy3.MorphAnalyzer()
+
         new_mat = ' '.join(new_mat.split())
         new_mat = self.kw.replace_words(new_mat)
         new_mat = self.kw.split_numbers_and_words(new_mat)
@@ -163,6 +166,8 @@ class Find_materials():
                 if int(word) % 100 == 0 and len(word) >= 4:
                     new_num = str(int(word) / 1000)
                     new_word = new_num
+            elif word.isalpha():
+                new_word = morph.parse(new_word)[0].normal_form
             new_lines += new_word + ' '
         new_mat = new_lines
         if val_ei and ei:
@@ -214,7 +219,7 @@ class Find_materials():
             thread.join()
             print(f"Завершили {ind + 1} поток")
 
-        # print(self.poss)
+        print("вот тут", self.poss)
         self.results[0]["positions"] = self.poss
         self.saves.loc[self.results[0]["req_Number"]] = ["{'positions':" + str(self.results[0]["positions"]) + "}"]
         self.saves.to_csv('data/saves.csv')

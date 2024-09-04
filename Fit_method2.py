@@ -3,10 +3,15 @@ import pandas as pd
 import json
 import base64
 from split_by_keys import Key_words
+import pymorphy3
 
-def new_mat_prep(new_mat):
+def new_mat_prep(new_mat: str):
     # new_mat = new_mat.replace('/', '')
 
+    morph = pymorphy3.MorphAnalyzer()
+
+    new_mat = ' '.join(new_mat.split())
+    new_mat = Key_words().replace_words(new_mat)
     new_mat = Key_words().split_numbers_and_words(new_mat)
     # print('Поиск едениц измерения -', end - start)
 
@@ -18,12 +23,14 @@ def new_mat_prep(new_mat):
             if int(word) % 100 == 0 and len(word) >= 4:
                 new_num = str(int(word) / 1000)
                 new_word = new_num
+        elif word.isalpha():
+            new_word = morph.parse(new_word)[0].normal_form
         new_lines += new_word + ' '
     new_mat = new_lines
     return new_mat.strip()
 
 def add_method2():
-    data = pd.read_csv('data/mats5.csv')
+    data = pd.read_csv('data/mats.csv')
 
     models = Use_models()
     method2 = pd.read_csv('data/method2.csv')

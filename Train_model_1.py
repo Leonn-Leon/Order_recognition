@@ -42,7 +42,7 @@ def train():
             pass
 
         # Создание и обучение модели SVC
-        svc_model = SVC(random_state=42)
+        svc_model = SVC(random_state=42, probability=True)
         svc_model.fit(X_tfidf, y)
         with open('data/models/'+str(ind)+'_model.pkl', 'wb') as f:
             pickle.dump(svc_model, f)
