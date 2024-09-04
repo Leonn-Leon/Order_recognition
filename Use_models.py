@@ -17,10 +17,9 @@ class Use_models():
         with open('data/main_model.pkl', 'rb') as f:
             self.main_model = pickle.load(f)
 
-        # X_zero = self.data_zero['Полное наименование материала']
-        self.tfidf = TfidfVectorizer()
-        self.cats = pd.read_csv('data/categories.csv')["Filtered_Description"]
-        self.tfidf = self.tfidf.fit(self.cats)
+        X_zero = self.data_zero['Полное наименование материала']
+        self.tfidf_zero = TfidfVectorizer()
+        self.tfidf_zero.fit(X_zero)
 
         # X_first = self.data_first['Полное наименование материала']
         # self.tfidf_first = TfidfVectorizer()
@@ -35,7 +34,7 @@ class Use_models():
         for match in matches:
             text = text.replace(match, '')
 
-        x_pred = self.tfidf.transform([text])
+        x_pred = self.tfidf_zero.transform([text])
         y_pred = self.main_model.predict(x_pred)[0]
 
         with open('data/models/' + str(y_pred) + '_model.pkl', 'rb') as f:
@@ -43,15 +42,17 @@ class Use_models():
 
         zero = self.all_zeros[y_pred]
         if bag:
+            print(self.main_model.predict_proba(x_pred))
+            print(self.all_zeros)
             print('ИЕР-0 =', zero)
 
         sort_data = self.data_first[self.data_first['Название иерархии-0'] == zero]
         firsts = sorted(list(set(sort_data['Название иерархии-1'].to_list())))
-        # X_1 = sort_data['Полное наименование материала']
-        x_pred_1 = self.tfidf.transform([text])
+        X_1 = sort_data['Полное наименование материала']
+        tfidf_1 = TfidfVectorizer()
+        tfidf_1.fit(X_1)
+        x_pred_1 = tfidf_1.transform([text])
         # print(firsts[model_1.predict(x_pred_1)[0]])
-        if bag:
-            print('ИЕР-1 =', firsts[model_1.predict(x_pred_1)[0]])
         return firsts[model_1.predict(x_pred_1)[0]] # Возвращаем первую иерархию-1
 
     def fit(self, text, true_first, true_zero):
@@ -75,7 +76,8 @@ class Use_models():
         firsts = sorted(list(set(sort_data['Название иерархии-1'].to_list())))
         y = [firsts.index(i) for i in y]
 
-        X_tfidf = self.tfidf.transform(X)
+        tfidf = TfidfVectorizer()
+        X_tfidf = tfidf.fit_transform(X)
 
         print("Обучение ИЕР 1 уровня")
         svc_model = SVC(random_state=42, probability=True)
@@ -104,10 +106,11 @@ class Use_models():
         y = [all_zeros.index(i) for i in y]
 
         print("TF-IDF для ИЕР-0")
-        X_tfidf = self.tfidf.transform(X)
+        tfidf = TfidfVectorizer()
+        X_tfidf = tfidf.fit_transform(X)
 
         print("Обучение ИЕР 0 уровня")
-        svm = SVC(random_state=42, probability=True)
+        svm = SVC(random_state=42, kernel='linear', probability=True)
         print('SVC start!')
         svm.fit(X_tfidf, y)
         self.main_model = svm
@@ -121,7 +124,7 @@ class Use_models():
 
 if __name__ == '__main__':
     import Train_model_0 as tr
-    text = "Плоский лист цинк 0,4"
+    text = "с 8 5021 6"
     kw = Key_words()
     text = tr.new_mat_prep(text)
     print("преобразовааный:", text)

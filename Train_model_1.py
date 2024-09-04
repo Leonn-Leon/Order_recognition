@@ -24,8 +24,8 @@ def train():
 
         # Преобразование текстовых данных в числовые признаки с помощью TF-IDF
         tfidf = TfidfVectorizer()
-        cats = pd.read_csv('data/categories.csv')["Filtered_Description"]
-        tfidf = tfidf.fit(cats)
+        # cats = pd.read_csv('data/categories.csv')["Filtered_Description"]
+        tfidf = tfidf.fit(X)
         X_tfidf = tfidf.transform(X)
 
         try:
@@ -42,7 +42,7 @@ def train():
             pass
 
         # Создание и обучение модели SVC
-        svc_model = SVC(random_state=42, probability=True)
+        svc_model = SVC(random_state=42, kernel='linear', probability=True)
         svc_model.fit(X_tfidf, y)
         with open('data/models/'+str(ind)+'_model.pkl', 'wb') as f:
             pickle.dump(svc_model, f)

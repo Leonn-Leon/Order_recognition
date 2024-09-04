@@ -32,7 +32,6 @@ def new_mat_prep(new_mat: str):
 def add_method2():
     data = pd.read_csv('data/mats.csv')
 
-    models = Use_models()
     method2 = pd.read_csv('data/method2.csv')
     method2.reset_index(drop=True, inplace=True)
     method2['question'] = method2['question'].apply(lambda x: new_mat_prep(x))

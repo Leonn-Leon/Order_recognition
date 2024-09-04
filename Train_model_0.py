@@ -57,8 +57,8 @@ def fit_0():
 
     # Преобразование текстовых данных в числовые признаки с помощью TF-IDF
     tfidf = TfidfVectorizer()
-    cats = pd.read_csv('data/categories.csv')["Filtered_Description"]
-    tfidf = tfidf.fit(cats)
+    # cats = pd.read_csv('data/categories.csv')["Filtered_Description"]
+    tfidf = tfidf.fit(X)
     X_tfidf = tfidf.transform(X)
 
     print('TF-Idf Done!')
@@ -78,7 +78,7 @@ def fit_0():
         pass
 
     # Метод опорных векторов
-    svm = SVC(random_state=42, probability=True)
+    svm = SVC(random_state=42, kernel='linear', probability=True)
     print('SVC start!')
     svm.fit(X_tfidf, y)
     with open('data/main_model.pkl', 'wb') as f:
