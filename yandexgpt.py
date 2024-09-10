@@ -99,7 +99,8 @@ class custom_yandex_gpt():
 
     def get_pos(self, text:str, idx:int, save=False, bag=False):
         self.update_token()
-        self.msgs += [{"role": "user", "text": text.replace('\xa0', ' ').replace('"', "''")}]
+        text = text.replace('\xa0', ' ').replace('"', "''")
+        self.msgs += [{"role": "user", "text": text}]
         if len(self.msgs[-1]['text'])<10:
             self.ress[idx] = ""
         if bag:
@@ -140,14 +141,14 @@ class custom_yandex_gpt():
             self.msgs += [{"role": "assistant", "text": answer}]
             pd.DataFrame(self.msgs).to_csv("data/msgs_ei.csv")
         try:
-            self.ress[idx] = self.split_answer(answer)
+            self.ress[idx] = self.split_answer(answer, text)
             # return self.split_answer(answer)
         except:
             print('Не получилось распознать')
             self.ress[idx] = ""
             # return []
 
-    def split_answer(self,answer):
+    def split_answer(self,answer, text):
         answer = answer.split('\n')
         answer_ei = []
         for pos in answer:
@@ -157,7 +158,8 @@ class custom_yandex_gpt():
                     answer_ei += [(pos, 'шт', '1')]
                 # continue
             else:
-                answer_ei += [(s[-3], s[-2], s[-1])]
+                if s[0].split()[0] in text and "телефон" not in s[0] and 'письмо' not in s[0]:
+                    answer_ei += [(s[-3], s[-2], s[-1])]
         return answer_ei
 
 if __name__ == "__main__":

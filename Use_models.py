@@ -33,9 +33,11 @@ class Use_models():
         matches = re.findall(pattern, text)
         for match in matches:
             text = text.replace(match, '')
-
-        x_pred = self.tfidf_zero.transform([text])
-        y_pred = self.main_model.predict(x_pred)[0]
+        try:
+            x_pred = self.tfidf_zero.transform([text])
+            y_pred = self.main_model.predict(x_pred)[0]
+        except Exception as exc:
+            print("ошибка главной модели", exc)
 
         with open('data/models/' + str(y_pred) + '_model.pkl', 'rb') as f:
             model_1 = pickle.load(f)

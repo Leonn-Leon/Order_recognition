@@ -231,14 +231,17 @@ class Find_materials():
         self.poss[idx]['request_text'] = row
         ###############################
         new_mat, val_ei, ei = self.new_mat_prep(row, val_ei, ei)
-        print(new_mat)
+        print('--', new_mat)
 
 
         self.poss[idx]['value'] = val_ei
         self.poss[idx]['ei'] = ei
 
         #################################
-        first_ierar = self.models.get_pred(new_mat)
+        try:
+            first_ierar = self.models.get_pred(new_mat)
+        except Exception as exc:
+            print('Ошибка', exc)
         print(new_mat, "ИЕР-1", first_ierar)
         tr = self.all_materials['Название иерархии-1'] == first_ierar
         materials_df = self.all_materials[tr]
