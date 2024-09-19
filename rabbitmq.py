@@ -132,17 +132,19 @@ class Order_recognition():
                     request_text, _, _ = self.find_mats.new_mat_prep(request_text, val_ei, ei)
                     request_text = request_text.strip()
                     try:
-                        true_mat = self.find_mats.all_materials[self.find_mats.all_materials['Материал'].\
+                        true_mat = self.find_mats.all_materials[self.find_mats.all_materials['Материал']. \
                             str.contains(str(int(pos['true_material'])))]['Полное наименование материала'].values[0]
                         true_first = self.find_mats.all_materials[self.find_mats.all_materials['Материал']
-                                                     == (str(int(pos['true_material'])))]['Название иерархии-1'].values[0]
-                        true_zero = self.find_mats.all_materials[self.find_mats.all_materials['Материал']
                                                                   == (str(int(pos['true_material'])))][
+                            'Название иерархии-1'].values[0]
+                        true_zero = self.find_mats.all_materials[self.find_mats.all_materials['Материал']
+                                                                 == (str(int(pos['true_material'])))][
                             'Название иерархии-0'].values[0]
                         # true_mat = str(int(pos['true_material']))
 
                     except Exception as exc:
-                        self.write_logs('Не нашёл такого материала '+str(pos['true_material']) + ' ' + str(exc), event=0)
+                        self.write_logs('Не нашёл такого материала ' + str(pos['true_material']) + ' ' + str(exc),
+                                        event=0)
                         continue
                     try:
                         print(self.find_mats.all_materials[self.find_mats.all_materials['Материал']
@@ -151,18 +153,19 @@ class Order_recognition():
                         self.write_logs('Отправляем обучать ! ' + request_text + '|' + true_first)
                         self.find_mats.models.fit(request_text, true_first, true_zero)
                     except Exception as exc:
-                        self.write_logs('Не смог обучить модельки для '+str(pos['true_material']) + ' ' + str(exc), event=0)
+                        self.write_logs('Не смог обучить модельки для ' + str(pos['true_material']) + ' ' + str(exc),
+                                        event=0)
                         continue
 
                     if 'spec_mat' in pos.keys():
                         this_client_only = True if pos['spec_mat'] == 'X' else False
                     else:
                         this_client_only = False
-                    res = str({'num_mat':str(int(pos['true_material'])),
-                                'name_mat':true_mat,
-                                'true_ei':pos['true_ei'],
-                                'true_value':pos['true_value'],
-                                'spec_mat':str(this_client_only)})
+                    res = str({'num_mat': str(int(pos['true_material'])),
+                               'name_mat': true_mat,
+                               'true_ei': pos['true_ei'],
+                               'true_value': pos['true_value'],
+                               'spec_mat': str(this_client_only)})
                     res = base64.b64encode(bytes(res, 'utf-8'))
                     # self.find_mats.method2.loc[request_text] = res.decode('utf-8')
                     # print(self.find_mats.method2.index)
