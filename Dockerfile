@@ -2,7 +2,7 @@ FROM python:3.11.4
 
 RUN apt-get update
 RUN apt-get upgrade -y
-RUN apt-get install ffmpeg libsm6 libxext6 -y
+RUN apt-get install libsm6 libxext6 -y
 COPY requirements.txt requirements.txt
 RUN /usr/local/bin/python3.11 -m pip install --upgrade pip
 RUN pip3 install -r requirements.txt
