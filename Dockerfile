@@ -1,5 +1,8 @@
 FROM python:3.11.4
 
+ENV http_proxy="http://vproxy2.spk.ru:3128"
+ENV https_proxy="http://vproxy2.spk.ru:3128"
+
 RUN apt-get update
 RUN apt-get upgrade -y
 RUN apt-get install ffmpeg libsm6 libxext6 -y
