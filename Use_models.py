@@ -66,9 +66,11 @@ class Use_models():
         # print(firsts[model_1.predict(x_pred_1)[0]])
         return firsts[model_1.predict(x_pred_1)[0]] # Возвращаем первую иерархию-1
 
-    def fit(self, text, true_first, true_zero):
-        # Thread(target=self.fit_zeros, args=[text, true_zero]).start()
-        Thread(target=self.fit_first, args=[text, true_first]).start()
+    def fit(self, text, true_first, true_zero, fit_zero, fit_first):
+        # if fit_zero:
+            # Thread(target=self.fit_zeros, args=[text, true_zero]).start()
+        if fit_first:
+            Thread(target=self.fit_first, args=[text, true_first]).start()
 
     def fit_first(self, text, true_first):
         if text in self.data_first.to_numpy()[:, 2]:

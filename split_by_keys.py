@@ -129,8 +129,6 @@ class Key_words():
         changes = {'профильн':'проф',
                    'тр': 'труба',
                    'арм': 'арматура',
-                   'а ': 'арматура ',
-                   'балк': 'балка',
                    'лист': 'лист',
                    'угол': 'уголок',
                    'шв': 'швеллер',
@@ -140,6 +138,17 @@ class Key_words():
                    'колич': 'шт',
                    'оц': 'оц'
                 }
+        starts ={
+            'а ': 'арматура ',
+            'балк': 'балка',
+            'б ': 'балка ',
+            'у ': 'уголок ',
+            'л ': 'лист ',
+        }
+        for part, answer in starts.items():
+            if text.startswith(part):
+                text = text.replace(part, answer)
+                break
         replaced_text = text
         # self.need_to_replace = {}
         for part, category in changes.items():
