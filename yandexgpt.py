@@ -107,6 +107,7 @@ class custom_yandex_gpt():
             print('bag - ',self.msgs[-1]['text'])
             print('-' * 15)
         prompt = self.req.copy()
+        # print(prompt['messages'][0])
         prompt['messages'] = [prompt['messages'][0], self.msgs[-1]]
         # start = time.time()
         _try = 0
@@ -158,7 +159,11 @@ class custom_yandex_gpt():
                     answer_ei += [(pos, 'шт', '1')]
                 # continue
             else:
-                if s[0].split()[0] in text and "телефон" not in s[0] and 'письмо' not in s[0]:
+                if s[0].split()[0].lower() in text.lower() and "телефон" not in s[0] and 'письмо' not in s[0]:
+                    if len(s[-2].split()) < 1:
+                        s[-2] = 'шт'
+                    if len(s[-1].split()) < 1:
+                        s[-1] = '1'
                     answer_ei += [(s[-3], s[-2], s[-1])]
         return answer_ei
 

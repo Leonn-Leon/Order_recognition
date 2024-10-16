@@ -99,7 +99,7 @@ class Key_words():
         # Разделяем числа и буквы
         s = s.lower()+' '
         s = self.replace_words(s)
-        s = s.replace(' шт', 'шт').replace(' по ', ' ')
+        s = s.replace(' по ', ' ')
         if 'уголок' in s:
             s = s.replace('гост', '')
         matches = re.findall(r'\bст\w*\d+\b', s)
@@ -112,6 +112,7 @@ class Key_words():
         s = re.sub(r'(\d)м ', r'\1 ', s)
         s = re.sub(r'(\d)мм ', r'\1 ', s)
         s = re.sub(r'(\d) п ', r'\1п ', s)
+        s = re.sub(r'(\d) шт', r'\1шт ', s)
         s = re.sub(r'(\d) у ', r'\1у ', s)
         # s = re.sub(r'(?<=\d)(?=[а-яА-Яa-zA-Z])', ' ', s)
         # Разделяем буквы и числа
