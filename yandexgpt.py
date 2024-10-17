@@ -22,7 +22,7 @@ class custom_yandex_gpt():
             "modelUri": "ds://"+gpt_version_id,
             "completionOptions": {
                 "stream": False,
-                "temperature": 0.3,
+                "temperature": 0.2,
                 "maxTokens": "4000"
             },
             "messages": [
