@@ -182,7 +182,6 @@ class Find_materials():
         ei = ei.split()[0].replace('тн', 'т').replace('.', '')
         if ei not in ['т', 'м', 'кг', 'м2', 'мп']:
             ei = 'шт'
-        # print(val_ei, ei)
         try:
             ind = [m.start() for m in re.finditer(f' {val_ei}{ei}', new_mat + ' ')][-1]
             new_mat = new_mat[:ind] + new_mat[ind:].replace(f' {val_ei}{ei}', ' ')
@@ -208,7 +207,6 @@ class Find_materials():
         self.poss = [""]*kols
         self.results[0] = {"req_Number": str(uuid.uuid4())}
         for idx, (row, ei, val_ei) in enumerate(rows):
-            # self.find_mats(row, ei, val_ei)
             try:
                 my_threads += [Thread(target=self.find_mats, args=[row, val_ei, ei, idx])]
                 my_threads[-1].start()
@@ -248,10 +246,8 @@ class Find_materials():
         advanced_search_results = self.find_top_materials_advanced(new_mat,
                                 materials_df[['Материал', "Полное наименование материала"]])
         ress = advanced_search_results.values
-        # ress = self.choose_based_on_similarity(new_mat, first_ierar, ress)
         ress = materials_df[['Материал', "Полное наименование материала"]].iloc[ress[:5]]
         ress = ress.values
-        # ress = advanced_search_results.values
         print(ress)
         print('Вот это ищем', new_mat)
         if new_mat in self.method2.question.to_list():
