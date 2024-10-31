@@ -22,7 +22,7 @@ class custom_yandex_gpt():
             "modelUri": "ds://"+gpt_version_id,
             "completionOptions": {
                 "stream": False,
-                "temperature": 0.2,
+                "temperature": 0.1,
                 "maxTokens": "4000"
             },
             "messages": [
@@ -75,15 +75,13 @@ class custom_yandex_gpt():
             file.write(str(date_time) + ' | ' + event + ' | ' + text + '\n')
 
     def big_mail(self, text, save=False):
-        while '\n\n' in text:
-            text = text.replace('\n\n', '\n')
         text = text.split('\n')
 
-        kols = len(text)//15+1
+        kols = len(text)//20+1
         self.ress = [""]*kols
         my_threads = []
         for i in range(kols):
-            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[i*15:(i+1)*15]), i, save, False])]
+            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[i*20:(i+1)*20]), i, save, False])]
             my_threads[-1].start()
             # res = self.get_pos('\n'.join(text[i*20:(i+1)*20]), save=save)
             # if len(res) != 0:
@@ -99,7 +97,7 @@ class custom_yandex_gpt():
 
     def get_pos(self, text:str, idx:int, save=False, bag=False):
         self.update_token()
-        text = text.replace('\xa0', ' ').replace('"', "''")
+        text = text.replace('"', "''")
         self.msgs += [{"role": "user", "text": text}]
         if len(self.msgs[-1]['text'])<10:
             self.ress[idx] = ""
@@ -121,13 +119,13 @@ class custom_yandex_gpt():
                 print("Не получилось отправить запрос в YaGPT"+str(exc), flush=True)
             # print(str(res.text))
             if 'error' not in res.text:
-                print('Вышел!', _try)
+                print('Вышел!', idx, 'try -', _try)
                 break
             elif res.status_code == 400:
                 print('Ошибка в письме', _try, prompt['messages'][-1])
                 break
             else:
-                print("Ошибка у YandexGPT:", _try, res.text)
+                print("Ошибка у YandexGPT:", idx, 'try -', _try, res.text)
             time.sleep(1)
             _try += 1
         self.write_logs('Время на запрос, ' + str(time.time() - start))
