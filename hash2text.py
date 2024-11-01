@@ -34,6 +34,10 @@ def text_from_hash(hash):
 
 def remove_new_lines(text):
     text = text.replace("\xa0", ' ')
+    while ' \n' in text:
+        text = text.replace(' \n', '\n')
+    while '\n ' in text:
+        text = text.replace('\n ', '\n')
     while '\n\n' in text:
         text = text.replace('\n\n', '\n')
     print('Всего строк', len(text.split('\n')), flush=True)

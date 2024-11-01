@@ -77,11 +77,11 @@ class custom_yandex_gpt():
     def big_mail(self, text, save=False):
         text = text.split('\n')
 
-        kols = len(text)//20+1
+        kols = len(text)//15+1
         self.ress = [""]*kols
         my_threads = []
         for i in range(kols):
-            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[i*20:(i+1)*20]), i, save, False])]
+            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[i*15:(i+1)*15]), i, save, False])]
             my_threads[-1].start()
             # res = self.get_pos('\n'.join(text[i*20:(i+1)*20]), save=save)
             # if len(res) != 0:
@@ -109,7 +109,7 @@ class custom_yandex_gpt():
         prompt['messages'] = [prompt['messages'][0], self.msgs[-1]]
         # start = time.time()
         _try = 0
-        while _try<40:
+        while _try<45:
             start = time.time()
             try:
                 res = requests.post(gpt_url,
@@ -152,12 +152,16 @@ class custom_yandex_gpt():
         answer_ei = []
         for pos in answer:
             s = pos.split('|')
+            if "телефон" in s[0] or 'письмо' in s[0]\
+                or '@' in s[0] or '.ru' in s[0] or "ООО" in s[0] or "г." in s[0]:
+                continue
             if len(s) < 3:
                 if len(pos) != 0:
                     answer_ei += [(pos, 'шт', '1')]
                 # continue
             else:
-                if s[0].split()[0].lower() in text.lower() and "телефон" not in s[0] and 'письмо' not in s[0]:
+                # print(s[0])
+                if s[0].split()[0].lower() in text.lower():
                     if len(s[-2].split()) < 1:
                         s[-2] = 'шт'
                     if len(s[-1].split()) < 1:
