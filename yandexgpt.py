@@ -22,7 +22,7 @@ class custom_yandex_gpt():
             "modelUri": "ds://"+gpt_version_id,
             "completionOptions": {
                 "stream": False,
-                "temperature": 0.2,
+                "temperature": 0.1,
                 "maxTokens": "4000"
             },
             "messages": [
@@ -77,11 +77,11 @@ class custom_yandex_gpt():
     def big_mail(self, text, save=False):
         text = text.split('\n')
 
-        kols = len(text)//15+1
+        kols = len(text)//30+1
         self.ress = [""]*kols
         my_threads = []
         for i in range(kols):
-            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[i*15:(i+1)*15]), i, save, False])]
+            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[i*30:(i+1)*30]), i, save, False])]
             my_threads[-1].start()
             # res = self.get_pos('\n'.join(text[i*20:(i+1)*20]), save=save)
             # if len(res) != 0:
@@ -153,7 +153,7 @@ class custom_yandex_gpt():
         for pos in answer:
             s = pos.split('|')
             if "телефон" in s[0] or 'письмо' in s[0]\
-                or '@' in s[0] or '.ru' in s[0] or "ООО" in s[0] or "г." in s[0]:
+                or '@' in s[0] or '.ru' in s[0] or "ООО" in s[0] or "г." in s[0] or "служба" in s[0].lower():
                 continue
             if len(s) < 3:
                 if len(pos) != 0:
