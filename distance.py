@@ -163,7 +163,7 @@ class Find_materials():
         for word in new_mat.split():
             new_word = word
             if word.isdigit():
-                if int(word) % 100 == 0 and len(word) >= 4:
+                if int(word) % 50 == 0 and len(word) >= 4:
                     new_num = str(int(word) / 1000)
                     new_word = new_num
             elif word.isalpha():
