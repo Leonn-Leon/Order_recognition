@@ -1,4 +1,4 @@
-pandas==2.0.3
+pandas==2.2.2
 aio_pika==9.3.0
 uuid
 asyncio
