@@ -3,7 +3,7 @@ aio_pika==9.3.0
 uuid
 asyncio
 nltk==3.8.1
-scikit-learn==1.4.1.post1
+scikit-learn==1.5.1
 python-Levenshtein
 beautifulsoup4==4.12.3
 requests
