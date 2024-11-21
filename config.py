@@ -1,10 +1,9 @@
 connection_url = "RMQ_AI_URL"
-# amqp://ai:XRKh02eFLTKjMJErcpoy@esb-dev-rmq01.spk.ru:5672/
 first_queue = "get_message"
 second_queue = "save_truth"
 exchange = "ai"
-routing_key = "orderrecognition.save_truth"
-routing_key2 = "orderrecognition.save_truth_result"
+routing_key = "orderrecognition.find_request"
+routing_key2 = "orderrecognition.find_request_result"
 Authorization_AIM = ""
 xfolderid = "b1gob9uom3r70b2es0lp"
 gpt_version_id = 'bt1ehl60j162dddfaqcn'

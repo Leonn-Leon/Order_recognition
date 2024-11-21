@@ -21,12 +21,16 @@ def extract_materials(file_path, materials_dict):
         data = ast.literal_eval(file.read())
 
     result = []
-    for position in data[0]['positions']:
+    for position in data['positions']:
         materials = {}
         for key, value in position.items():
             if key.startswith("material") and str(int(value)) in materials_dict:
                 materials[key] = materials_dict[str(int(value))]
-        result.append({"position_id": position["position_id"], "materials": materials})
+        result.append({"position_id": position["position_id"],
+                       "request_text": position["request_text"],
+                       "ei": position["ei"],
+                       "value": position["value"],
+                       "materials": materials})
 
     return result
 
@@ -41,7 +45,7 @@ def main():
 
     # Вывод результата
     for entry in extracted_data:
-        print(f"Position ID: {entry['position_id']}")
+        print(f"Position №{entry['position_id']}: {entry['request_text']} | {entry['ei']} | {entry['value']}")
         for mat_key, mat_desc in entry["materials"].items():
             print(f"  {mat_key}: {mat_desc}")
         print()
