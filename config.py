@@ -4,6 +4,7 @@ first_queue = "get_message"
 second_queue = "save_truth"
 exchange = "ai"
 routing_key = "orderrecognition.save_truth"
+routing_key2 = "orderrecognition.save_truth_result"
 Authorization_AIM = ""
 xfolderid = "b1gob9uom3r70b2es0lp"
 gpt_version_id = 'bt1ehl60j162dddfaqcn'
