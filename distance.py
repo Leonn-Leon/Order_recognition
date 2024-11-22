@@ -166,7 +166,7 @@ class Find_materials():
                 if int(word) % 50 == 0 and len(word) >= 4:
                     new_num = str(int(word) / 1000)
                     new_word = new_num
-            elif word.isalpha():
+            elif word.isalpha() and len(word) > 3:
                 new_word = morph.parse(new_word)[0].normal_form
             new_lines += new_word + ' '
         new_mat = new_lines

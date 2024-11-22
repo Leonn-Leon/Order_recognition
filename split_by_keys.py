@@ -128,7 +128,7 @@ class Key_words():
     def replace_words(self, text):
         # Шаблон для поиска слов с корнем
         changes = {'профильн':'проф',
-                   'тр': 'труба',
+                   'тр ': 'труба ',
                    'арм': 'арматура',
                    'лист': 'лист',
                    'угол': 'уголок',
@@ -138,7 +138,8 @@ class Key_words():
                    'метр': 'м',
                    'тон': 'тн',
                    'колич': 'шт',
-                   'оц': 'оц'
+                   'оц': 'оц',
+                   '09г2с': '09г2с'
                 }
         starts ={
             'а ': 'арматура ',
@@ -166,17 +167,6 @@ class Key_words():
             text = text.replace(category+' ', match+' ')
             # text = self.replace_first(text, category+' ', match+' ')
         return text
-
-    # def replace_first(self, input_string, old_word, new_word):
-    #     # Ищем первое вхождение слова в строке
-    #     index = input_string.find(old_word)
-    #     if index != -1:
-    #         # Заменяем только первое вхождение
-    #         new_string = input_string[:index] + new_word + input_string[index + len(old_word):]
-    #         return new_string
-    #     else:
-    #         # Если слово не найдено, возвращаем исходную строку
-    #         return input_string
 
     def find_key_words(self, text):
         text = text.lower()  # Приведение текста к нижнему регистру
