@@ -132,7 +132,7 @@ class Find_materials():
 
             # if 'труба' in material_name and "труба" in query_numbers:
             #     print(coincidences, numeric_presence)
-            return round(numeric_presence, 3)
+            return numeric_presence
 
         # Применение функции подсчёта к каждому материалу
         materials_df["Numeric Presence"] = materials_df["Полное наименование материала"].apply(
@@ -242,9 +242,11 @@ class Find_materials():
             print('Ошибка', exc)
         print(new_mat, "ИЕР-1", first_ierar)
         tr = self.all_materials['Название иерархии-1'] == first_ierar
-        materials_df = self.all_materials[tr]
+        materials_df = self.all_materials#[tr]
         advanced_search_results = self.find_top_materials_advanced(new_mat,
                                 materials_df[['Материал', "Полное наименование материала"]])
+        # materials_df.iloc[:, -1] = materials_df.iloc[: -1].astype(float)
+        materials_df.loc[tr, materials_df.columns[-1]] *= 0.7
         ress = advanced_search_results.values
         ress = materials_df[['Материал', "Полное наименование материала"]].iloc[ress[:5]]
         ress = ress.values
