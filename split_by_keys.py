@@ -138,8 +138,7 @@ class Key_words():
                    'метр': 'м',
                    'тон': 'тн',
                    'колич': 'шт',
-                   'оц': 'оц',
-                   'ст09г2с': '09г2с'
+                   'оц': 'оц'
                 }
         starts ={
             'а ': 'арматура ',
@@ -148,6 +147,10 @@ class Key_words():
             'у ': 'уголок ',
             'л ': 'лист ',
         }
+
+        pattern = r'\b(?:СТ|ст)?(\d+г\d+с)\b'  # Шаблон поиска
+        text = re.sub(pattern, r'\1', text)
+
         for part, answer in starts.items():
             if text.startswith(part):
                 text = text.replace(part, answer)
