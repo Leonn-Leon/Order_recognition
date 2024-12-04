@@ -150,23 +150,33 @@ class custom_yandex_gpt():
     def split_answer(self,answer, text):
         answer = answer.split('\n')
         answer_ei = []
+        filter = ['телефон', 'товар', 'письмо', 'звонк', 'ооо', 'г.', 'служба', '@', 'город', '.ru', 'сообщ', 'комп', 'качеств']
         for pos in answer:
             s = pos.split('|')
-            if "телефон" in s[0] or 'письмо' in s[0]\
-                or '@' in s[0] or '.ru' in s[0] or "ООО" in s[0] or "г." in s[0] or "служба" in s[0].lower():
+            s[0] = s[0].lower()
+            n = False
+            for i in filter:
+                if i in s[0]:
+                    print('уходим', s[0])
+                    n = True
+                    break
+            if n:
                 continue
+            # if "телефон" in s[0] or 'письмо' in s[0]\
+            #     or '@' in s[0] or '.ru' in s[0] or "ООО" in s[0] or "г." in s[0] or "служба" in s[0].lower():
+            #     continue
             if len(s) < 3:
                 if len(pos) != 0:
                     answer_ei += [(pos, 'шт', '1')]
                 # continue
             else:
                 # print(s[0])
-                if s[0].split()[0].lower() in text.lower():
-                    if len(s[-2].split()) < 1:
-                        s[-2] = 'шт'
-                    if len(s[-1].split()) < 1:
-                        s[-1] = '1'
-                    answer_ei += [(s[-3], s[-2], s[-1])]
+                # if s[0].split()[0].lower() in text.lower():
+                if len(s[-2].split()) < 1:
+                    s[-2] = 'шт'
+                if len(s[-1].split()) < 1:
+                    s[-1] = '1'
+                answer_ei += [(s[-3], s[-2], s[-1])]
         return answer_ei
 
 if __name__ == "__main__":
