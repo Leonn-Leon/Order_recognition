@@ -30,8 +30,8 @@ class Find_materials():
         del self.all_materials['index']
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
-        self.vectorizer = TfidfVectorizer()
-        self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
+        # self.vectorizer = TfidfVectorizer()
+        # self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
 
         print('All materials opened!', flush=True)
 
@@ -49,17 +49,17 @@ class Find_materials():
         union = len(a.union(b))
         return 1 - intersection / union
 
-    def TF_Idf_similarity(self, text, first_ierar):
-        tfidf_query = self.vectorizer.transform([text])
-        euclidean = pairwise_distances(tfidf_query, self.tfidf_matrix, metric='euclidean').flatten()
-        tr = self.all_materials['Название иерархии-1'] == first_ierar
-        # print(self.all_materials[tr])
-        # print(self.all_materials["Полное наименование материала"].str.split())
-        # print('Вот тут -', tr.sum())
-        if tr.sum() > 0:
-            euclidean[self.all_materials[~tr].index] = 1e3
-        max_similarity_idxs = np.argsort(euclidean)
-        return max_similarity_idxs
+    # def TF_Idf_similarity(self, text, first_ierar):
+    #     tfidf_query = self.vectorizer.transform([text])
+    #     euclidean = pairwise_distances(tfidf_query, self.tfidf_matrix, metric='euclidean').flatten()
+    #     tr = self.all_materials['Название иерархии-1'] == first_ierar
+    #     # print(self.all_materials[tr])
+    #     # print(self.all_materials["Полное наименование материала"].str.split())
+    #     # print('Вот тут -', tr.sum())
+    #     if tr.sum() > 0:
+    #         euclidean[self.all_materials[~tr].index] = 1e3
+    #     max_similarity_idxs = np.argsort(euclidean)
+    #     return max_similarity_idxs
 
     def choose_based_on_similarity(self, text, first_ierar, ress=None):
         materials_df = self.all_materials[['Материал', "Полное наименование материала", "Название иерархии-1"]].iloc[ress[:15]]
@@ -91,7 +91,7 @@ class Find_materials():
         # numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
         # all = words + numbers
         all = query.split()
-        all = [(i[:-2] if i[-2:]==".0" else i) for i in all]
+        # all = [(i[:-2] if i[-2:]==".0" else i) for i in all]
         print('second metric -', all)
         # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
         def count_matches_and_numeric(query_numbers, material_name):
@@ -162,6 +162,8 @@ class Find_materials():
         new_lines = ''
         for word in new_mat.split():
             new_word = word
+            if new_word[-2:] == ".0":
+                new_word = new_word[:-2]
             if word.isdigit():
                 if int(word) % 50 == 0 and len(word) >= 4:
                     new_num = str(int(word) / 1000)

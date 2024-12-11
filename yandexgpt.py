@@ -92,7 +92,7 @@ class custom_yandex_gpt():
             print(f"Завершили {ind+1} поток")
 
         self.ress = [mini_r for r in self.ress for mini_r in r if r != '']
-        print("RESSS", self.ress)
+        # print("RESSS", self.ress)
         return self.ress
 
     def get_pos(self, text:str, idx:int, save=False, bag=False):
@@ -147,10 +147,14 @@ class custom_yandex_gpt():
             self.ress[idx] = ""
             # return []
 
+    def has_no_numbers(self, inputString):
+        return not any(char.isdigit() for char in inputString)
+
     def split_answer(self,answer, text):
         answer = answer.split('\n')
         answer_ei = []
         filter = ['телефон', 'товар', 'письмо', 'звонк', 'ооо', 'г.', 'служба', '@', 'город', '.ru', 'сообщ', 'комп', 'качеств']
+        was_poss = []
         for pos in answer:
             s = pos.split('|')
             s[0] = s[0].lower()
@@ -162,21 +166,19 @@ class custom_yandex_gpt():
                     break
             if n:
                 continue
-            # if "телефон" in s[0] or 'письмо' in s[0]\
-            #     or '@' in s[0] or '.ru' in s[0] or "ООО" in s[0] or "г." in s[0] or "служба" in s[0].lower():
-            #     continue
             if len(s) < 3:
                 if len(pos) != 0:
                     answer_ei += [(pos, 'шт', '1')]
                 # continue
             else:
-                # print(s[0])
-                # if s[0].split()[0].lower() in text.lower():
+                if s[0] in was_poss or self.has_no_numbers(s[0]):
+                    continue
                 if len(s[-2].split()) < 1:
                     s[-2] = 'шт'
                 if len(s[-1].split()) < 1:
                     s[-1] = '1'
                 answer_ei += [(s[-3], s[-2], s[-1])]
+                was_poss += [s[0]]
         return answer_ei
 
 if __name__ == "__main__":
