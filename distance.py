@@ -202,7 +202,7 @@ class Find_materials():
         return new_mat.strip(), val_ei, ei
 
     def paralell_rows(self, rows):
-        rows = [(i, i2, i3) for i, i2, i3 in rows if len(i) > 8 and i[0] != '+']
+        rows = [(i, i2, i3) for i, i2, i3 in rows if len(i) > 5 and i[0] != '+']
         kols = len(rows)
         my_threads = []
         self.results = [""]

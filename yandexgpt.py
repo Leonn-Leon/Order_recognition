@@ -129,6 +129,7 @@ class custom_yandex_gpt():
             time.sleep(1)
             _try += 1
         self.write_logs('Время на запрос, ' + str(time.time() - start))
+        print('from GPT', res.text)
         self.write_logs(str(res.text))
         print('Время на запрос, ', time.time() - start, flush=True)
         try:
