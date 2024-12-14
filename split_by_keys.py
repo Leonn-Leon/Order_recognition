@@ -113,6 +113,7 @@ class Key_words():
         s = re.sub(r'(\d)мм ', r'\1 ', s)
         s = re.sub(r'(\d) п ', r'\1п ', s)
         s = re.sub(r'(\d) шт', r'\1шт ', s)
+        s = re.sub(r'(\d)ду', r'\1 ду ', s)
         s = re.sub(r'(\d) у ', r'\1у ', s)
         # s = re.sub(r'(?<=\d)(?=[а-яА-Яa-zA-Z])', ' ', s)
         # Разделяем буквы и числа
@@ -120,7 +121,7 @@ class Key_words():
         s = re.sub(r'(\d+),(\d+)', r'\1.\2', s)
         s = re.sub(r'([а-яА-Яa-zA-Z])\.', r'\1 ', s)
         s = re.sub(r'[^\w\s.]', ' ', s)
-        s = s.replace(' м п ', 'мп').replace('/', '')
+        s = s.replace(' м п ', 'мп').replace('/', '').replace('бш', 'б ш')
         for i in matches:
             s += ' ' + i
         return s
@@ -140,7 +141,8 @@ class Key_words():
                    'метр': 'м',
                    'тон': 'тн',
                    'колич': 'шт',
-                   'оц': 'оц'
+                   'оц': 'оц',
+                   'эсв': 'э с',
         }
         starts ={
             'а ': 'арматура ',
