@@ -121,7 +121,8 @@ class Key_words():
         s = re.sub(r'(\d+),(\d+)', r'\1.\2', s)
         s = re.sub(r'([а-яА-Яa-zA-Z])\.', r'\1 ', s)
         s = re.sub(r'[^\w\s.]', ' ', s)
-        s = s.replace(' м п ', 'мп').replace('/', '').replace('бш', 'б ш')
+        s = s.replace(' м п ', 'мп').replace('/', '')
+        s = s.replace('бш', 'б ш').replace('гк', 'г к').replace('гк', 'г к')
         for i in matches:
             s += ' ' + i
         return s
