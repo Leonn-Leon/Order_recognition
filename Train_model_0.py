@@ -57,7 +57,6 @@ def fit_0():
 
     # Преобразование текстовых данных в числовые признаки с помощью TF-IDF
     tfidf = TfidfVectorizer()
-    # cats = pd.read_csv('data/categories.csv')["Filtered_Description"]
     tfidf = tfidf.fit(X)
     X_tfidf = tfidf.transform(X)
 

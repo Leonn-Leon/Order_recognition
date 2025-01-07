@@ -20,20 +20,17 @@ class Find_materials():
         self.models = Use_models()
         self.all_materials = pd.read_csv('data/mats.csv', dtype=str)
         self.otgruzki = pd.read_csv('data/otgruzki.csv', sep=';')
-        self.otgruzki['Код материала'] = self.otgruzki['Код материала'].apply(lambda x: int(x))
+        self.otgruzki['Код материала'] = self.otgruzki['Код материала'].astype(int)
         self.method2 = pd.read_csv('data/method2.csv')
         self.kw = Key_words()
-        self.method2['question'] = self.method2['question'].apply(lambda x: self.new_mat_prep(x))
+        self.method2['question'] = self.method2['question'].apply(self.new_mat_prep)
         self.method2.reset_index(drop=True, inplace=True)
         self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
-        self.all_materials.reset_index(inplace=True)
-        del self.all_materials['index']
+        self.all_materials.reset_index(drop=True, inplace=True)
         # Добавление длины названия
-        self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].apply(len)
-        # self.vectorizer = TfidfVectorizer()
-        # self.tfidf_matrix = self.vectorizer.fit_transform(self.all_materials["Полное наименование материала"])
-
+        self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].str.len()
         print('All materials opened!', flush=True)
+
 
     def write_logs(self, text, event=1):
         event = 'EVENT' if event == 1 else 'ERROR'
@@ -259,7 +256,7 @@ class Find_materials():
             foundes = self.method2[self.method2.question == new_mat].answer.to_list()
             true_positions = []
             for pos in foundes[::-1]:
-                temp = json.loads(base64.b64decode(pos).decode('utf-8').replace("'", '"'))
+                temp = json.loфds(base64.b64decode(pos).decode('utf-8').replace("'", '"'))
                 if temp not in true_positions:
                     true_positions += [temp]
             itog = []
@@ -294,4 +291,4 @@ if __name__ == '__main__':
             break
         rows.append(line)
     print(f'Найдено {len(rows)} наименований')
-    find_mats.find_mats(rows)
+    find_mats.paralell_rows(rows)

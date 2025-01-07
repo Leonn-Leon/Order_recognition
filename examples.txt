@@ -1,0 +1,5 @@
+docker logs <name>
+docker exec -it <name> bash
+docker cp <name>:app/data/ /home/
+
+# amqp://ai:XRKh02eFLTKjMJErcpoy@esb-dev-rmq01.spk.ru:5672/
