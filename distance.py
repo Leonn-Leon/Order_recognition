@@ -253,7 +253,7 @@ class Find_materials():
             foundes = self.method2[self.method2.question == new_mat].answer.to_list()
             true_positions = []
             for pos in foundes[::-1]:
-                temp = json.loфds(base64.b64decode(pos).decode('utf-8').replace("'", '"'))
+                temp = json.loads(base64.b64decode(pos).decode('utf-8').replace("'", '"'))
                 if temp not in true_positions:
                     true_positions += [temp]
             itog = []
