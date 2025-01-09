@@ -46,18 +46,6 @@ class Find_materials():
         union = len(a.union(b))
         return 1 - intersection / union
 
-    # def TF_Idf_similarity(self, text, first_ierar):
-    #     tfidf_query = self.vectorizer.transform([text])
-    #     euclidean = pairwise_distances(tfidf_query, self.tfidf_matrix, metric='euclidean').flatten()
-    #     tr = self.all_materials['Название иерархии-1'] == first_ierar
-    #     # print(self.all_materials[tr])
-    #     # print(self.all_materials["Полное наименование материала"].str.split())
-    #     # print('Вот тут -', tr.sum())
-    #     if tr.sum() > 0:
-    #         euclidean[self.all_materials[~tr].index] = 1e3
-    #     max_similarity_idxs = np.argsort(euclidean)
-    #     return max_similarity_idxs
-
     def choose_based_on_similarity(self, text, first_ierar, ress=None):
         materials_df = self.all_materials[['Материал', "Полное наименование материала", "Название иерархии-1"]].iloc[ress[:15]]
         materials_df["Levenstain"] = materials_df["Полное наименование материала"].apply(lambda x: ratio(text, x))
@@ -256,7 +244,7 @@ class Find_materials():
             foundes = self.method2[self.method2.question == new_mat].answer.to_list()
             true_positions = []
             for pos in foundes[::-1]:
-                temp = json.loфds(base64.b64decode(pos).decode('utf-8').replace("'", '"'))
+                temp = json.loads(base64.b64decode(pos).decode('utf-8').replace("'", '"'))
                 if temp not in true_positions:
                     true_positions += [temp]
             itog = []
