@@ -46,18 +46,6 @@ class Find_materials():
         union = len(a.union(b))
         return 1 - intersection / union
 
-    # def TF_Idf_similarity(self, text, first_ierar):
-    #     tfidf_query = self.vectorizer.transform([text])
-    #     euclidean = pairwise_distances(tfidf_query, self.tfidf_matrix, metric='euclidean').flatten()
-    #     tr = self.all_materials['Название иерархии-1'] == first_ierar
-    #     # print(self.all_materials[tr])
-    #     # print(self.all_materials["Полное наименование материала"].str.split())
-    #     # print('Вот тут -', tr.sum())
-    #     if tr.sum() > 0:
-    #         euclidean[self.all_materials[~tr].index] = 1e3
-    #     max_similarity_idxs = np.argsort(euclidean)
-    #     return max_similarity_idxs
-
     def choose_based_on_similarity(self, text, first_ierar, ress=None):
         materials_df = self.all_materials[['Материал', "Полное наименование материала", "Название иерархии-1"]].iloc[ress[:15]]
         materials_df["Levenstain"] = materials_df["Полное наименование материала"].apply(lambda x: ratio(text, x))
@@ -199,6 +187,15 @@ class Find_materials():
         return new_mat.strip(), val_ei, ei
 
     def paralell_rows(self, rows):
+        # Удаление элементов с дублирующимися нулевыми значениями
+        seen = set()
+        unique_rows = []
+        for row in rows:
+            if row[0] not in seen:
+                unique_rows.append(row)
+                seen.add(row[0])
+
+        print(f'Удалено {len(rows) - len(unique_rows)} дубликатов, осталось {len(unique_rows)} уникальных позиций.')
         rows = [(i, i2, i3) for i, i2, i3 in rows if len(i) > 5 and i[0] != '+']
         kols = len(rows)
         my_threads = []

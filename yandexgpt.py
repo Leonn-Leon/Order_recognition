@@ -81,11 +81,9 @@ class custom_yandex_gpt():
         self.ress = [""]*kols
         my_threads = []
         for i in range(kols):
-            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[i*30:(i+1)*30]), i, save, False])]
+            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[max(0, i*27-3):(i+1)*27]), i, save, False])]
+
             my_threads[-1].start()
-            # res = self.get_pos('\n'.join(text[i*20:(i+1)*20]), save=save)
-            # if len(res) != 0:
-            #     ress += res
 
         for ind, thread in enumerate(my_threads):
             thread.join()
