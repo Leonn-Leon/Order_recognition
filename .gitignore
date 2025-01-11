@@ -1,5 +1,12 @@
-.idea/
 __pycache__/
-test.ipynb
+.idea/
+.vscode/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
 /data/mails/
-/data/all_materials2.xlsx
