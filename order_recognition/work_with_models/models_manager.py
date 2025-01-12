@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.svm import SVC
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pickle
-from utils.split_by_keys import Key_words
+from order_recognition.utils.split_by_keys import Key_words
 import re
 import os
 from thread import Thread
@@ -10,12 +10,12 @@ from datetime import datetime
 
 class Use_models():
     def __init__(self):
-        self.data_path_zero = 'data/for_zero.csv'
-        self.data_path_first = 'data/for_firsts.csv'
+        self.data_path_zero = 'order_recognition/work_with_models/for_zero.csv'
+        self.data_path_first = 'order_recognition/work_with_models/for_firsts.csv'
         self.data_zero = pd.read_csv(self.data_path_zero)
         self.data_first = pd.read_csv(self.data_path_first)
 
-        with open('data/main_model.pkl', 'rb') as f:
+        with open('order_recognition/work_with_models/models/main_model.pkl', 'rb') as f:
             self.main_model = pickle.load(f)
 
         X_zero = self.data_zero['Полное наименование материала']
@@ -46,9 +46,9 @@ class Use_models():
             y_pred = self.main_model.predict(x_pred)[0]
         except Exception as exc:
             print("ошибка главной модели", exc)
-            self.write_logs("ошибка главной модели", 0)
+            logger.write_logs("ошибка главной модели", 0)
 
-        with open('data/models/' + str(y_pred) + '_model.pkl', 'rb') as f:
+        with open('order_recognition/work_with_models/models/' + str(y_pred) + '_model.pkl', 'rb') as f:
             model_1 = pickle.load(f)
 
         zero = self.all_zeros[y_pred]
@@ -75,7 +75,7 @@ class Use_models():
     def fit_first(self, text, true_first):
         if text in self.data_first.to_numpy()[:, 2]:
             print('Не дообучаем!', flush=True)
-            self.write_logs('Не дообучаем! First', 0)
+            logger.write_logs('Не дообучаем! First', 0)
             return
         new_row = self.data_first[self.data_first['Название иерархии-1'] == true_first].iloc[0].to_list()[:-1]+[text]
         print('new_row - ', new_row, flush=True)
@@ -95,23 +95,23 @@ class Use_models():
 
         print("Обучение ИЕР 1 уровня")
         svc_model = SVC(random_state=42, probability=True)
-        self.write_logs('SVC FIRST start!', 1)
+        logger.write_logs('SVC FIRST start!', 1)
         svc_model.fit(X_tfidf, y)
 
-        with open('data/models/' + str(ind) + '_model.pkl', 'wb') as f:
+        with open('order_recognition/work_with_models/models/' + str(ind) + '_model.pkl', 'wb') as f:
             pickle.dump(svc_model, f)
 
         self.data_first[['Название иерархии-0', 'Название иерархии-1', 'Полное наименование материала']].to_csv(
             self.data_path_first, index=False)
 
         print('Done!!!', flush=True)
-        self.write_logs('SVC FIRST DONE!', 1)
+        logger.write_logs('SVC FIRST DONE!', 1)
 
     def fit_zeros(self, text, true_zero:str):
         print("ИЕР-0", true_zero)
         if text in self.data_zero.to_numpy()[:, 1]:
             print('Не дообучаем! ИЕР-0', flush=True)
-            self.write_logs('Не дообучаем! ИЕР-0', 0)
+            logger.write_logs('Не дообучаем! ИЕР-0', 0)
             return
         new_row = self.data_zero[self.data_zero['Название иерархии-0'] == true_zero].iloc[0].to_list()[:-1] + [text]
         print('new_row - ', new_row, flush=True)
@@ -129,15 +129,15 @@ class Use_models():
         print("Обучение ИЕР 0 уровня")
         svm = SVC(random_state=42, kernel='linear', probability=True)
         print('SVC start!')
-        self.write_logs('SVC ZERO start!', 1)
+        logger.write_logs('SVC ZERO start!', 1)
         try:
             svm.fit(X_tfidf, y)
             self.main_model = svm
-            with open('data/main_model.pkl', 'wb') as f:
+            with open('order_recognition/work_with_models/main_model.pkl', 'wb') as f:
                 pickle.dump(svm, f)
         except Exception as exc:
             print(exc)
-            self.write_logs('Не получилось обучить ZEROS', 0)
+            logger.write_logs('Не получилось обучить ZEROS', 0)
             self.data_zero.drop(self.data_zero.tail(1).index, inplace=True)
             return
 
@@ -145,7 +145,7 @@ class Use_models():
             self.data_path_zero, index=False)
 
         print('Done!!!', flush=True)
-        self.write_logs('SVC ZERO DONE!', 1)
+        logger.write_logs('SVC ZERO DONE!', 1)
 
 if __name__ == '__main__':
     print(Use_models().fit(text, true_first='Труба профильная', true_zero=''))

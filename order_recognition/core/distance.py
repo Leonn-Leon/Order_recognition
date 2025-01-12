@@ -1,38 +1,42 @@
 from Levenshtein import ratio
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import pairwise_distances
 import pandas as pd
 import uuid
-import pickle
 import json
 import base64
-from datetime import datetime
 from thread import Thread
-from utils.split_by_keys import Key_words
-import re
+
+from order_recognition.utils import data_text_processing as dp
 import numpy as np
-from models_manager import Use_models
-import pymorphy3
-from utils import logger
+from order_recognition.work_with_models.models_manager import Use_models
 
 class Find_materials():
     def __init__(self):
         pd.options.mode.copy_on_write = True
         self.models = Use_models()
-        self.all_materials = pd.read_csv('data/mats.csv', dtype=str)
-        self.otgruzki = pd.read_csv('data/otgruzki.csv', sep=';')
+        self.all_materials = pd.read_csv('order_recognition/data/mats.csv', dtype=str)
+        self.otgruzki = pd.read_csv('order_recognition/data/otgruzki.csv', sep=';')
         self.otgruzki['Код материала'] = self.otgruzki['Код материала'].astype(int)
-        self.method2 = pd.read_csv('data/method2.csv')
-        self.kw = Key_words()
-        self.method2['question'] = self.method2['question'].apply(self.new_mat_prep)
+        self.method2 = pd.read_csv('order_recognition/data/method2.csv')
+        self.method2['question'] = self.method2['question'].apply(dp.new_mat_prep)
         self.method2.reset_index(drop=True, inplace=True)
-        self.saves = pd.read_csv('data/saves.csv', index_col='req_Number')
+        self.saves = pd.read_csv('order_recognition/data/saves.csv', index_col='req_Number')
         self.all_materials.reset_index(drop=True, inplace=True)
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].str.len()
         print('All materials opened!', flush=True)
+    
+    def jaccard_distance(self, str1:str, str2: str):
+        """
+        Расстояние Жаккара для двух строк. Возвращает значение в диапазоне от 0 до 1,
+        где 0 - совпадение, 1 - несовпадение.
 
-    def jaccard_distance(self, str1, str2):
+        Args:
+            str1 (str): Строка первого аргумента.
+            str2 (str): Строка второго аргумента.
+
+        Returns:
+            float: Расстояние Жаккара для двух строк str1 и str2.
+        """
         a = set(str1)
         b = set(str2)
         intersection = len(a.intersection(b))
@@ -126,34 +130,6 @@ class Find_materials():
         max_similarity_idxs = np.argsort(materials_df["Numeric Presence"])
         return max_similarity_idxs[::-1]
 
-    def new_mat_prep(self, new_mat:str, val_ei:str=None, ei:str=None):
-        # new_mat = new_mat.replace('/', '')
-
-        morph = pymorphy3.MorphAnalyzer()
-
-        new_mat = ' '.join(new_mat.split())
-        new_mat = self.kw.replace_words(new_mat)
-        new_mat = self.kw.split_numbers_and_words(new_mat)
-        # print('Поиск едениц измерения -', end - start)
-
-        new_mat += ' '
-        new_lines = ''
-        for word in new_mat.split():
-            new_word = word
-            if new_word[-2:] == ".0":
-                new_word = new_word[:-2]
-            if word.isdigit():
-                if int(word) % 50 == 0 and len(word) >= 4:
-                    new_num = str(int(word) / 1000)
-                    new_word = new_num
-            elif word.isalpha() and len(word) > 3:
-                new_word = morph.parse(new_word)[0].normal_form
-            new_lines += new_word + ' '
-        new_mat = new_lines
-        if val_ei and ei:
-            return self.find_ei(new_mat, val_ei, ei)
-        return new_mat.strip()
-
     def paralell_rows(self, rows):
         # Удаление элементов с дублирующимися нулевыми значениями
         seen = set()
@@ -192,7 +168,7 @@ class Find_materials():
         self.poss[idx] = {'position_id': str(idx)}
         self.poss[idx]['request_text'] = row
         ###############################
-        new_mat, val_ei, ei = self.new_mat_prep(row, val_ei, ei)
+        new_mat, val_ei, ei = dp.new_mat_prep(row, val_ei, ei)
         print('--', new_mat)
 
 

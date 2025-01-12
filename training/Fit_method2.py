@@ -1,4 +1,3 @@
-from models_manager import Use_models
 import pandas as pd
 import json
 import base64

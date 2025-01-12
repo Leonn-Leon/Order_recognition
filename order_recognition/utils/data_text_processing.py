@@ -1,7 +1,7 @@
 import pymorphy3
-from split_by_keys import Key_words
+from order_recognition.utils.split_by_keys import Key_words
 import re
-import logger
+from order_recognition.utils import logger
 
 def find_ei(new_mat, val_ei, ei):
         try:
