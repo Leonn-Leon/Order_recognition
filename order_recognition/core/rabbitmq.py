@@ -27,10 +27,10 @@ class Order_recognition():
         ygpt = custom_yandex_gpt()
         my_thread = Thread(target=self.test_analize_email, args=[ygpt, content])
         my_thread.start()
+        # self.test_analize_email(ygpt, content)
 
     def test_analize_email(self, ygpt, content):
-        print("Here")
-        clear_email = ygpt.big_mail(content, False)
+        clear_email = ygpt.big_mail(content)
         # Отправляем распознаннaй текст(!) на поиск материалов
         print('Очищенные позиции -', clear_email)
         results = str(self.find_mats.paralell_rows(clear_email))

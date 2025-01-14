@@ -1,7 +1,7 @@
 [project]
 name = "order-recognition"
 version = "0.1.0"
-description = ""
+description = "Проект для распознавания материалов в заявках клиентов"
 authors = [
     {name = "Сковорода Виталий Николаевич",email = "skovoroda@spk.ru"}
 ]

@@ -15,7 +15,7 @@ class custom_yandex_gpt():
     def __init__(self):
         self.headers = {"Authorization": "Bearer " + Authorization_AIM,
                    "x-folder-id": xfolderid }
-        with open('../confs/GPT_instruction.json', 'r') as f:
+        with open('order_recognition/confs/GPT_instruction.json', 'r', encoding='utf-8') as f:
             obj = f.read()
             obj = json.loads(obj)
             instruction = obj['system']
@@ -29,17 +29,17 @@ class custom_yandex_gpt():
             "messages": [
                 {
                     "role": "system",
-                    "text": +instruction
+                    "text": instruction
                 }
             ]
         }
-        print("Салам")
-        with open('../confs/ygpt_keys.json', 'r') as f:
+        with open('order_recognition/confs/ygpt_keys.json', 'r') as f:
             obj = f.read()
             obj = json.loads(obj)
             self.private_key = obj['private_key']
             self.key_id = obj['id']
             self.service_account_id = obj['service_account_id']
+        
 
 
     def get_iam_token(self):
@@ -75,10 +75,10 @@ class custom_yandex_gpt():
         self.ress = [""]*kols
         my_threads = []
         for i in range(kols):
-            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[max(0, i*27-3):(i+1)*27]), i, False])]
+            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[max(0, i*27-3):(i+1)*27]), i])]
 
             my_threads[-1].start()
-
+        print('Запустили потоки')
         for ind, thread in enumerate(my_threads):
             thread.join()
             print(f"Завершили {ind+1} поток")

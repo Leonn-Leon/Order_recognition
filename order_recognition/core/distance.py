@@ -4,7 +4,6 @@ import uuid
 import json
 import base64
 from thread import Thread
-
 from order_recognition.utils import data_text_processing as dp
 import numpy as np
 from order_recognition.work_with_models.models_manager import Use_models
@@ -12,15 +11,14 @@ from order_recognition.work_with_models.models_manager import Use_models
 class Find_materials():
     def __init__(self):
         pd.options.mode.copy_on_write = True
-        # self.models = Use_models()
-        # self.all_materials = pd.read_csv('order_recognition/data/mats.csv', dtype=str)
-        # self.otgruzki = pd.read_csv('order_recognition/data/otgruzki.csv', sep=';')
-        # self.otgruzki['Код материала'] = self.otgruzki['Код материала'].astype(int)
+        self.models = Use_models()
+        self.all_materials = pd.read_csv('order_recognition/data/mats.csv', dtype=str)
+        self.otgruzki = pd.read_csv('order_recognition/data/otgruzki.csv', sep=';')
+        self.otgruzki['Код материала'] = self.otgruzki['Код материала'].astype(int)
         self.method2 = pd.read_csv('order_recognition/data/method2.csv')
         self.saves = pd.read_csv('order_recognition/data/saves.csv', index_col='req_Number')
-        # self.all_materials.reset_index(drop=True, inplace=True)
         # Добавление длины названия
-        # self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].str.len()
+        self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].str.len()
         print('All materials opened!', flush=True)
     
     def jaccard_distance(self, str1:str, str2: str):
