@@ -9,6 +9,7 @@ docker-run:
 	docker run -it --rm $(IMAGE_NAME)
 
 install:
+	poetry config virtualenvs.in-project true
 	poetry install
 
 run:

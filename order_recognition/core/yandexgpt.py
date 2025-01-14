@@ -15,9 +15,10 @@ class custom_yandex_gpt():
     def __init__(self):
         self.headers = {"Authorization": "Bearer " + Authorization_AIM,
                    "x-folder-id": xfolderid }
-        df = pd.read_csv("data/msgs_ei.csv", index_col=0).tail(3)
-        self.msgs = df.to_numpy()
-        self.msgs = [{"role":i[0], "text":i[1].replace('\xa0', ' ').replace('"', "''")} for i in self.msgs]
+        with open('../confs/GPT_instruction.json', 'r') as f:
+            obj = f.read()
+            obj = json.loads(obj)
+            instruction = obj['system']
         self.req = {
             "modelUri": "ds://"+gpt_version_id,
             "completionOptions": {
@@ -28,12 +29,12 @@ class custom_yandex_gpt():
             "messages": [
                 {
                     "role": "system",
-                    "text": self.msgs[0]['text']
+                    "text": +instruction
                 }
             ]
         }
-
-        with open('order_recognition/confs/ygpt_keys.json', 'r') as f:
+        print("Салам")
+        with open('../confs/ygpt_keys.json', 'r') as f:
             obj = f.read()
             obj = json.loads(obj)
             self.private_key = obj['private_key']
@@ -69,7 +70,7 @@ class custom_yandex_gpt():
 
     def big_mail(self, text):
         text = text.split('\n')
-
+        print('Hello')
         kols = len(text)//30+1
         self.ress = [""]*kols
         my_threads = []
@@ -88,20 +89,21 @@ class custom_yandex_gpt():
     def get_pos(self, text:str, idx:int):
         """
         Описание функции: 
-        
-    
-        Args:
-            text (str): _description_ - 
-            idx (int): _description_
+        Получает позицию текста, отправляя запрос к YandexGPT.
+        Функция отправляет текстовый запрос к YandexGPT и получает ответ, который затем обрабатывается и сохраняется в словаре `self.ress` по заданному индексу.
+            text (str): Текст, который нужно отправить в YandexGPT.
+            idx (int): Индекс, по которому сохраняется результат в словаре `self.ress`.
+        Raises:
+            Exception: Если не удалось отправить запрос или распознать ответ.
         """
         self.update_token()
         text = text.replace('"', "''")
-        self.msgs += [{"role": "user", "text": text}]
-        if len(self.msgs[-1]['text'])<10:
+        if len(text)<7:
             self.ress[idx] = ""
+            return
         prompt = self.req.copy()
         # print(prompt['messages'][0])
-        prompt['messages'] = [prompt['messages'][0], self.msgs[-1]]
+        prompt['messages'] = [prompt['messages'][0], text]
         # start = time.time()
         _try = 0
         while _try<45:
@@ -132,7 +134,6 @@ class custom_yandex_gpt():
             print(res.text)
         try:
             self.ress[idx] = self.split_answer(answer, text)
-            # return self.split_answer(answer)
         except:
             print('Не получилось распознать')
             self.ress[idx] = ""
