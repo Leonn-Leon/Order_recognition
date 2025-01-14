@@ -70,7 +70,6 @@ class custom_yandex_gpt():
 
     def big_mail(self, text):
         text = text.split('\n')
-        print('Hello')
         kols = len(text)//30+1
         self.ress = [""]*kols
         my_threads = []
@@ -102,8 +101,7 @@ class custom_yandex_gpt():
             self.ress[idx] = ""
             return
         prompt = self.req.copy()
-        # print(prompt['messages'][0])
-        prompt['messages'] = [prompt['messages'][0], text]
+        prompt['messages'] = [prompt['messages'][0], {"role": "user", "text": text}]
         # start = time.time()
         _try = 0
         while _try<45:
@@ -133,7 +131,7 @@ class custom_yandex_gpt():
             logger.write_logs(res.text, event=0)
             print(res.text)
         try:
-            self.ress[idx] = self.split_answer(answer, text)
+            self.ress[idx] = self.split_answer(answer)
         except:
             print('Не получилось распознать')
             self.ress[idx] = ""
