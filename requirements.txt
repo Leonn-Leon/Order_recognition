@@ -1,11 +1,11 @@
-pandas==2.2.2
-aio_pika==9.3.0
+pandas
+aio_pika
 uuid
 asyncio
-nltk==3.8.1
-scikit-learn==1.5.1
+nltk
+scikit-learn
 python-Levenshtein
-beautifulsoup4==4.12.3
+beautifulsoup4
 requests
 PyJWT
 cryptography

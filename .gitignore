@@ -10,4 +10,4 @@ __pycache__/
 *.bak
 *.tmp
 *.log
-/data/mails/
+/data/logs/*

@@ -69,6 +69,7 @@ class custom_yandex_gpt():
         self.headers["Authorization"] = "Bearer " + self.iam_token
 
     def big_mail(self, text):
+        self.update_token()
         text = text.split('\n')
         kols = len(text)//30+1
         self.ress = [""]*kols
@@ -95,7 +96,6 @@ class custom_yandex_gpt():
         Raises:
             Exception: Если не удалось отправить запрос или распознать ответ.
         """
-        self.update_token()
         text = text.replace('"', "''")
         if len(text)<7:
             self.ress[idx] = ""

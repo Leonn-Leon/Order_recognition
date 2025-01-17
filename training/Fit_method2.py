@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 import base64
-from utils.split_by_keys import Key_words
+from order_recognition.utils.split_by_keys import Key_words
 import pymorphy3
 
 def new_mat_prep(new_mat: str):
