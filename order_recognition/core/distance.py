@@ -156,7 +156,7 @@ class Find_materials():
         print("вот тут", self.poss)
         self.results[0]["positions"] = self.poss
         self.saves.loc[self.results[0]["req_Number"]] = ["{'positions':" + str(self.results[0]["positions"]) + "}"]
-        self.saves.to_csv('data/saves.csv')
+        self.saves.to_csv('order_recognition/data/saves.csv')
         # print("results -", self.results)
         return str(self.results)
 
