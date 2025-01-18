@@ -4,6 +4,8 @@ FROM python:3.11-slim AS builder
 ARG http_proxy=""
 ARG https_proxy=""
 
+RUN echo "http_proxy=${http_proxy}" && echo "https_proxy=${https_proxy}"
+
 # Установка переменных окружения для прокси (если переданы)
 ENV http_proxy=${http_proxy}
 ENV https_proxy=${https_proxy}
@@ -42,8 +44,6 @@ ARG RMQ_AI_URL=""
 ENV http_proxy=${http_proxy}
 ENV https_proxy=${https_proxy}
 ENV RMQ_AI_URL=${RMQ_AI_URL}
-
-RUN echo "RMQ_AI_URL=${RMQ_AI_URL}" && echo "https_proxy=${https_proxy}"
 
 RUN sed -i "s|RMQ_AI_URL|${RMQ_AI_URL}|g" order_recognition/confs/config.py
 
