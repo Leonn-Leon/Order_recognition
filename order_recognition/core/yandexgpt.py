@@ -121,7 +121,7 @@ class custom_yandex_gpt():
                 break
             else:
                 print("Ошибка у YandexGPT:", idx, 'try -', _try, res.text)
-            time.sleep(1)
+            time.sleep(0.5)
             _try += 1
         logger.write_logs('Время на запрос, ' + str(time.time() - start))
         print('Время на запрос, ', time.time() - start, flush=True)
