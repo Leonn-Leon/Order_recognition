@@ -18,14 +18,15 @@ RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="$PATH:/root/.local/bin"
 # Добавление poetry в PATH
 COPY pyproject.toml poetry.lock ./
+COPY order_recognition/ ./order_recognition/
 RUN poetry config virtualenvs.in-project true --local && \
     poetry lock && \
-    poetry install --only main --no-interaction --no-ansi --no-cache --no-root
+    poetry install --only main --no-interaction --no-ansi --no-cache
 
 FROM python:3.11-slim
 COPY --from=builder /root/.local /root/.local
 COPY --from=builder /.venv /.venv
-COPY order_recognition/ ./order_recognition/
+COPY --from=builder order_recognition/ ./order_recognition/
 
 # Аргументы для прокси
 ARG HTTP_PROXY=""
