@@ -7,6 +7,7 @@ import re
 import os
 from thread import Thread
 from datetime import datetime
+from order_recognition.utils import logger
 
 class Use_models():
     def __init__(self):
@@ -66,10 +67,10 @@ class Use_models():
         # print(firsts[model_1.predict(x_pred_1)[0]])
         return firsts[model_1.predict(x_pred_1)[0]] # Возвращаем первую иерархию-1
 
-    def fit(self, text, true_first, true_zero, fit_zero, fit_first):
-        # if fit_zero:
+    def fit(self, text, true_first, true_zero, is_fit_zero, is_fit_first):
+        # if is_fit_zero:
             # Thread(target=self.fit_zeros, args=[text, true_zero]).start()
-        if fit_first:
+        if is_fit_first:
             Thread(target=self.fit_first, args=[text, true_first]).start()
 
     def fit_first(self, text, true_first):

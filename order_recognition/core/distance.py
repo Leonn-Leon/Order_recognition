@@ -189,7 +189,7 @@ class Find_materials():
         print(ress)
         print('Вот это ищем', new_mat)
         if new_mat in self.method2.question.to_list():
-            print('Нашёл')
+            print('Нашёл', new_mat)
             foundes = self.method2[self.method2.question == new_mat].answer.to_list()
             true_positions = []
             for pos in foundes[::-1]:
