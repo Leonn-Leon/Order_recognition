@@ -17,7 +17,7 @@ RUN apt-get install ffmpeg libsm6 libxext6 -y
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="$PATH:/root/.local/bin"
 # Добавление poetry в PATH
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock README.md ./
 COPY order_recognition/ ./order_recognition/
 RUN poetry config virtualenvs.in-project true --local && \
     poetry lock && \
