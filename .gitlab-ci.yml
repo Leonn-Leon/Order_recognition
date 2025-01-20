@@ -34,7 +34,7 @@ docker-build:
     - docker logout
     #- sed -i "s|RMQ_AI_URL|$RMQ_AI_URL|g" config.py
     #- cat config.py #export DOCKER_HOST=tcp://127.0.0.1:2375 && docker build --pull -t ${CI_REGISTRY_IMAGE} .    #
-    - docker build --pull --build-arg http_proxy=$SHTTP_PROXY --build-arg https_proxy=$SHTTPS_PROXY --build-arg RMQ_AI_URL=$RMQ_AI_URL -t $TAG_LATEST . 
+    - docker build --pull --build-arg HTTP_PROXY=$SHTTP_PROXY --build-arg HTTPS_PROXY=$SHTTPS_PROXY --build-arg RMQ_AI_URL=$RMQ_AI_URL -t $TAG_LATEST . 
     - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
     - docker images
     - echo $DOCKER_IMAGE_NAME 
