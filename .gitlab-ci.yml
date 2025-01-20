@@ -46,7 +46,7 @@ deploy:
   image: alpine:latest
   stage: deploy
   before_script:
-    - apk update && apk add openssh-client    #для альпины
+    - apk update && apk add openssh-client    #для альпины1
     - chmod 400 $SSH_PRIVATE_KEY
   script:
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker stop orderrec > /dev/null 2>&1" || FAILED=true  
