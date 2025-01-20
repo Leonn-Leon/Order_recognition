@@ -32,12 +32,9 @@ docker-build:
    - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
   script:
     - docker logout
-    # - sed -i "s|RMQ_AI_URL|$RMQ_AI_URL|g" order_recognition/config.py
-    - cat order_recognition/confs/config.py
-    - docker build --pull --build-arg http_proxy=$HTTP_PROXY \
-                          --build-arg https_proxy=$HTTPS_PROXY \
-                          --build-arg RMQ_AI_URL=$RMQ_AI_URL \
-                          -t $TAG_LATEST .   #export DOCKER_HOST=tcp://127.0.0.1:2375 && docker build --pull -t ${CI_REGISTRY_IMAGE} .    #
+    #- sed -i "s|RMQ_AI_URL|$RMQ_AI_URL|g" config.py
+    #- cat config.py #export DOCKER_HOST=tcp://127.0.0.1:2375 && docker build --pull -t ${CI_REGISTRY_IMAGE} .    #
+    - docker build --pull --build-arg http_proxy=$SHTTP_PROXY --build-arg https_proxy=$SHTTPS_PROXY --build-arg RMQ_AI_URL=$RMQ_AI_URL -t $TAG_LATEST . 
     - docker login -u $CI_TKN_LN -p $CI_TKN_PW $CI_REGISTRY
     - docker images
     - echo $DOCKER_IMAGE_NAME 
@@ -49,7 +46,7 @@ deploy:
   image: alpine:latest
   stage: deploy
   before_script:
-    - apk update && apk add openssh-client    #для альпины
+    - apk update && apk add openssh-client    #для альпины1
     - chmod 400 $SSH_PRIVATE_KEY
   script:
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker stop orderrec > /dev/null 2>&1" || FAILED=true  
@@ -60,4 +57,4 @@ deploy:
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker login $CI_REGISTRY -u $CI_TKN_LN -p $CI_TKN_PW"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker pull $TAG_LATEST"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker images"
-    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker run -d --name orderrec --mount source=test_vol,target=/order_recognition/data/logs $CI_REGISTRY_IMAGE/master:latest"
+    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker run -d --name orderrec --mount source=test_vol,target=/order_recognition/data/logs  $CI_REGISTRY_IMAGE/master:latest"
