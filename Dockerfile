@@ -25,7 +25,7 @@ RUN poetry config virtualenvs.in-project true --local && \
 FROM python:3.11-slim
 COPY --from=builder /root/.local /root/.local
 COPY --from=builder /.venv /.venv
-COPY --from=builder order_recognition/ ./order_recognition/
+COPY order_recognition/ ./order_recognition/
 
 # Аргументы для прокси
 ARG HTTP_PROXY=""
