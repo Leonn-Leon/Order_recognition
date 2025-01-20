@@ -8,10 +8,10 @@ export $(shell sed 's/=.*//' .env)
 
 build:
 	@echo "RMQ_AI_URL=$(RMQ_AI_URL)"
-	@echo "RMQ_AI_URL=$(HTTP_PROXY)"
+	@echo "SHTTP_PROXY=$(SHTTP_PROXY)"
 	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) --build-arg RMQ_AI_URL=$(RMQ_AI_URL) \
-											   --build-arg HTTP_PROXY=$(HTTP_PROXY) \
-											   --build-arg HTTPS_PROXY=$(HTTPS_PROXY) -f $(DOCKERFILE) .
+											   --build-arg SHTTP_PROXY=$(SHTTP_PROXY) \
+											   --build-arg SHTTPS_PROXY=$(SHTTPS_PROXY) -f $(DOCKERFILE) .
 
 run:
 	docker run -it --rm $(IMAGE_NAME):$(IMAGE_TAG)
