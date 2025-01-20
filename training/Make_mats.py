@@ -29,7 +29,7 @@ def main():
 
     print("Сохраняем результат")
     data['Материал'] = data['Материал'].apply(str)
-    data.iloc[1:].to_csv('data/mats.csv', index=False)
+    data.iloc[1:].to_csv('order_recognition/data/mats.csv', index=False)
 
 
 if __name__ == '__main__':

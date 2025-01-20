@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from src.Release.distance import Find_materials
+from order_recognition.core.distance import Find_materials
 
 class TestFindMaterials(unittest.TestCase):
 

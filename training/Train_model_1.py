@@ -7,7 +7,7 @@ import pickle
 # file_path = 'data/Mats_with_eirar.csv'
 # data = pd.read_csv(file_path)
 def train():
-    data_path = 'data/for_firsts.csv'
+    data_path = 'order_recognition/work_with_models/for_firsts.csv'
     print('Берём сохранённые данные')
     data = pd.read_csv(data_path)
 
@@ -28,7 +28,7 @@ def train():
         X_tfidf = tfidf.transform(X)
 
         try:
-            with open('data/models/' + str(ind) + '_model.pkl', 'rb') as f:
+            with open('order_recognition/work_with_models/models/' + str(ind) + '_model.pkl', 'rb') as f:
                 model_1 = pickle.load(f)
         except:
             print('Создаём новую модель', ind)
@@ -43,7 +43,7 @@ def train():
         # Создание и обучение модели SVC
         svc_model = SVC(random_state=42, kernel='linear', probability=True)
         svc_model.fit(X_tfidf, y)
-        with open('data/models/'+str(ind)+'_model.pkl', 'wb') as f:
+        with open('order_recognition/work_with_models/models/'+str(ind)+'_model.pkl', 'wb') as f:
             pickle.dump(svc_model, f)
         print('Done!!!')
 

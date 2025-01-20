@@ -5,14 +5,15 @@ import asyncio
 import aio_pika
 import base64
 import json
-from distance import Find_materials
+from order_recognition.core.distance import Find_materials
 from functools import partial
-from hash2text import text_from_hash
+from order_recognition.core.hash2text import text_from_hash
 from order_recognition.confs import config as conf
 from order_recognition.utils import logger
 from order_recognition.core.yandexgpt import custom_yandex_gpt
 from order_recognition.utils import data_text_processing as dp
 from thread import Thread
+from order_recognition.utils.split_by_keys import Key_words
 
 
 class Order_recognition():
@@ -101,7 +102,7 @@ class Order_recognition():
                 # self.find_mats.method2.loc[request_text] = res.decode('utf-8')
                 # print(self.find_mats.method2.index)
                 self.find_mats.method2.loc[len(self.find_mats.method2.index)] = [request_text, res.decode('utf-8')]
-            self.find_mats.method2.to_csv('data/method2.csv', index=False)
+            self.find_mats.method2.to_csv('order_recognition/data/method2.csv', index=False)
         else:
             logger.write_logs('Не нашёл такого письма', event=0)
             print('Не нашёл такого письма', flush=True)
@@ -180,7 +181,7 @@ class Order_recognition():
                     # self.find_mats.method2.loc[request_text] = res.decode('utf-8')
                     # print(self.find_mats.method2.index)
                     self.find_mats.method2.loc[len(self.find_mats.method2.index)] = [request_text, res.decode('utf-8')]
-                self.find_mats.method2.to_csv('data/method2.csv', index=False)
+                self.find_mats.method2.to_csv('order_recognition/data/method2.csv', index=False)
             else:
                 logger.write_logs('Не нашёл такого письма', event=0)
                 print('Не нашёл такого письма', flush=True)
@@ -304,6 +305,7 @@ class Order_recognition():
 
 if __name__ == '__main__':
     # os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'templates'))
+    Key_words()
     order_rec = Order_recognition()
     print("RMQ_AI_URL:", conf.connection_url[:4])
     if conf.connection_url == "TEST" or conf.connection_url == "RMQ_AI_URL":

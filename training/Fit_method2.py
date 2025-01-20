@@ -29,15 +29,15 @@ def new_mat_prep(new_mat: str):
     return new_mat.strip()
 
 def add_method2():
-    data = pd.read_csv('data/mats.csv')
+    data = pd.read_csv('order_recognition/data/mats.csv')
 
-    method2 = pd.read_csv('data/method2.csv')
+    method2 = pd.read_csv('order_recognition/data/method2.csv')
     method2.reset_index(drop=True, inplace=True)
     method2['question'] = method2['question'].apply(lambda x: new_mat_prep(x))
     method2 = method2.to_numpy()
 
-    data_path_zero = 'data/for_zero.csv'
-    data_path_first = 'data/for_firsts.csv'
+    data_path_zero = 'order_recognition/work_with_models/for_zero.csv'
+    data_path_first = 'order_recognition/work_with_models/for_firsts.csv'
     data_zero  = pd.read_csv(data_path_zero)
     data_first = pd.read_csv(data_path_first)
     for mat, answer in method2:
