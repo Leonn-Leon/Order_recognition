@@ -2,9 +2,8 @@ import base64
 import json
 import xml.etree.ElementTree as ET
 import html
-
-import pandas as pd
 from bs4 import BeautifulSoup
+from order_recognition.utils.data_text_processing import Data_text_processing
 
 # Функция для парсинга XML и извлечения HTML-содержимого
 def html_from_xml(xml_data):
@@ -29,18 +28,7 @@ def text_from_hash(hash):
     except:
         html_content = json.loads(content)["fileContent"]
     text = convert_html_to_text(html_content)
-    text = remove_new_lines(text)
-    return text
-
-def remove_new_lines(text):
-    text = text.replace("\xa0", ' ')
-    while ' \n' in text:
-        text = text.replace(' \n', '\n')
-    while '\n ' in text:
-        text = text.replace('\n ', '\n')
-    while '\n\n' in text:
-        text = text.replace('\n\n', '\n')
-    print('Всего строк', len(text.split('\n')), flush=True)
+    text = Data_text_processing().clean_text(text)
     return text
 
 if __name__ == '__main__':

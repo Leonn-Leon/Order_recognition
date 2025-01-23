@@ -4,7 +4,7 @@ from sklearn.svm import SVC
 import pickle
 import os
 from order_recognition.utils.split_by_keys import Key_words
-from order_recognition.utils.data_text_processing import new_mat_prep
+from order_recognition.utils.data_text_processing import Data_text_processing
 import Train_model_1
 import Fit_method2 as Fit_method2
 import pymorphy3

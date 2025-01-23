@@ -1,9 +1,11 @@
 connection_url = "RMQ_AI_URL"
 first_queue = "get_message"
 second_queue = "save_truth"
+third_queue = "find_request_result"
 exchange = "ai"
 routing_key = "orderrecognition.find_request"
 routing_key2 = "orderrecognition.save_truth"
+routing_key3 = "orderrecognition.find_request_result"
 Authorization_AIM = ""
 xfolderid = "b1gob9uom3r70b2es0lp"
 gpt_version_id = 'bt1ehl60j162dddfaqcn'

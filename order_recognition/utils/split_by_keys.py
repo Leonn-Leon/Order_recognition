@@ -1,22 +1,11 @@
 import pandas as pd
 import re
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 
 
 class Key_words():
 
     def __init__(self):
         self.need_to_replace = {}
-        try:
-            nltk.data.find('corpora/stopwords')
-        except LookupError:
-            nltk.download('stopwords')
-        try:
-            nltk.data.find('tokenizers/punkt')
-        except LookupError:
-            nltk.download('punkt')
 
     def split_numbers_and_words(self, s):
         # Разделяем числа и буквы

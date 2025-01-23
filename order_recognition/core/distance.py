@@ -3,10 +3,10 @@ import pandas as pd
 import uuid
 import json
 import base64
-from thread import Thread
-from order_recognition.utils import data_text_processing as dp
+from order_recognition.utils.data_text_processing import Data_text_processing
 import numpy as np
 from order_recognition.work_with_models.models_manager import Use_models
+from multiprocessing import Process, Pool
 
 class Find_materials():
     def __init__(self):
@@ -20,37 +20,7 @@ class Find_materials():
         # Добавление длины названия
         self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].str.len()
         print('All materials opened!', flush=True)
-    
-    def jaccard_distance(self, str1:str, str2: str):
-        """
-        Расстояние Жаккара для двух строк. Возвращает значение в диапазоне от 0 до 1,
-        где 0 - совпадение, 1 - несовпадение.
-
-        Args:
-            str1 (str): Строка первого аргумента.
-            str2 (str): Строка второго аргумента.
-
-        Returns:
-            float: Расстояние Жаккара для двух строк str1 и str2.
-        """
-        a = set(str1)
-        b = set(str2)
-        intersection = len(a.intersection(b))
-        union = len(a.union(b))
-        return 1 - intersection / union
-
-    def choose_based_on_similarity(self, text, first_ierar, ress=None):
-        materials_df = self.all_materials[['Материал', "Полное наименование материала", "Название иерархии-1"]].iloc[ress[:15]]
-        materials_df["Levenstain"] = materials_df["Полное наименование материала"].apply(lambda x: ratio(text, x))
-        tr = materials_df['Название иерархии-1'] == first_ierar
-        if tr.sum() > 0:
-            materials_df.loc["Levenstain", materials_df[~tr].index] = 0
-        sorted_materials = materials_df.sort_values(by=["Levenstain"],#, "Name Length"],
-                                                          ascending=[False])
-        print("Simularity5")
-        return sorted_materials[['Материал', "Полное наименование материала"]].head(5)
-        # max_similarity_idxs = np.argsort(Levenstain)
-        # return max_similarity_idxs[::-1]
+        self.dp = Data_text_processing()
 
     def find_top_materials_advanced(self, query, materials_df, top_n=5):
         """
@@ -113,8 +83,11 @@ class Find_materials():
             return numeric_presence
 
         # Применение функции подсчёта к каждому материалу
-        materials_df["Numeric Presence"] = materials_df["Полное наименование материала"].apply(
-            lambda x: count_matches_and_numeric(all, x))
+        materials_df = materials_df.assign(
+            **{"Numeric Presence": materials_df["Полное наименование материала"].apply(
+                lambda x: count_matches_and_numeric(all, x)
+            )}
+        )
         try:
             # print(materials_df["Материал"].tolist()[:5], self.otgruzki['Код материала'].tolist()[:5])
             materials_df.loc[~materials_df["Материал"].isin(self.otgruzki['Код материала'].tolist()),
@@ -142,52 +115,51 @@ class Find_materials():
         self.results = [""]
         self.poss = [""]*kols
         self.results[0] = {"req_Number": str(uuid.uuid4())}
-        for idx, (row, ei, val_ei) in enumerate(rows):
-            try:
-                my_threads += [Thread(target=self.find_mats, args=[row, val_ei, ei, idx])]
-                my_threads[-1].start()
-            except Exception as exc:
-                print(exc)
+        
+        tasks = [[row, val_ei, ei, idx] for idx, (row, ei, val_ei) in enumerate(rows)]
+        
+        with Pool(5) as pool:
+            result_from_processes = pool.map(self.find_mats, tasks)
+            
+        for res in result_from_processes:
+            self.poss[int(res["position_id"])] = res
 
-        for ind, thread in enumerate(my_threads):
-            thread.join()
-            print(f"Завершили {ind + 1} поток")
-
-        print("вот тут", self.poss)
+        # print("вот тут", self.poss)
         self.results[0]["positions"] = self.poss
         self.saves.loc[self.results[0]["req_Number"]] = ["{'positions':" + str(self.results[0]["positions"]) + "}"]
         self.saves.to_csv('order_recognition/data/saves.csv')
         # print("results -", self.results)
         return str(self.results)
 
-    def find_mats(self, row:str, val_ei:str, ei:str, idx:int):
-        self.poss[idx] = {'position_id': str(idx)}
-        self.poss[idx]['request_text'] = row
+    def find_mats(self, args):
+        row, val_ei, ei, idx = args
+        local_poss = {'position_id': str(idx)}
+        local_poss['request_text'] = row
         ###############################
-        new_mat, val_ei, ei = dp.new_mat_prep(row, val_ei, ei)
+        new_mat, val_ei, ei = self.dp.new_mat_prep(row, val_ei, ei)
         print('--', new_mat)
 
 
-        self.poss[idx]['value'] = val_ei
-        self.poss[idx]['ei'] = ei
+        local_poss['value'] = val_ei
+        local_poss['ei'] = ei
 
         #################################
-        try:
-            first_ierar = self.models.get_pred(new_mat)
-        except Exception as exc:
-            print('Ошибка', exc)
-        print(new_mat, "ИЕР-1", first_ierar)
-        tr = self.all_materials['Название иерархии-1'] == first_ierar
+        # try:
+        #     first_ierar = self.models.get_pred(new_mat)
+        # except Exception as exc:
+        #     print('Ошибка', exc)
+        # print(new_mat, "ИЕР-1", first_ierar)
+        # tr = self.all_materials['Название иерархии-1'] == first_ierar
         materials_df = self.all_materials#[tr]
         advanced_search_results = self.find_top_materials_advanced(new_mat,
                                 materials_df[['Материал', "Полное наименование материала"]])
         # materials_df.iloc[:, -1] = materials_df.iloc[: -1].astype(float)
-        materials_df.loc[tr, materials_df.columns[-1]] *= 0.7
+        # materials_df.loc[tr, materials_df.columns[-1]] *= 0.7
         ress = advanced_search_results.values
         ress = materials_df[['Материал', "Полное наименование материала"]].iloc[ress[:5]]
         ress = ress.values
-        print(ress)
-        print('Вот это ищем', new_mat)
+        # print(ress)
+        # print('Вот это ищем', new_mat)
         if new_mat in self.method2.question.to_list():
             print('Нашёл', new_mat)
             foundes = self.method2[self.method2.question == new_mat].answer.to_list()
@@ -211,7 +183,8 @@ class Find_materials():
         # print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
         # print(ress, end ='\n----\n')
         for ind, pos in enumerate(ress):
-            self.poss[idx]['material'+str(ind+1)+'_id'] = '0'*(18-len(str(pos[0])))+str(pos[0])
+            local_poss['material'+str(ind+1)+'_id'] = '0'*(18-len(str(pos[0])))+str(pos[0])
+        return local_poss
 
 
 if __name__ == '__main__':
