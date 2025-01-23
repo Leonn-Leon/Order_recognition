@@ -70,19 +70,55 @@ class custom_yandex_gpt():
 
     def big_mail(self, text):
         self.update_token()
-        text = text.split('\n')
-        kols = len(text)//30+1
-        self.ress = [""]*kols
+        text_lines = text.split('\n')
+        
+        # Формируем блоки с ограничением в 2000 символов
         my_threads = []
-        for i in range(kols):
-            my_threads += [Thread(target=self.get_pos, args=['\n'.join(text[max(0, i*27-3):(i+1)*27]), i])]
+        current_block = []
+        current_length = 0
 
+        for line in text_lines:
+            line_len = len(line)
+            
+            # Расчет потенциальной длины блока
+            if current_block:
+                potential_length = current_length + line_len + 1  # +1 для '\n'
+            else:
+                potential_length = line_len
+            
+            if potential_length > 2000:
+                # Фиксируем текущий блок
+                block_text = '\n'.join(current_block) if current_block else line
+                thread_idx = len(my_threads)
+                my_threads.append(
+                    Thread(target=self.get_pos, args=[block_text, thread_idx])
+                )
+                my_threads[-1].start()
+                
+                # Начинаем новый блок
+                current_block = [line] if potential_length > 2000 else []
+                current_length = line_len if potential_length > 2000 else 0
+            else:
+                current_block.append(line)
+                current_length = potential_length
+
+        # Добавляем последний блок
+        if current_block:
+            block_text = '\n'.join(current_block)
+            thread_idx = len(my_threads)
+            my_threads.append(
+                Thread(target=self.get_pos, args=[block_text, thread_idx])
+            )
             my_threads[-1].start()
-        print('Запустили потоки')
+
+        print(f'Запустили {len(my_threads)} потоков')
+        
+        # Ожидаем завершения всех потоков
         for ind, thread in enumerate(my_threads):
             thread.join()
             print(f"Завершили {ind+1} поток")
 
+        # Сбор и объединение результатов (адаптируйте под вашу логику)
         self.ress = [mini_r for r in self.ress for mini_r in r if r != '']
         return self.ress
 

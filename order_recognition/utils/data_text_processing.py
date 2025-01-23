@@ -63,8 +63,6 @@ class Data_text_processing:
             text = text.replace(' \n', '\n').replace('\n ', '\n').replace('\n\n', '\n')
         return text.strip()
 
-    import re
-
     def clean_email_content(self, text: str) -> str:
         """
         Очищает текст письма, сохраняя структуру позиций и удаляя служебные блоки.
