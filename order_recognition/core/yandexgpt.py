@@ -70,55 +70,49 @@ class custom_yandex_gpt():
 
     def big_mail(self, text):
         self.update_token()
+
         text_lines = text.split('\n')
+
+        self.ress = [""]*len(text_lines)
         
-        # Формируем блоки с ограничением в 2000 символов
         my_threads = []
+        MAX_TARGET = 2000
         current_block = []
         current_length = 0
 
         for line in text_lines:
             line_len = len(line)
             
-            # Расчет потенциальной длины блока
-            if current_block:
-                potential_length = current_length + line_len + 1  # +1 для '\n'
-            else:
-                potential_length = line_len
+            # Рассчитываем потенциальную длину 
+            potential_length = current_length + line_len
             
-            if potential_length > 2000:
-                # Фиксируем текущий блок
-                block_text = '\n'.join(current_block) if current_block else line
-                thread_idx = len(my_threads)
-                my_threads.append(
-                    Thread(target=self.get_pos, args=[block_text, thread_idx])
-                )
+            if potential_length > MAX_TARGET:
+                # Отправляем текущий блок
+                block_text = '\n'.join(current_block)
+                my_threads.append(Thread(target=self.get_pos, args=[block_text, len(my_threads)]))
                 my_threads[-1].start()
                 
-                # Начинаем новый блок
-                current_block = [line] if potential_length > 2000 else []
-                current_length = line_len if potential_length > 2000 else 0
+                # Начинаем новый блок с текущей строки
+                current_block = [block_text[-100:]+line]
+                current_length = 100+line_len
             else:
+                # Добавляем строку в блок
                 current_block.append(line)
                 current_length = potential_length
 
-        # Добавляем последний блок
+        # Отправляем последний блок
         if current_block:
             block_text = '\n'.join(current_block)
-            thread_idx = len(my_threads)
-            my_threads.append(
-                Thread(target=self.get_pos, args=[block_text, thread_idx])
-            )
+            my_threads.append(Thread(target=self.get_pos, args=[block_text, len(my_threads)]))
             my_threads[-1].start()
 
-        print(f'Запустили {len(my_threads)} потоков')
+        print(f'Запущено потоков: {len(my_threads)}')
         
         # Ожидаем завершения всех потоков
         for ind, thread in enumerate(my_threads):
             thread.join()
-            print(f"Завершили {ind+1} поток")
+            print(f"Поток {ind+1} завершён")
 
-        # Сбор и объединение результатов (адаптируйте под вашу логику)
         self.ress = [mini_r for r in self.ress for mini_r in r if r != '']
         return self.ress
 
