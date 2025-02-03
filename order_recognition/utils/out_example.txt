@@ -1,1 +1,27 @@
-{'req_Number': '1f21c717-e30b-4146-9433-996f09f629d0', 'positions': [{'position_id': '0', 'request_text': 'лист хк 2,5х1250х2500', 'value': '6', 'ei': 'шт', 'material1_id': '000000000000020959', 'material2_id': '000000000000027714', 'material3_id': '000000000000020958', 'material4_id': '000000000000104914', 'material5_id': '000000000000080982'}, {'position_id': '1', 'request_text': 'круг 16 ст 09г2с', 'value': '300', 'ei': 'кг', 'material1_id': '000000000000001694', 'material2_id': '000000000000001714', 'material3_id': '000000000000116072', 'material4_id': '000000000000001705', 'material5_id': '000000000000001706'}, {'position_id': '2', 'request_text': 'круг 10 ст 45', 'value': '100', 'ei': 'кг', 'material1_id': '000000000000001572', 'material2_id': '000000000000001586', 'material3_id': '000000000000003413', 'material4_id': '000000000000003415', 'material5_id': '000000000000001582'}]}
+{
+  "req_Number": "153c4bd3-8d3a-4624-935e-bf59383e8875",
+  "positions": [
+    {
+      "position_id": "0",
+      "request_text": "швеллер ст.3 12у гост 8240",
+      "value": "95",
+      "ei": "кг",
+      "material1_id": "000000000000006096",
+      "material2_id": "000000000000006097",
+      "material3_id": "000000000000006098",
+      "material4_id": "000000000000095282",
+      "material5_id": "000000000000006131"
+    },
+    {
+      "position_id": "1",
+      "request_text": "швеллер ст.3 16у гост 8240",
+      "value": "3800",
+      "ei": "кг",
+      "material1_id": "000000000000006219",
+      "material2_id": "000000000000079374",
+      "material3_id": "000000000000006218",
+      "material4_id": "000000000000006217",
+      "material5_id": "000000000000079373"
+    }
+  ]
+}

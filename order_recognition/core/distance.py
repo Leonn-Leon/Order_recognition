@@ -144,21 +144,22 @@ class Find_materials():
         local_poss['ei'] = ei
 
         #################################
-        # try:
-        #     first_ierar = self.models.get_pred(new_mat)
-        # except Exception as exc:
-        #     print('Ошибка', exc)
-        # print(new_mat, "ИЕР-1", first_ierar)
-        # tr = self.all_materials['Название иерархии-1'] == first_ierar
+        try:
+            first_ierar = self.models.get_pred(new_mat)
+        except Exception as exc:
+            print('Ошибка', exc)
+        print(new_mat, "ИЕР-1", first_ierar)
+        tr = self.all_materials['Название иерархии-1'] == first_ierar
         materials_df = self.all_materials#[tr]
         advanced_search_results = self.find_top_materials_advanced(new_mat,
                                 materials_df[['Материал', "Полное наименование материала"]])
         # materials_df.iloc[:, -1] = materials_df.iloc[: -1].astype(float)
-        # materials_df.loc[tr, materials_df.columns[-1]] *= 0.7
+        print("Вот это умножаем", materials_df.loc[tr, materials_df.columns[-1]])
+        materials_df.loc[tr, materials_df.columns[-1]] *= 1e3
         ress = advanced_search_results.values
         ress = materials_df[['Материал', "Полное наименование материала"]].iloc[ress[:5]]
         ress = ress.values
-        # print(ress)
+        print(ress)
         # print('Вот это ищем', new_mat)
         if new_mat in self.method2.question.to_list():
             print('Нашёл', new_mat)
