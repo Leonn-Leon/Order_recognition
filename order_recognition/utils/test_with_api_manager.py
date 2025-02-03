@@ -38,7 +38,7 @@ def extract_materials(file_path, materials_dict):
 # Основной блок
 def main():
     mats_csv_path = "order_recognition/data/mats.csv"
-    out_example_path = "out_example.txt"
+    out_example_path = "order_recognition/utils/out_example.txt"
 
     materials_dict = load_materials(mats_csv_path)
     extracted_data = extract_materials(out_example_path, materials_dict)
