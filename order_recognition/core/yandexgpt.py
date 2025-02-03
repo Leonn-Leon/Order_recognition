@@ -33,7 +33,7 @@ class custom_yandex_gpt():
                 }
             ]
         }
-        with open('order_recognition/confs/ygpt_keys.json', 'r') as f:
+        with open('order_recognition/confs/gpt_keys.json', 'r') as f:
             obj = f.read()
             obj = json.loads(obj)
             self.private_key = obj['private_key']

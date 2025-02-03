@@ -15,9 +15,9 @@ class EmailRequestRecognizer:
     """
     def __init__(
         self,
-        config_path='order_recognition/confs/confs.json',
+        config_path='order_recognition/confs/gpt_keys.json',
         
-        instruction_path='order_recognition/data/new_gpt_instruction.txt'
+        instruction_path='order_recognition/confs/new_gpt_instruction.txt'
     ):
         self.api_key = self._load_api_key(config_path)
         self.instruction = self._load_instruction(instruction_path)
@@ -77,10 +77,7 @@ class EmailRequestRecognizer:
 
 # Пример использования скрипта
 if __name__ == "__main__":
-    recognizer = EmailRequestRecognizer(
-        config_path='gpt_db/data/confs/confs.json',
-        instruction_path='new_gpt_instruction.txt'
-    )
+    recognizer = EmailRequestRecognizer()
     
     sample_email = """
     --
