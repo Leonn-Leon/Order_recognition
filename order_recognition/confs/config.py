@@ -1,5 +1,5 @@
 connection_url = "RMQ_AI_URL"
-first_queue = "get_message"
+first_queue = "find_request"
 second_queue = "save_truth"
 third_queue = "find_request_result"
 exchange = "ai"
