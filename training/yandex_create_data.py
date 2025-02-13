@@ -1,7 +1,8 @@
 import asyncio
 import pathlib
 from yandex_cloud_ml_sdk import AsyncYCloudML
-from yandex_cloud_ml_sdk.auth import YandexCloudCLIAuth
+from order_recognition.core.yandexgpt import custom_yandex_gpt
+# from yandex_cloud_ml_sdk.auth import YandexCloudCLIAuth
 
 
 def local_path(path: str) -> pathlib.Path:
@@ -10,15 +11,17 @@ def local_path(path: str) -> pathlib.Path:
 
 async def main():
 
+    ygpt = custom_yandex_gpt()
+    ygpt.update_token()
     sdk = AsyncYCloudML(
-        folder_id="<идентификатор_каталога>",
-        auth="<API-ключ>",
+        folder_id=ygpt.headers["x-folder-id"],
+        auth=ygpt.headers["Authorization"][7:],
     )
 
     # Создаем датасет для дообучения базовой модели YandexGPT Lite
     dataset_draft = sdk.datasets.draft_from_path(
         task_type="TextToTextGeneration",
-        path="<путь_к_файлу>",
+        path="training/train_data/FT_lora_AG.json",
         upload_format="jsonlines",
         name="YandexGPT tuning",
     )

@@ -1,6 +1,7 @@
 import pathlib
 import uuid
 from yandex_cloud_ml_sdk import YCloudML
+from order_recognition.core.yandexgpt import custom_yandex_gpt
 
 
 def local_path(path: str) -> pathlib.Path:
@@ -8,9 +9,13 @@ def local_path(path: str) -> pathlib.Path:
 
 
 def main():
+
+    ygpt = custom_yandex_gpt()
+    ygpt.update_token()
+
     sdk = YCloudML(
-        folder_id="<идентификатор_каталога>",
-        auth="<API-ключ>",
+        folder_id=ygpt.headers["x-folder-id"],
+        auth=ygpt.headers["Authorization"][7:],
     )
 
     # Посмотрим список датасетов, прошедших валидацию
@@ -18,7 +23,7 @@ def main():
         print(f"List of existing datasets {dataset=}")
 
     # Зададим датасет для обучения и базовую модель
-    train_dataset = sdk.datasets.get("<идентификатор_датасета>")
+    train_dataset = sdk.datasets.get("fdsfhp5ql6qr9ju568uo")
     base_model = sdk.models.completions("yandexgpt-lite")
 
     # Определяем минимальные параметры

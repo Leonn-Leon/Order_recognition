@@ -1,5 +1,5 @@
 import os
-from hash2text import text_from_hash
+from order_recognition.core.hash2text import text_from_hash
 import json
 import time
 import pandas as pd
