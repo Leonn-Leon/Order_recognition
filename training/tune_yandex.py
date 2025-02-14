@@ -9,7 +9,7 @@ def local_path(path: str) -> pathlib.Path:
 
 
 def main():
-
+    print("Начало работы скрипта")
     ygpt = custom_yandex_gpt()
     ygpt.update_token()
 
@@ -17,17 +17,19 @@ def main():
         folder_id=ygpt.headers["x-folder-id"],
         auth=ygpt.headers["Authorization"][7:],
     )
-
+    print("sdk создано")
     # Посмотрим список датасетов, прошедших валидацию
     for dataset in sdk.datasets.list(status="READY", name_pattern="completions"):
-        print(f"List of existing datasets {dataset=}")
+        print(f"List of existing datasets {dataset}")
 
     # Зададим датасет для обучения и базовую модель
-    train_dataset = sdk.datasets.get("fdsfhp5ql6qr9ju568uo")
+    print("Задаём датасет")
+    train_dataset = sdk.datasets.get("fdsokidqjq2kl4grgcir")
     base_model = sdk.models.completions("yandexgpt-lite")
 
     # Определяем минимальные параметры
     # Используйте base_model.tune_deferred(), чтобы контролировать больше параметров
+    print("Начинаем тюнинг")
     tuned_model = base_model.tune(train_dataset, name=str(uuid.uuid4()))
     print(f"Resulting {tuned_model}")
 
