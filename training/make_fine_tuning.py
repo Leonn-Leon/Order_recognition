@@ -42,7 +42,7 @@ extract_elements_v2(answers_text, answers)
 def _load_instruction(instruction_path):
         """
         Загрузка системной инструкции из файла, которая будет передаваться
-        в System-сообщении для GigaChat.
+        в System-сообщении для GPT модели.
         """
         with open(instruction_path, 'r', encoding='utf-8') as file:
             return file.read().strip()

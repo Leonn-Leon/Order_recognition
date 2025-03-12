@@ -69,7 +69,7 @@ class MaterialSelector:
 
         # Вычисляем эмбеддинги для каждого документа (с использованием кэша)
         computed_embeddings = []
-        for ind, doc in enumerte(self.materials):
+        for ind, doc in enumerate(self.materials):
             key = doc.page_content
             if key in cache:
                 emb = cache[key]

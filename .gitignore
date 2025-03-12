@@ -12,3 +12,4 @@ __pycache__/
 *.log
 order_recognition/data/logs/*
 .env
+*.pkl
