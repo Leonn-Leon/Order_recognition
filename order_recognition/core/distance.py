@@ -143,21 +143,11 @@ class Find_materials():
         local_poss['value'] = val_ei
         local_poss['ei'] = ei
 
-        #################################
-        # try:
-        #     first_ierar = self.models.get_pred(new_mat)
-        # except Exception as exc:
-        #     print('Ошибка', exc)
-        # print(new_mat, "ИЕР-1", first_ierar)
-        # tr = self.all_materials['Название иерархии-1'] == first_ierar
         materials_df = self.all_materials#[tr]
         advanced_search_results = self.find_top_materials_advanced(new_mat,
                                 materials_df[['Материал', "Полное наименование материала"]])
-        # materials_df.iloc[:, -1] = materials_df.iloc[: -1].astype(float)
-        # print("Вот это умножаем", materials_df.loc[tr, materials_df.columns[-1]])
-        # materials_df.loc[tr, materials_df.columns[-1]] *= 1e3
         ress = advanced_search_results.values
-        ress = materials_df[['Материал', "Полное наименование материала"]].iloc[ress[:5]]
+        ress = materials_df[['Материал', "Полное наименование материала", "Numeric Presence"]].iloc[ress[:5]]
         ress = ress.values
         # print(ress)
         # print('Вот это ищем', new_mat)
@@ -178,13 +168,14 @@ class Find_materials():
                     itog += [i]
             ress = []
             for tp in true_positions:
-                ress += [[tp["num_mat"], tp["name_mat"]]]
+                ress += [[tp["num_mat"], tp["name_mat"], "0.95"]]
             ress += itog
             ress = ress[:5]
         # print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
         # print(ress, end ='\n----\n')
         for ind, pos in enumerate(ress):
             local_poss['material'+str(ind+1)+'_id'] = '0'*(18-len(str(pos[0])))+str(pos[0])
+            local_poss["weight_"+str(ind+1)+""] = str(pos[2])
         return local_poss
 
 
