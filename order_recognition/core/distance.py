@@ -90,14 +90,14 @@ class Find_materials():
         )
         try:
             # print(materials_df["Материал"].tolist()[:5], self.otgruzki['Код материала'].tolist()[:5])
-            materials_df.loc[~materials_df["Материал"].isin(self.otgruzki['Код материала'].tolist()),
-                                                            "Numeric Presence"] -= 200
-
-            # print(materials_df[materials_df["Полное наименование материала"].str.contains('арматура 30')])
+            # materials_df.loc[~materials_df["Материал"].isin(self.otgruzki['Код материала'].tolist()),
+            #                                                 "Numeric Presence"] -= 200
+            materials_df.loc[materials_df["Материал"].isin(self.otgruzki['Код материала'].tolist()), "Numeric Presence"] += 200
         except Exception as exc:
             print(exc)
         max_similarity_idxs = np.argsort(materials_df["Numeric Presence"])
-        return max_similarity_idxs[::-1]
+        # Отправить также и отсортированные materials_df["Numeric Presence"]materials_df.iloc[max_similarity_idxs[::-1]]
+        return materials_df.iloc[max_similarity_idxs[::-1]]
 
     def paralell_rows(self, rows):
         # Удаление элементов с дублирующимися нулевыми значениями
@@ -146,8 +146,8 @@ class Find_materials():
         materials_df = self.all_materials#[tr]
         advanced_search_results = self.find_top_materials_advanced(new_mat,
                                 materials_df[['Материал', "Полное наименование материала"]])
-        ress = advanced_search_results.values
-        ress = materials_df[['Материал', "Полное наименование материала", "Numeric Presence"]].iloc[ress[:5]]
+        # ress = advanced_search_results.values
+        ress = advanced_search_results[:5]
         ress = ress.values
         # print(ress)
         # print('Вот это ищем', new_mat)
