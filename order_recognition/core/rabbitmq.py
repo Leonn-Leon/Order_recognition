@@ -324,7 +324,7 @@ if __name__ == '__main__':
         hash = ""
         # while True:    
         # order_rec.consumer_test(hash=hash) # Выполняется паралельно но поставил заглушку
-        order_rec.consumer_test(сontent="швелле 10п")
+        order_rec.consumer_test(content="швелле 10п")
         #     hash = input("Введи hash:\n")
     else:
         order_rec.start()

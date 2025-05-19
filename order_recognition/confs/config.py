@@ -8,5 +8,5 @@ routing_key2 = "orderrecognition.save_truth"
 routing_key3 = "orderrecognition.find_request_result"
 Authorization_AIM = ""
 xfolderid = "b1gob9uom3r70b2es0lp"
-gpt_version_id = 'bt1ehl60j162dddfaqcn'
+gpt_model_link = f'gpt://{xfolderid}/yandexgpt-lite/latest@tamra4qbkko6f11es6as2'
 gpt_url = 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion'

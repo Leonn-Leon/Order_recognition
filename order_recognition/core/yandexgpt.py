@@ -5,7 +5,7 @@ import time
 import pandas as pd
 import requests
 from datetime import datetime
-from order_recognition.confs.config import Authorization_AIM, xfolderid, gpt_version_id, gpt_url
+from order_recognition.confs.config import Authorization_AIM, xfolderid, gpt_url, gpt_model_link
 import jwt
 from thread import Thread
 from order_recognition.utils import logger
@@ -20,7 +20,7 @@ class custom_yandex_gpt():
             obj = json.loads(obj)
             instruction = obj['system']
         self.req = {
-            "modelUri": "ds://"+gpt_version_id,
+            "modelUri": gpt_model_link,
             "completionOptions": {
                 "stream": False,
                 "temperature": 0.1,

@@ -21,7 +21,7 @@ async def main():
     # Создаем датасет для дообучения базовой модели YandexGPT Lite
     dataset_draft = sdk.datasets.draft_from_path(
         task_type="TextToTextGeneration",
-        path="training/train_data/FT_lora_AG.json",
+        path="training/train_data/fine_tuning_last.json",
         upload_format="jsonlines",
         name="YandexGPT tuning",
     )
