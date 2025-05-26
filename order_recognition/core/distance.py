@@ -89,10 +89,15 @@ class Find_materials():
             )}
         )
         try:
-            # print(materials_df["Материал"].tolist()[:5], self.otgruzki['Код материала'].tolist()[:5])
-            # materials_df.loc[~materials_df["Материал"].isin(self.otgruzki['Код материала'].tolist()),
-            #                                                 "Numeric Presence"] -= 200
             materials_df.loc[materials_df["Материал"].isin(self.otgruzki['Код материала'].tolist()), "Numeric Presence"] += 200
+            if not materials_df.empty: # Проверка, что DataFrame не пустой
+                scores = materials_df["Numeric Presence"]
+                min_score = scores.min()
+                max_score = scores.max()
+                if max_score > min_score:
+                    materials_df["Numeric Presence"] = (scores - min_score) / (max_score - min_score)
+                else: # Все значения одинаковы
+                    materials_df["Numeric Presence"] = 1.0 if max_score > 0 else 0.0
         except Exception as exc:
             print(exc)
         max_similarity_idxs = np.argsort(materials_df["Numeric Presence"])
