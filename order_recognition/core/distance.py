@@ -78,8 +78,6 @@ class Find_materials():
             numeric_presence = sum(((_size-ind)/(abs(num[0]-ind)+1))**0.1
                                    for ind, num in enumerate(coincidences) if num != "")
 
-            # if 'труба' in material_name and "труба" in query_numbers:
-            #     print(coincidences, numeric_presence)
             return numeric_presence
 
         # Применение функции подсчёта к каждому материалу
@@ -90,14 +88,14 @@ class Find_materials():
         )
         try:
             materials_df.loc[materials_df["Материал"].isin(self.otgruzki['Код материала'].tolist()), "Numeric Presence"] += 200
-            if not materials_df.empty: # Проверка, что DataFrame не пустой
-                scores = materials_df["Numeric Presence"]
-                min_score = scores.min()
-                max_score = scores.max()
-                if max_score > min_score:
-                    materials_df["Numeric Presence"] = (scores - min_score) / (max_score - min_score)
-                else: # Все значения одинаковы
-                    materials_df["Numeric Presence"] = 1.0 if max_score > 0 else 0.0
+            # if not materials_df.empty: # Проверка, что DataFrame не пустой
+                # scores = materials_df["Numeric Presence"]
+                # min_score = scores.min()
+                # max_score = scores.max()
+                # if max_score > min_score:
+                #     materials_df["Numeric Presence"] = (scores - min_score) / (max_score - min_score)
+                # else: # Все значения одинаковы
+                #     materials_df["Numeric Presence"] = 1.0 if max_score > 0 else 0.0
         except Exception as exc:
             print(exc)
         max_similarity_idxs = np.argsort(materials_df["Numeric Presence"])
@@ -152,8 +150,10 @@ class Find_materials():
         advanced_search_results = self.find_top_materials_advanced(new_mat,
                                 materials_df[['Материал', "Полное наименование материала"]])
         # ress = advanced_search_results.values
-        ress = advanced_search_results[:5]
-        ress = ress.values
+        ress = advanced_search_results[:5].values
+        for ind, res in enumerate(ress):
+            _ratio = ratio(" ".join(new_mat.split()[:3]), " ".join(res[0].split()[:3]))
+            ress[ind][2] = str(_ratio)
         # print(ress)
         # print('Вот это ищем', new_mat)
         if new_mat in self.method2.question.to_list():
@@ -173,11 +173,9 @@ class Find_materials():
                     itog += [i]
             ress = []
             for tp in true_positions:
-                ress += [[tp["num_mat"], tp["name_mat"], "0.95"]]
+                ress += [[tp["num_mat"], tp["name_mat"], "0.99"]]
             ress += itog
             ress = ress[:5]
-        # print(new_mat, '=', ress[0][1]+'|'+ str(val_ei) +'-'+ ei +'|')
-        # print(ress, end ='\n----\n')
         for ind, pos in enumerate(ress):
             local_poss['material'+str(ind+1)+'_id'] = '0'*(18-len(str(pos[0])))+str(pos[0])
             local_poss["weight_"+str(ind+1)+""] = str(pos[2])
