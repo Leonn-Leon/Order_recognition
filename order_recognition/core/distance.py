@@ -152,7 +152,7 @@ class Find_materials():
         # ress = advanced_search_results.values
         ress = advanced_search_results[:5].values
         for ind, res in enumerate(ress):
-            _ratio = ratio(" ".join(new_mat.split()[:3]), " ".join(res[0].split()[:3]))
+            _ratio = ratio(" ".join(new_mat.split()[:5]), " ".join(res[0].split()[:5]))
             ress[ind][2] = str(_ratio)
         # print(ress)
         # print('Вот это ищем', new_mat)
