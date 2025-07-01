@@ -1,0 +1,211 @@
+# order_recognition/core/gemini_parser.py
+import google.generativeai as genai
+import json
+import os
+from dotenv import load_dotenv
+import re
+# Убираем get_canonical_base_names, так как будем определять список прямо в промпте
+# from .category_mapper import get_canonical_base_names
+
+load_dotenv()
+
+# Настройки безопасности, чтобы избежать ложных срабатываний и ошибок
+SAFETY_SETTINGS = [
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+]
+
+class GeminiParser:
+    def __init__(self):
+        try:
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("Переменная окружения GEMINI_API_KEY не найдена.")
+            genai.configure(api_key=api_key)
+            
+            generation_config = {
+                "temperature": 0.0,
+                "top_p": 1,
+                "top_k": 1,
+                "max_output_tokens": 4096,
+            }
+            
+            self.model = genai.GenerativeModel(
+                model_name="gemini-2.5-flash", 
+                generation_config=generation_config,
+                safety_settings=SAFETY_SETTINGS
+            )
+            print("--- Gemini Parser (gemini-1.5-flash-latest) с настройками безопасности успешно инициализирован ---")
+
+        except Exception as e:
+            # Оставим более общее сообщение об ошибке, так как FileNotFoundError уже не актуален
+            raise Exception(f"Ошибка при инициализации Gemini: {e}")
+
+    def _extract_json_from_response(self, text: str) -> dict | None:
+        # Эта функция у вас работает отлично, оставляем без изменений
+        match = re.search(r'```json\s*(\{[\s\S]*?\})\s*```', text, re.DOTALL)
+        if match:
+            json_string = match.group(1)
+        else:
+            match = re.search(r'\{[\s\S]*\}', text, re.DOTALL)
+            if not match:
+                print("--- Ошибка парсинга: JSON-объект не найден в ответе модели. ---")
+                return None
+            json_string = match.group(0)
+        
+        try:
+            return json.loads(json_string)
+        except json.JSONDecodeError as e:
+            print(f"--- Ошибка декодирования JSON: {e} ---")
+            print(f"Проблемный фрагмент: {json_string[:300]}...")
+            return None
+
+    def parse_order_text(self, text: str) -> list[dict]:
+        # >>>>> НАЧАЛО ИЗМЕНЕНИЙ >>>>>
+
+        # Жестко задаем список всех разрешенных категорий прямо здесь
+        VALID_BASE_NAMES = ['арматура', 'уголок', 'труба_круглая', 'труба_профильная', 'лист', 'швеллер']
+
+        prompt = f"""
+        Твоя задача — детально проанализировать текст заказа на стройматериалы и преобразовать его в структурированный JSON-формат. Ты должен действовать как точный и педантичный эксперт.
+
+        **КЛЮЧЕВЫЕ ИНСТРУКЦИИ:**
+
+        1.  **Разделяй на позиции:** Каждую уникальную товарную позицию в тексте представь как отдельный JSON-объект в списке `positions`.
+        2.  **Определяй `base_name`:** Для каждой позиции определи базовый тип товара. Он ДОЛЖЕН БЫТЬ ОДНИМ ИЗ СПИСКА: `{VALID_BASE_NAMES}`.
+            *   Если видишь "труба проф", "тр проф", или трубу с двумя размерами через "х" (например, "40х20") — это `труба_профильная`.
+            *   Все остальные трубы ("тр вгп", "тр эс", "труба 57", "d57") — это `труба_круглая`.
+            *   "Арматура", "а-3", "а500с" — это `арматура`.
+            *   "Уголок", "угол" — это `уголок`.
+        3.  **Извлекай `params`:** Собери все характеристики товара в словарь `params`. Используй **строго** следующие ключи:
+            *   `диаметр`: Для арматуры или КРУГЛОЙ трубы (Пример: "ф12", "d57", "труба 57", "ду25" -> "диаметр": "12", "57", "25").
+            *   `размер`: Для ПРОФИЛЬНОЙ трубы или уголка (Пример: "труба 80х40", "уголок 100х100" -> "размер": "80x40", "100x100").
+            *   `толщина`: Для толщины стенки трубы, листа или полки уголка (Пример: "80х40х3", "57х3.5", "уголок 100х8" -> "толщина": "3", "3.5", "8").
+            *   `класс`: Для класса прочности арматуры ("А500С" -> "а500с"; "А-III" -> "а-iii").
+            *   `марка стали`: Для стали ("ст3пс/сп", "09Г2С" -> "3пс/сп", "09г2с"). Убирай префикс "ст".
+            *   `длина`: Для длины или типа поставки ("11.7м", "бухта", "немер").
+            *   `гост_ту`: Для ГОСТов или ТУ.
+            *   `тип`: Для особых типов ("терм", "хд", "оц", "вгп", "плоскоовал").
+            *   `состояние`: Для особых состояний ("неконд", "б/у", "реставр").
+            *   `покрытие`: Для типа покрытия ("пэ").
+            *   `цвет_ral`: Для цвета по RAL.
+            *   `тип`: Для особых типов. **Может быть несколько значений в виде списка.** (Пример: "оцинкованная вгп труба" -> "тип": ["оц", "вгп"]).
+        4.  **ИГНОРИРУЙ КОЛИЧЕСТВО:** Не включай в `params` информацию о количестве (штуки, тонны, метры).
+        5.  **Форматируй значения:** Все значения в `params` приводи к нижнему регистру.
+        6.  **Сохраняй оригинал:** Всегда включай поле `original_query` с исходным текстом.
+        7.  **ЛОГИКА ДЛЯ УГОЛКА:** Если для уголка указан размер вида "75х6", где вторая цифра мала (меньше 20), считай это толщиной. Преобразуй в `размер: "75x75"` и `толщина: "6"`.
+
+        **ТЕКСТ ДЛЯ АНАЛИЗА:**
+        "{text}"
+
+        ---
+        **ПРИМЕРЫ РАБОТЫ:**
+
+        *Пример 1: Сложный заказ с трубами и арматурой*
+        **Вход:** "Нужна труба профильная 80х40х3 ст3пс, арматура 12 а500с 11.7м и круглая оцинкованная труба 57 х 3.5"
+        **Выход:**
+        ```json
+        {{
+          "positions": [
+            {{
+              "original_query": "труба профильная 80х40х3 ст3пс",
+              "base_name": "труба_профильная",
+              "params": {{
+                "размер": "80x40",
+                "толщина": "3",
+                "марка стали": "3пс"
+              }}
+            }},
+            {{
+              "original_query": "арматура 12 а500с 11.7м",
+              "base_name": "арматура",
+              "params": {{"диаметр": "12", "класс": "а500с", "длина": "11.7м"}}
+            }},
+            {{
+              "original_query": "круглая оцинкованная труба 57 х 3.5",
+              "base_name": "труба_круглая",
+              "params": {{
+                "диаметр": "57",
+                "толщина": "3.5",
+                "тип": "оц"
+              }}
+            }}
+          ]
+        }}
+        ```
+
+        *Пример 2: Уголок и труба ВГП*
+        **Вход:** "угол 125*80*10 и труба вгп ду25 гост 3262"
+        **Выход:**
+        ```json
+        {{
+          "positions": [
+            {{
+              "original_query": "угол 125*80*10",
+              "base_name": "уголок",
+              "params": {{
+                "размер": "125x80",
+                "толщина": "10"
+              }}
+            }},
+            {{
+              "original_query": "труба вгп ду25 гост 3262",
+              "base_name": "труба_круглая",
+              "params": {{"диаметр": "25", "тип": "вгп", "гост_ту": "3262"}}
+            }}
+          ]
+        }}
+        ```
+        
+        *Пример 3: Уголок и труба ВГП*
+        **Вход:** "угол 125*80*10 и оцинкованная труба вгп ду25 гост 3262"
+        **Выход:**
+        ```json
+        {{
+          "positions": [
+            {{
+              "original_query": "угол 125*80*10",
+              "base_name": "уголок",
+              "params": {{
+                "размер": "125x80",
+                "толщина": "10"
+              }}
+            }},
+            {{
+              "original_query": "оцинкованная труба вгп ду25 гост 3262",
+              "base_name": "труба_круглая",
+              "params": {{"диаметр": "25", "тип": ["вгп", "оц"], "гост_ту": "3262"}}
+            }}
+          ]
+        }}
+        ```
+        """
+        # <<<<< КОНЕЦ ИЗМЕНЕНИЙ <<<<<
+        
+        try:
+            response = self.model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
+            
+            if not response.parts:
+                finish_reason_info = f"Finish reason: {response.prompt_feedback.block_reason}." if response.prompt_feedback else "Причина не указана."
+                print(f"--- Ответ от Gemini был заблокирован. {finish_reason_info} ---")
+                return []
+
+            data = self._extract_json_from_response(response.text)
+
+            if not data:
+                return []
+
+            positions = data.get('positions', [])
+            
+            if isinstance(positions, list):
+                print(f"Gemini (gemini-1.5-flash-latest) распознал: {positions}")
+                return positions
+            
+            print(f"--- Ошибка: Ключ 'positions' в ответе модели не является списком. Ответ: {data} ---")
+            return []
+                
+        except Exception as e:
+            print(f"Ошибка при обращении к Gemini API: {e}")
+            return []

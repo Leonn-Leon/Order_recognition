@@ -1,2 +1,0 @@
-fine_tuning_last.json:
-new dataset=AsyncDataset(id='fdssdo67ejo9er6se34r', folder_id='b1gob9uom3r70b2es0lp', name='YandexGPT tuning', description=None, metadata=None, created_by='ajejim1e6tkg6qt4dtf3', created_at=datetime.datetime(2025, 5, 19, 6, 10, 51), updated_at=datetime.datetime(2025, 5, 19, 6, 11, 33), labels=None, allow_data_logging=False, status=<DatasetStatus.READY: 3>, task_type='TextToTextGeneration', rows=40, size_bytes=36807, validation_errors=())

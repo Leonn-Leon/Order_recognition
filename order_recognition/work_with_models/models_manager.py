@@ -5,7 +5,7 @@ import pickle
 from order_recognition.utils.split_by_keys import Key_words
 import re
 import os
-from thread import Thread
+from threading import Thread
 from datetime import datetime
 from order_recognition.utils import logger
 

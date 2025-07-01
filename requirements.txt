@@ -1,13 +1,11 @@
+# Основной фреймворк для UI
+streamlit
+
+# Для работы с данными (поиск, создание фич)
 pandas
-aio_pika
-uuid
-asyncio
-nltk
-scikit-learn
-python-Levenshtein
-beautifulsoup4
-requests
-PyJWT
-cryptography
-thread
-pymorphy3
+
+# Для работы с LLM от Google
+google-generativeai
+
+# Для красивого прогресс-бара в скриптах (нужен для create_features.py)
+tqdm
