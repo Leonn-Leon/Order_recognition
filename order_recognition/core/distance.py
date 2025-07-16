@@ -78,6 +78,7 @@ class Find_materials():
         candidates_df['score'] = candidates_df['params_json'].apply(
             lambda x: calculate_score(query_params, x)
         )
+        candidates_df['score'] = pd.to_numeric(candidates_df['score'])
         
         top_results = candidates_df.sort_values(by="score", ascending=False).head(5)
         
@@ -93,36 +94,31 @@ class Find_materials():
 
     def single_thread_rows(self, structured_rows: list[dict]):
         """
-        НОВЫЙ МЕТОД: Многопроходный поиск для Streamlit.
+        Многопроходный поиск для Streamlit.
         Сначала ищет точное совпадение. Если не находит, "жертвует"
         наименее важными параметрами и ищет снова.
         """
-        print("--- Запуск многопроходного поиска ---")
-        
+        # print("--- Запуск многопроходного поиска ---") # <<<< УБРАТЬ
+
         final_positions = []
         for task in structured_rows:
-            # Сначала применяем эвристики, чтобы "исправить" запрос
             task = self._apply_heuristics(task)
-            
             original_params = task.get('params', {}).copy()
             
-            # --- Проход 1: Идеальный поиск ---
-            print(f"Проход 1: Ищем по всем параметрам {original_params}")
+            # print(f"Проход 1: Ищем по всем параметрам {original_params}") # <<<< УБРАТЬ
             result = self._search_single_pass(task)
             
-            # Анализируем результат. Считаем поиск неудачным, если лучший скор <= 0
             best_score = result.get('best_score', -9999)
             
-            # --- Проход 2: Поиск с "жертвами" (если нужно) ---
             if best_score <= 0 and len(original_params) > 1:
-                print("Проход 1 не дал результатов. Начинаем поиск с жертвами...")
+                # print("Проход 1 не дал результатов. Начинаем поиск с жертвами...") # <<<< УБРАТЬ
                 
                 params_to_sacrifice = original_params.copy()
                 
                 for param_to_remove in SACRIFICE_HIERARCHY:
                     if param_to_remove in params_to_sacrifice:
                         del params_to_sacrifice[param_to_remove]
-                        print(f"  -> Жертвуем '{param_to_remove}'. Ищем по {params_to_sacrifice}")
+                        # print(f"  -> Жертвуем '{param_to_remove}'. Ищем по {params_to_sacrifice}") # <<<< УБРАТЬ
                         
                         new_task = task.copy()
                         new_task['params'] = params_to_sacrifice
@@ -131,7 +127,7 @@ class Find_materials():
                         best_score = result.get('best_score', -9999)
                         
                         if best_score > 0:
-                            print(f"  -> Найдено с лучшим счетом {best_score}. Завершаем поиск.")
+                            # print(f"  -> Найдено с лучшим счетом {best_score}. Завершаем поиск.") # <<<< УБРАТЬ
                             break
             
             final_positions.append(result)

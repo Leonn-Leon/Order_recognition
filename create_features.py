@@ -3,6 +3,7 @@ import pandas as pd
 import json
 from tqdm import tqdm
 from order_recognition.core.param_mapper import PARAM_MAP
+import re
 
 tqdm.pandas()
 
@@ -44,19 +45,29 @@ def get_base_name(row):
     if str(row[HIERARCHY_COLUMN]) == 'Труба' and (' тр ' in title_lower or title_lower.startswith('труба ')):
          return 'труба_круглая'
 
-    # 3. Классифицируем уже работающие категории
+    # 3. Классифицируем ШВЕЛЛЕР в первую очередь
+    if 'двутавр' in title_lower or title_lower.startswith('б '):
+        return 'балка'
+    
+    if 'швеллер' in title_lower or title_lower.startswith('шв '):
+        return 'швеллер'
+    
+    if 'круг' in title_lower or title_lower.startswith('кр '):
+        return 'круг'
+
     if 'арматура' in title_lower or title_lower.startswith('а '):
         return 'арматура'
+    
     if 'уголок' in title_lower or title_lower.startswith('у '):
         return 'уголок'
         
-    # 4. Другие категории (можно расширять)
     if 'лист' in title_lower or title_lower.startswith('л '):
         return 'лист'
-    if 'швеллер' in title_lower or title_lower.startswith('ш '):
-        return 'швеллер'
 
     return None
+
+
+# create_features.py
 
 def process_row(row):
     """Извлекает и очищает параметры для ОДНОЙ строки на основе ее base_name."""
@@ -68,11 +79,14 @@ def process_row(row):
     map_for_category = PARAM_MAP[base_name]
     
     params = {}
-    # ... (цикл извлечения параметров по PARAM_MAP без изменений) ...
     for column_name, param_name in map_for_category.items():
         if column_name in row and pd.notna(row[column_name]):
             value = str(row[column_name]).strip()
             if value and value != NULL_VALUE:
+                # Убираем ".0" из целых чисел, которые pandas мог прочитать как float
+                if value.endswith('.0'):
+                    value = value[:-2]
+                
                 if 'длина' in param_name:
                     value = value.upper().replace('М', '')
                 params[param_name] = value
@@ -87,48 +101,40 @@ def process_row(row):
                 params[key] = params[alt_key]
             del params[alt_key]
 
-    # >>>>> НАЧАЛО ИЗМЕНЕНИЙ >>>>>
     # 2. Логика для конкретных base_name
-    title_lower = str(row[NAME_COLUMN]).lower() # Выносим title_lower для общего доступа
+    title_lower = str(row[NAME_COLUMN]).lower()
 
     if base_name == 'труба_профильная':
         if 'размер_a' in params and 'размер_b' in params:
             params['размер'] = f"{params['размер_a']}x{params['размер_b']}"
             del params['размер_a']
             del params['размер_b']
+        
+        # Определяем тип металла
+        if 'нерж' in title_lower:
+            params['металл'] = 'нержавеющая'
+        else:
+            params['металл'] = 'черный'
+            
+        # Дополнительно извлекаем тип обработки (х/к), если он есть
+        if 'х/к' in title_lower and 'тип' not in params:
+            params['тип'] = 'х/к'
 
     elif base_name == 'труба_круглая':
         if 'диаметр' in params:
             params['диаметр'] = params['диаметр'].lower().replace('ду', '').strip()
         
-        # >>>>> НАЧАЛО ИЗМЕНЕНИЙ >>>>>
-        # Собираем все возможные типы в список
         found_types = []
-        
-        # Сначала из колонки, если есть
-        if 'тип' in params:
-            found_types.append(params['тип'].lower())
+        if 'тип' in params: found_types.append(params['тип'].lower())
+        if 'вгп' in title_lower: found_types.append('вгп')
+        if 'эс' in title_lower: found_types.append('эс')
+        if 'оц' in title_lower or 'оцинк' in title_lower: found_types.append('оц')
+        if 'бш' in title_lower: found_types.append('бш')
+        if 'хд' in title_lower: found_types.append('хд')
+        if 'изоляц' in str(row['Материал. Признак 2']).lower(): found_types.append('изоляц')
 
-        # Затем ищем в названии
-        title_lower = str(row[NAME_COLUMN]).lower()
-        if 'вгп' in title_lower:
-            found_types.append('вгп')
-        if 'эс' in title_lower:
-            found_types.append('эс')
-        if 'оц' in title_lower or 'оцинк' in title_lower:
-            found_types.append('оц')
-        if 'бш' in title_lower:
-            found_types.append('бш')
-        if 'хд' in title_lower:
-            found_types.append('хд')
-        if 'изоляц' in str(row['Материал. Признак 2']).lower(): # Проверяем и колонку состояния
-             found_types.append('изоляц')
-
-        # Записываем уникальные типы в параметр
         if found_types:
-            # Превращаем в строку, разделенную запятыми, чтобы worker.py мог это обработать
             params['тип'] = ",".join(sorted(list(set(found_types))))
-        # <<<<< КОНЕЦ ИЗМЕНЕНИЙ <<<<<
 
     elif base_name == 'уголок':
         if 'полка_a' in params and 'полка_b' in params:
@@ -140,7 +146,23 @@ def process_row(row):
         if 'терм' in title_lower and 'тип' not in params:
             params['тип'] = 'терм'
     
-    # <<<<< КОНЕЦ ИЗМЕНЕНИЙ <<<<<
+    # >>>>> ИЗМЕНЕНИЕ 2: Улучшенная логика для швеллера и балки <<<<<
+    elif base_name == 'швеллер':
+        # Приводим номер к нижнему регистру для единообразия в поиске
+        if 'номер' in params:
+            params['номер'] = params['номер'].lower()
+        
+        # Гарантированное извлечение типа (у, п), если он не был извлечен из колонки
+        if 'тип' not in params:
+            # Ищем паттерн "число" + "буква" (например, " 10п", " 24 у ")
+            match = re.search(r'\s\d+\s*([уп])', title_lower)
+            if match:
+                params['тип'] = match.group(1).lower()
+
+    elif base_name == 'балка':
+        # Приводим номер к нижнему регистру для единообразия в поиске
+        if 'номер' in params:
+            params['номер'] = params['номер'].lower()
 
     if not params:
         return base_name, None

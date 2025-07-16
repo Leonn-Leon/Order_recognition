@@ -9,6 +9,7 @@ WEIGHTS = {
     # Самые важные (определяют геометрию)
     'диаметр': 300, 
     'размер': 300, 
+    'металл': 280,
     'толщина': 250, 
     'класс': 250, 
     'номер': 250,
@@ -46,7 +47,7 @@ def init_worker(csv_path: str, csv_encoding: str):
 
 def normalize_text_param(param_value: str) -> str:
     """
-    "Пуленепробиваемая" нормализация для ТЕКСТОВЫХ параметров.
+    "Пуленепробиваемая" нормализация. ДОЛЖНА БЫТЬ ИДЕНТИЧНА app.py.
     """
     if not isinstance(param_value, str):
         return ""
@@ -54,8 +55,14 @@ def normalize_text_param(param_value: str) -> str:
     text = param_value.lower()
     text = text.replace('iii', '3').replace('ii', '2').replace('i', '1')
     
+    # ЭТОТ БЛОК ТЕПЕРЬ ПОЛНЫЙ И ПРАВИЛЬНЫЙ
     replacements = {
-        'а': 'a', 'с': 'c', 'е': 'e', 'о': 'o', 'р': 'p', 'х': 'x', 'к': 'k',
+        # Кириллица -> Латиница
+        'а': 'a', 'с': 'c', 'е': 'e', 'о': 'o', 
+        'р': 'p', 'х': 'x', 'к': 'k', 'т': 't', 
+        'у': 'y', 'в': 'b', 'м': 'm',
+        
+        # Удаление разделителей
         '-': '', ' ': '', '.': '', '/': ''
     }
     
@@ -78,10 +85,11 @@ def parse_length_range(value: str) -> tuple[float, float] | None:
     return None
 
 
+# order_recognition/core/worker.py
+
 def calculate_score(query_params: dict, material_params_json: str) -> int:
     """
-    ФИНАЛЬНАЯ ВЕРСИЯ.
-    Унифицированная логика с "мягкой" проверкой марки стали и поддержкой диапазонов.
+    ФИНАЛЬНАЯ ВЕРСИЯ. Логика расчета верна.
     """
     try:
         material_params = json.loads(material_params_json)
@@ -94,60 +102,52 @@ def calculate_score(query_params: dict, material_params_json: str) -> int:
     score = 0
     
     for param_name, query_value in query_params.items():
-        material_value = material_params.get(param_name)
         weight = WEIGHTS.get(param_name, WEIGHTS['default'])
+        score -= weight
         
-        is_matched = False
+        material_value = material_params.get(param_name)
         
         if material_value and str(material_value).strip() not in ['', '##']:
             q_val_str = str(query_value).lower().strip()
             m_val_str = str(material_value).lower().strip()
-
-            # >>>>> НАЧАЛО ИЗМЕНЕНИЙ >>>>>
+            is_matched = False
+            
             if param_name == 'тип':
-                # И в запросе, и в базе могут быть несколько типов
                 query_types = {t.strip() for t in q_val_str.split(',')}
                 material_types = {t.strip() for t in m_val_str.split(',')}
-                # Считаем совпадением, если все типы из запроса есть в базе
                 if query_types.issubset(material_types):
                     is_matched = True
 
-            if param_name == 'марка стали':
+            elif param_name == 'марка стали':
                 norm_q = q_val_str.replace('ст', '', 1).strip()
                 norm_m = m_val_str.replace('ст', '', 1).strip()
                 if norm_m.startswith(norm_q):
                     is_matched = True
             
             elif param_name == 'длина':
-                length_range = parse_length_range(q_val_str) # <-- ИСПРАВЛЕНО ЗДЕСЬ
-                
-                if length_range:
-                    try:
-                        material_len_float = float(m_val_str.replace('м', '').strip())
-                        if length_range[0] <= material_len_float <= length_range[1]:
-                            is_matched = True
-                    except ValueError: pass
+                if normalize_text_param(q_val_str) == normalize_text_param(m_val_str):
+                    is_matched = True
                 else:
                     try:
                         if float(q_val_str.replace('м', '')) == float(m_val_str.replace('м', '')):
                             is_matched = True
                     except ValueError:
-                        if q_val_str == m_val_str:
-                            is_matched = True
+                        length_range = parse_length_range(q_val_str)
+                        if length_range:
+                            try:
+                                material_len_float = float(m_val_str.replace('м', '').strip())
+                                if length_range[0] <= material_len_float <= length_range[1]:
+                                    is_matched = True
+                            except ValueError: pass
             
             else:
                 norm_query = normalize_text_param(q_val_str)
                 norm_material = normalize_text_param(m_val_str)
                 if norm_query == norm_material:
                     is_matched = True
-        
-        if is_matched:
-            score += weight
-        else:
-            if material_value and str(material_value).strip() not in ['', '##']:
-                score -= int(weight * 1.5)
-            else:
-                score -= weight
+            
+            if is_matched:
+                score += (weight * 2) 
             
     return int(score)
 
