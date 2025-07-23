@@ -3,8 +3,9 @@ import pandas as pd
 import os
 import json
 import re
+from .utils import normalize_param
 
-# --- КОНФИГУРАЦИЯ СКОРИНГА (ТОЛЬКО ВЕСА) ---
+# --- КОНФИГУРАЦИЯ СКОРИНГА (ВЕСА) ---
 WEIGHTS = {
     # Самые важные (определяют геометрию)
     'диаметр': 300, 
@@ -16,22 +17,27 @@ WEIGHTS = {
 
     # Средней важности (материал, свойства)
     'марка стали': 150,
-    'тип': 70,              # Важно для (оц, вгп, х/к)
-    'покрытие': 60,         # ПЭ
+    'тип': 70,
+    'покрытие': 60,
     'цвет_ral': 50,
     
     # Наименее важные (длина, стандарты, состояние)
     'длина': 40,
     'гост_ту': 30, 
-    'состояние': 20,        # неконд, б/у
+    'состояние': 20,
 
-    'default': 10           # Вес для любых других параметров
+    'default': 10
 }
-# --- КОНЕЦ КОНФИГУРАЦИИ ---
 
+##### ИЗМЕНЕНИЕ 1: Переносим иерархию сюда, так как логика теперь будет жить в воркере #####
+# Список от наименее важного к наиболее важному.
+SACRIFICE_HIERARCHY = [
+    'цвет_ral', 'покрытие', 'гост_ту', 'состояние',
+    'марка стали', 'тип', 'длина', 'класс',
+    'номер', 'толщина', 'размер', 'диаметр',
+]
 
 worker_materials_with_features = None
-
 
 def init_worker(csv_path: str, csv_encoding: str):
     global worker_materials_with_features
@@ -39,143 +45,165 @@ def init_worker(csv_path: str, csv_encoding: str):
     try:
         worker_materials_with_features = pd.read_csv(csv_path, dtype=str, encoding=csv_encoding)
         worker_materials_with_features['Материал'] = worker_materials_with_features['Материал'].str.zfill(18)
-        print(f"--- Воркер (PID: {os.getpid()}) успешно инициализирован ---")
     except FileNotFoundError:
         print(f"ОШИБКА В ВОРКЕРЕ: Файл с признаками не найден по пути {csv_path}")
         worker_materials_with_features = pd.DataFrame()
 
-
-def normalize_text_param(param_value: str) -> str:
-    """
-    "Пуленепробиваемая" нормализация. ДОЛЖНА БЫТЬ ИДЕНТИЧНА app.py.
-    """
-    if not isinstance(param_value, str):
-        return ""
-    
-    text = param_value.lower()
-    text = text.replace('iii', '3').replace('ii', '2').replace('i', '1')
-    
-    # ЭТОТ БЛОК ТЕПЕРЬ ПОЛНЫЙ И ПРАВИЛЬНЫЙ
-    replacements = {
-        # Кириллица -> Латиница
-        'а': 'a', 'с': 'c', 'е': 'e', 'о': 'o', 
-        'р': 'p', 'х': 'x', 'к': 'k', 'т': 't', 
-        'у': 'y', 'в': 'b', 'м': 'm',
-        
-        # Удаление разделителей
-        '-': '', ' ': '', '.': '', '/': ''
-    }
-    
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-        
-    return text.strip()
-
-
 def parse_length_range(value: str) -> tuple[float, float] | None:
-    """
-    Вспомогательная функция. Ищет в строке диапазон вида '6-9' или '6.5 - 9.5'.
-    Возвращает кортеж (min, max) или None, если диапазон не найден.
-    """
     match = re.search(r'(\d+\.?\d*)\s*-\s*(\d+\.?\d*)', value)
-    if match:
-        min_val = float(match.group(1))
-        max_val = float(match.group(2))
-        return (min(min_val, max_val), max(min_val, max_val))
+    if match: return (min(float(match.group(1)), float(match.group(2))), max(float(match.group(1)), float(match.group(2))))
     return None
-
-
-# order_recognition/core/worker.py
 
 def calculate_score(query_params: dict, material_params_json: str) -> int:
     """
-    ФИНАЛЬНАЯ ВЕРСИЯ. Логика расчета верна.
+    ФИНАЛЬНАЯ ВЕРСИЯ. Считает процент, штрафует за лишнее и за скрытые состояния,
+    а также различает полное и частичное совпадение для стали.
     """
     try:
         material_params = json.loads(material_params_json)
     except (json.JSONDecodeError, TypeError):
-        return -9999
+        return 0
 
     if not query_params:
         return 0
 
-    score = 0
+    max_possible_score = 0
+    for param_name in query_params:
+        max_possible_score += WEIGHTS.get(param_name, WEIGHTS['default'])
+    
+    if max_possible_score <= 0:
+        return 0
+
+    actual_score = 0
     
     for param_name, query_value in query_params.items():
         weight = WEIGHTS.get(param_name, WEIGHTS['default'])
-        score -= weight
-        
         material_value = material_params.get(param_name)
         
+        bonus_multiplier = 0.0 # Множитель бонуса (0.0 = нет, 0.8 = частичный, 1.0 = полный)
+
         if material_value and str(material_value).strip() not in ['', '##']:
             q_val_str = str(query_value).lower().strip()
             m_val_str = str(material_value).lower().strip()
-            is_matched = False
             
-            if param_name == 'тип':
-                query_types = {t.strip() for t in q_val_str.split(',')}
-                material_types = {t.strip() for t in m_val_str.split(',')}
-                if query_types.issubset(material_types):
-                    is_matched = True
-
-            elif param_name == 'марка стали':
+            if param_name == 'марка стали':
                 norm_q = q_val_str.replace('ст', '', 1).strip()
                 norm_m = m_val_str.replace('ст', '', 1).strip()
-                if norm_m.startswith(norm_q):
-                    is_matched = True
+                if norm_q == norm_m:
+                    bonus_multiplier = 1.0 # Идеальное совпадение
+                elif norm_m.startswith(norm_q):
+                    bonus_multiplier = 0.8 # Частичное совпадение
             
-            elif param_name == 'длина':
-                if normalize_text_param(q_val_str) == normalize_text_param(m_val_str):
-                    is_matched = True
-                else:
-                    try:
-                        if float(q_val_str.replace('м', '')) == float(m_val_str.replace('м', '')):
-                            is_matched = True
-                    except ValueError:
-                        length_range = parse_length_range(q_val_str)
-                        if length_range:
-                            try:
-                                material_len_float = float(m_val_str.replace('м', '').strip())
-                                if length_range[0] <= material_len_float <= length_range[1]:
-                                    is_matched = True
-                            except ValueError: pass
-            
-            else:
-                norm_query = normalize_text_param(q_val_str)
-                norm_material = normalize_text_param(m_val_str)
-                if norm_query == norm_material:
-                    is_matched = True
-            
-            if is_matched:
-                score += (weight * 2) 
-            
-    return int(score)
+            else: # Логика для всех остальных параметров
+                is_matched = False
+                if param_name == 'тип':
+                    if {t.strip() for t in q_val_str.split(',')}.issubset({t.strip() for t in m_val_str.split(',')}): is_matched = True
+                elif param_name == 'длина':
+                    if normalize_param(q_val_str) == normalize_param(m_val_str): is_matched = True
+                    else:
+                        try:
+                            if float(q_val_str.replace('м', '')) == float(m_val_str.replace('м', '')): is_matched = True
+                        except ValueError: pass
+                else: # Для номера, размера, класса и т.д.
+                    if normalize_param(q_val_str) == normalize_param(m_val_str): is_matched = True
+                
+                if is_matched:
+                    bonus_multiplier = 1.0
+        
+        actual_score += (weight * bonus_multiplier)
+
+    # Штрафы за избыточность
+    EXCESS_PARAM_PENALTY = 15
+    for material_param_name, material_param_value in material_params.items():
+        if material_param_name not in query_params:
+            if material_param_value and str(material_param_value).strip() not in ['', '##']:
+                 if material_param_name != 'состояние':
+                     actual_score -= EXCESS_PARAM_PENALTY
+
+    # Штраф за "скрытое" состояние
+    HIDDEN_CONDITION_PENALTY = 50 
+    if 'состояние' not in query_params:
+        material_condition = material_params.get('состояние')
+        if material_condition and str(material_condition).strip() not in ['', '##']:
+            actual_score -= HIDDEN_CONDITION_PENALTY
+
+    final_score = max(0, actual_score)
+    percentage = (final_score / max_possible_score) * 100
+    
+    return int(percentage)
 
 
-def process_one_task(task: dict):
-    original_query = task.get('original_query', '')
-    base_name = task.get('base_name', '')
-    query_params = task.get('params', {})
+##### ИЗМЕНЕНИЕ 2: Полностью переписываем process_one_task, делая его "умным" #####
 
-    if worker_materials_with_features is None or worker_materials_with_features.empty:
-        return {'request_text': original_query, 'error': 'База материалов не загружена в воркере'}
-
-    candidates_df = worker_materials_with_features[
-        worker_materials_with_features['base_name'] == base_name
-    ].copy()
-
+def _search_single_pass_in_worker(base_name: str, query_params: dict):
+    """
+    Вспомогательная функция для ОДНОГО прохода поиска внутри воркера.
+    Возвращает словарь с результатами и лучшим скором.
+    """
+    candidates_df = worker_materials_with_features[worker_materials_with_features['base_name'] == base_name].copy()
+    
     if candidates_df.empty:
-        return {'request_text': original_query}
+        return {'best_score': -9999}
 
     candidates_df['score'] = candidates_df['params_json'].apply(
         lambda x: calculate_score(query_params, x)
     )
     
     top_results = candidates_df.sort_values(by="score", ascending=False).head(5)
-
-    response_position = {'request_text': original_query}
+    
+    response_position = {}
+    if not top_results.empty:
+        response_position['best_score'] = top_results.iloc[0]['score']
+    
     for i, (_, row_data) in enumerate(top_results.iterrows()):
         response_position[f'material{i+1}_id'] = row_data['Материал']
         response_position[f"weight_{i+1}"] = str(row_data['score'])
         
     return response_position
+
+def process_one_task(task: dict):
+    """
+    ФИНАЛЬНАЯ ВЕРСИЯ. Выполняет исчерпывающий поиск по всем уровням "жертв"
+    и возвращает абсолютно лучший из найденных результатов.
+    """
+    original_query = task.get('original_query', '')
+    
+    if worker_materials_with_features is None or worker_materials_with_features.empty:
+        return {'request_text': original_query, 'error': 'База материалов не загружена в воркере'}
+
+    base_name = task.get('base_name', '')
+    original_params = task.get('params', {}).copy()
+    
+    # --- Шаг 1: Первый проход и инициализация лучшего результата ---
+    best_result_so_far = _search_single_pass_in_worker(base_name, original_params)
+    best_result_so_far['request_text'] = original_query
+    
+    # --- Шаг 2: Последовательно "жертвуем" параметрами ---
+    params_to_sacrifice = original_params.copy()
+    
+    for param_to_remove in SACRIFICE_HIERARCHY:
+        if param_to_remove in params_to_sacrifice:
+            del params_to_sacrifice[param_to_remove]
+            
+            # Если параметров для поиска не осталось, выходим
+            if not params_to_sacrifice:
+                break
+                
+            current_result = _search_single_pass_in_worker(base_name, params_to_sacrifice)
+            
+            # --- Шаг 3: Сравнение и обновление лучшего результата ---
+            # Сравниваем лучший балл из текущего прохода с лучшим из всех предыдущих
+            # Примечание: 'weight_1' теперь содержит процент совпадения
+            
+            # Проверяем, есть ли вообще результаты в текущем проходе
+            if 'weight_1' in current_result:
+                # Если в "лучшем результате" еще нет ничего, или текущий результат лучше - обновляемся
+                if 'weight_1' not in best_result_so_far or int(current_result['weight_1']) > int(best_result_so_far['weight_1']):
+                    current_result['request_text'] = original_query
+                    best_result_so_far = current_result
+                    
+    # --- Шаг 4: Возвращаем самый лучший из всех найденных результатов ---
+    if 'best_score' in best_result_so_far:
+        del best_result_so_far['best_score']
+        
+    return best_result_so_far

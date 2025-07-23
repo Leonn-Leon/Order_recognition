@@ -134,7 +134,8 @@ def process_row(row):
         if 'изоляц' in str(row['Материал. Признак 2']).lower(): found_types.append('изоляц')
 
         if found_types:
-            params['тип'] = ",".join(sorted(list(set(found_types))))
+            # Теперь мы сохраняем как список, чтобы соответствовать выводу Gemini
+            params['тип'] = sorted(list(set(found_types)))
 
     elif base_name == 'уголок':
         if 'полка_a' in params and 'полка_b' in params:
@@ -151,19 +152,23 @@ def process_row(row):
         # Приводим номер к нижнему регистру для единообразия в поиске
         if 'номер' in params:
             params['номер'] = params['номер'].lower()
-        
-        # Гарантированное извлечение типа (у, п), если он не был извлечен из колонки
-        if 'тип' not in params:
-            # Ищем паттерн "число" + "буква" (например, " 10п", " 24 у ")
-            match = re.search(r'\s\d+\s*([уп])', title_lower)
-            if match:
-                params['тип'] = match.group(1).lower()
 
-    elif base_name == 'балка':
-        # Приводим номер к нижнему регистру для единообразия в поиске
-        if 'номер' in params:
-            params['номер'] = params['номер'].lower()
+        elif base_name == 'балка':
+            # Приводим номер к нижнему регистру для единообразия в поиске
+            if 'номер' in params:
+                params['номер'] = params['номер'].lower()
 
+    ##### НОВЫЙ БЛОК: ОБЩАЯ ПРОВЕРКА НА СОСТОЯНИЕ ДЛЯ ВСЕХ ТИПОВ #####
+    # Этот блок должен идти в конце, чтобы обработать все товары
+    if 'состояние' not in params: # Проверяем, не было ли оно уже извлечено из колонки
+        if 'неконд' in title_lower:
+            params['состояние'] = 'неконд'
+        elif 'нлг' in title_lower:
+            params['состояние'] = 'нлг'
+        elif 'б/у' in title_lower:
+            params['состояние'] = 'б/у'
+            
+            
     if not params:
         return base_name, None
 
