@@ -43,24 +43,6 @@ class Find_materials():
             print(f"ОШИБКА: Файл с признаками не найден по пути {self.csv_path}")
             self.all_materials = pd.DataFrame()
 
-    def _apply_heuristics(self, task: dict):
-        """Применяет эвристики для "додумывания" запроса пользователя."""
-        base_name = task.get('base_name', '')
-        params = task.get('params', {})
-        
-        # Эвристика для уголка '75х6' -> '75х75' и 'толщина: 6'
-        if base_name == 'уголок' and 'размер' in params and 'толщина' not in params:
-            size_parts = params['размер'].split('x')
-            if len(size_parts) == 2:
-                try:
-                    if float(size_parts[1]) < 25: # Увеличил порог для надежности
-                        print(f"INFO: Применяю эвристику для уголка '{params['размер']}'")
-                        params['толщина'] = size_parts[1]
-                        params['размер'] = f"{size_parts[0]}x{size_parts[0]}"
-                except (ValueError, IndexError):
-                    pass
-        return task
-
     def _search_single_pass(self, task: dict):
         """
         Выполняет ОДИН проход поиска для одной задачи.
@@ -102,7 +84,6 @@ class Find_materials():
 
         final_positions = []
         for task in structured_rows:
-            task = self._apply_heuristics(task)
             original_params = task.get('params', {}).copy()
             
             # print(f"Проход 1: Ищем по всем параметрам {original_params}") # <<<< УБРАТЬ
@@ -140,8 +121,7 @@ class Find_materials():
         if not structured_rows:
             return {"req_Number": str(uuid.uuid4()), "positions": []}
             
-        # Можно добавить применение эвристик и сюда, если нужно
-        tasks = [self._apply_heuristics(task) for task in structured_rows]
+        tasks = structured_rows
         init_args = (self.csv_path, self.csv_encoding)
         
         num_processes = min(cpu_count(), len(tasks)) 

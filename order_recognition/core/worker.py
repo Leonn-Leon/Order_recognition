@@ -94,19 +94,39 @@ def calculate_score(query_params: dict, material_params_json: str) -> int:
                 elif norm_m.startswith(norm_q):
                     bonus_multiplier = 0.8 # Частичное совпадение
             
-            else: # Логика для всех остальных параметров
+            else: # Универсальная логика для всех параметров, кроме марки стали
                 is_matched = False
-                if param_name == 'тип':
-                    if {t.strip() for t in q_val_str.split(',')}.issubset({t.strip() for t in m_val_str.split(',')}): is_matched = True
-                elif param_name == 'длина':
-                    if normalize_param(q_val_str) == normalize_param(m_val_str): is_matched = True
-                    else:
-                        try:
-                            if float(q_val_str.replace('м', '')) == float(m_val_str.replace('м', '')): is_matched = True
-                        except ValueError: pass
-                else: # Для номера, размера, класса и т.д.
-                    if normalize_param(q_val_str) == normalize_param(m_val_str): is_matched = True
                 
+                # --- Начало новой, надежной логики ---
+                
+                # 1. Превращаем значение из ЗАПРОСА в множество (set)
+                query_set = set()
+                if isinstance(query_value, list):
+                    query_set = {str(v).lower().strip() for v in query_value}
+                else:
+                    query_set = {str(query_value).lower().strip()}
+
+                # 2. Превращаем значение из БАЗЫ МАТЕРИАЛОВ в множество (set)
+                material_set = set()
+                if isinstance(material_value, list):
+                    material_set = {str(v).lower().strip() for v in material_value}
+                else:
+                    material_set = {str(material_value).lower().strip()}
+
+                # 3. Сравниваем множества. Полное совпадение - если все, что мы ищем, есть в материале.
+                if query_set.issubset(material_set):
+                    is_matched = True
+                
+                # --- Конец новой логики ---
+
+                # Дополнительная проверка для длины (остается без изменений)
+                if not is_matched and param_name == 'длина':
+                    try:
+                        if float(str(query_value).replace('м', '')) == float(str(material_value).replace('м', '')):
+                            is_matched = True
+                    except (ValueError, AttributeError):
+                        pass
+
                 if is_matched:
                     bonus_multiplier = 1.0
         
