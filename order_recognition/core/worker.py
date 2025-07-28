@@ -37,6 +37,18 @@ SACRIFICE_HIERARCHY = [
     'номер', 'толщина', 'размер', 'диаметр',
 ]
 
+# Новые константы для управления штрафами
+# Штраф, если значения параметра НЕ СОВПАЛИ (например, длина 0.41 vs 11.7)
+MISMATCH_PENALTY_FACTOR = 1.0 # Отнимаем 100% от веса параметра
+# Штраф, если параметр был в запросе, но ОТСУТСТВУЕТ в товаре
+MISSING_PARAM_PENALTY_FACTOR = 1.2 # Отнимаем 120% от веса параметра
+# Штраф, если в товаре есть "скрытое" состояние (неконд, б/у), которое не просили
+HIDDEN_CONDITION_PENALTY = 50
+
+PARTIAL_MATCH_BONUS_FACTOR = 0.6 # Начисляем 60% от веса за частичное совпадение
+
+EXCESS_PARAM_PENALTY_FACTOR = 0.3 # Штраф = 30% от веса лишнего параметра
+
 worker_materials_with_features = None
 
 def init_worker(csv_path: str, csv_encoding: str):
@@ -56,8 +68,9 @@ def parse_length_range(value: str) -> tuple[float, float] | None:
 
 def calculate_score(query_params: dict, material_params_json: str) -> int:
     """
-    ФИНАЛЬНАЯ ВЕРСИЯ. Считает процент, штрафует за лишнее и за скрытые состояния,
-    а также различает полное и частичное совпадение для стали.
+    ФИНАЛЬНАЯ УЛУЧШЕННАЯ ВЕРСИЯ.
+    - Дает бонусы за совпадения.
+    - Штрафует за несоответствия, отсутствующие и лишние параметры.
     """
     try:
         material_params = json.loads(material_params_json)
@@ -67,93 +80,77 @@ def calculate_score(query_params: dict, material_params_json: str) -> int:
     if not query_params:
         return 0
 
-    max_possible_score = 0
-    for param_name in query_params:
-        max_possible_score += WEIGHTS.get(param_name, WEIGHTS['default'])
-    
-    if max_possible_score <= 0:
-        return 0
+    max_possible_score = sum(WEIGHTS.get(p, WEIGHTS['default']) for p in query_params)
+    if max_possible_score <= 0: return 0
 
     actual_score = 0
-    
+
+    # --- ЭТАП 1: Анализируем ЗАПРОШЕННЫЕ параметры ---
     for param_name, query_value in query_params.items():
         weight = WEIGHTS.get(param_name, WEIGHTS['default'])
         material_value = material_params.get(param_name)
-        
-        bonus_multiplier = 0.0 # Множитель бонуса (0.0 = нет, 0.8 = частичный, 1.0 = полный)
 
+        # Случай 1: Параметр есть и в запросе, и в товаре. Сравниваем их.
         if material_value and str(material_value).strip() not in ['', '##']:
-            q_val_str = str(query_value).lower().strip()
-            m_val_str = str(material_value).lower().strip()
-            
+            is_matched = False
+            bonus_multiplier = 0.0 # 1.0 для полного совпадения, 0.8 для частичного (сталь)
+
+            # --- Логика сравнения ---
             if param_name == 'марка стали':
-                norm_q = q_val_str.replace('ст', '', 1).strip()
-                norm_m = m_val_str.replace('ст', '', 1).strip()
+                norm_q = normalize_param(str(query_value))
+                norm_m = normalize_param(str(material_value))
                 if norm_q == norm_m:
-                    bonus_multiplier = 1.0 # Идеальное совпадение
-                elif norm_m.startswith(norm_q):
-                    bonus_multiplier = 0.8 # Частичное совпадение
-            
-            else: # Универсальная логика для всех параметров, кроме марки стали
-                is_matched = False
-                
-                # --- Начало новой, надежной логики ---
-                
-                # 1. Превращаем значение из ЗАПРОСА в множество (set)
-                query_set = set()
-                if isinstance(query_value, list):
-                    query_set = {str(v).lower().strip() for v in query_value}
-                else:
-                    query_set = {str(query_value).lower().strip()}
-
-                # 2. Превращаем значение из БАЗЫ МАТЕРИАЛОВ в множество (set)
-                material_set = set()
-                if isinstance(material_value, list):
-                    material_set = {str(v).lower().strip() for v in material_value}
-                else:
-                    material_set = {str(material_value).lower().strip()}
-
-                # 3. Сравниваем множества. Полное совпадение - если все, что мы ищем, есть в материале.
+                    is_matched = True; bonus_multiplier = 1.0
+                    
+            elif param_name == 'состояние':
+                norm_q = normalize_param(str(query_value))
+                norm_m = normalize_param(str(material_value))
+                if norm_q in norm_m or norm_m in norm_q:
+                    is_matched = True; bonus_multiplier = 1.0
+                    
+            else:
+                query_set = {normalize_param(str(v)) for v in query_value} if isinstance(query_value, list) else {normalize_param(str(query_value))}
+                material_set = {normalize_param(str(v)) for v in material_value} if isinstance(material_value, list) else {normalize_param(str(material_value))}
                 if query_set.issubset(material_set):
-                    is_matched = True
-                
-                # --- Конец новой логики ---
+                    is_matched = True; bonus_multiplier = 1.0
+            # --- Конец логики сравнения ---
 
-                # Дополнительная проверка для длины (остается без изменений)
-                if not is_matched and param_name == 'длина':
-                    try:
-                        if float(str(query_value).replace('м', '')) == float(str(material_value).replace('м', '')):
-                            is_matched = True
-                    except (ValueError, AttributeError):
-                        pass
+            if is_matched:
+                actual_score += int(weight * bonus_multiplier)
+            else:
+                is_partial_match = False
+                if param_name in ['гост_ту', 'марка стали', 'класс']:
+                    norm_q = normalize_param(str(query_value))
+                    norm_m = normalize_param(str(material_value))
+                    if norm_q in norm_m:
+                        is_partial_match = True
 
-                if is_matched:
-                    bonus_multiplier = 1.0
-        
-        actual_score += (weight * bonus_multiplier)
+                if is_partial_match:
+                    actual_score += int(weight * PARTIAL_MATCH_BONUS_FACTOR)
+                else:
+                    actual_score -= int(weight * MISMATCH_PENALTY_FACTOR)
+            # <<< КОНЕЦ ЗАМЕНЫ >>>
 
-    # Штрафы за избыточность
-    EXCESS_PARAM_PENALTY = 15
-    for material_param_name, material_param_value in material_params.items():
-        if material_param_name not in query_params:
-            if material_param_value and str(material_param_value).strip() not in ['', '##']:
-                 if material_param_name != 'состояние':
-                     actual_score -= EXCESS_PARAM_PENALTY
+        # Случай 2: Параметр был в запросе, но ОТСУТСТВУЕТ в товаре.
+        else:
+            actual_score -= int(weight * MISSING_PARAM_PENALTY_FACTOR) # ШТРАФ за отсутствие
 
-    # Штраф за "скрытое" состояние
-    HIDDEN_CONDITION_PENALTY = 50 
-    if 'состояние' not in query_params:
-        material_condition = material_params.get('состояние')
-        if material_condition and str(material_condition).strip() not in ['', '##']:
-            actual_score -= HIDDEN_CONDITION_PENALTY
+    # --- ЭТАП 2: Штрафуем за ЛИШНИЕ (избыточные) параметры в товаре ---
+    for material_param_name in material_params:
+        if material_param_name not in query_params and material_param_name != 'состояние':
+            weight = WEIGHTS.get(material_param_name, WEIGHTS['default'])
+            actual_score -= int(weight * EXCESS_PARAM_PENALTY_FACTOR)
 
-    final_score = max(0, actual_score)
+    # --- ЭТАП 3: Отдельный штраф за "скрытое" состояние ---
+    if 'состояние' not in query_params and material_params.get('состояние'):
+        actual_score -= HIDDEN_CONDITION_PENALTY
+
+    # --- Финальный расчет ---
+    final_score = max(0, actual_score) # Не даем уйти в минус
     percentage = (final_score / max_possible_score) * 100
     
     return int(percentage)
 
-
-##### ИЗМЕНЕНИЕ 2: Полностью переписываем process_one_task, делая его "умным" #####
 
 def _search_single_pass_in_worker(base_name: str, query_params: dict):
     """

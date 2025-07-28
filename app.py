@@ -109,60 +109,111 @@ def clean_prompt_for_gemini(prompt_text: str) -> str:
 
     return single_line_text
 
-def highlight_text(text: str, query_params: dict) -> str:
-    """
-    ФИНАЛЬНАЯ ВЕРСИЯ.
-    Точно повторяет двойную логику сравнения из worker.py.
-    """
-    if not query_params:
-        return text
 
-    # 1. Подготовка значений из запроса для двух разных типов сравнения
+def highlight_text(material_row: pd.Series, query_params: dict) -> str:
+    """
+    ФИНАЛЬНАЯ ВЕРСИЯ С ЦВЕТОВОЙ СХЕМОЙ.
+    Подсвечивает каждый параметр в названии товара в соответствии с его статусом:
+    - Зеленый: полное совпадение.
+    - Салатовый: частичное совпадение.
+    - Оранжевый: несоответствие (запросили одно, в товаре другое).
+    - Желтый: лишний параметр (в товаре есть, в запросе нет).
+    """
+    full_name = material_row['Полное наименование материала']
+    try:
+        material_params = json.loads(material_row['params_json'])
+    except (json.JSONDecodeError, TypeError):
+        return html.escape(full_name)
+
+    if not query_params and not material_params:
+        return html.escape(full_name)
+
+    SYNONYMS = {
+        "тип": {
+            "гнутый": "ГН"
+        }
+        # Сюда можно будет добавлять другие синонимы, если потребуется
+    }
     
-    # Используем новую, единую функцию normalize_param
-    exact_match_values = {
-        normalize_param(str(v))
-        for k, v in query_params.items()
-        if k not in ['марка стали', 'размер']
+    # --- Цветовая схема ---
+    param_colors = {
+        "match": "#7DCEA0",          # Ярко-зеленый
+        "partial": "#DAF7A6",        # Салатовый
+        "mismatch": "#F5B041",       # Оранжевый
+        "excess": "gold",            # Желтый
     }
 
-    steel_query_value = str(query_params.get('марка стали', '')).lower().replace('ст', '', 1).strip()
+    highlights = {}
 
-    size_parts = set()
-    if 'размер' in query_params:
-        # Используем новую, единую функцию normalize_param
-        size_param = normalize_param(str(query_params['размер']))
-        if 'x' in size_param:
-            size_parts = set(size_param.split('x'))
+    # --- ЭТАП 1: Определяем статус для каждого параметра в НАЙДЕННОМ ТОВАРЕ ---
+    for param_name, material_value in material_params.items():
+        query_value = query_params.get(param_name)
+        
+        # Пропускаем пустые значения
+        if not material_value or str(material_value).strip() in ['', '##']:
+            continue
 
-    tokens_and_delimiters = re.split(r'([\w/.-]+)', text)
+        status = None
+        
+        if query_value:
+            # Параметр был в запросе - проверяем совпадение
+            norm_q = normalize_param(str(query_value))
+            norm_m = normalize_param(str(material_value))
 
-    output_parts = []
-    for part in tokens_and_delimiters:
-        if re.fullmatch(r'[\w/.-]+', part):
-            should_highlight = False
-            
-            material_part_for_steel = part.lower().replace('ст', '', 1).strip()
-            if steel_query_value and material_part_for_steel.startswith(steel_query_value):
-                should_highlight = True
+            if norm_q == norm_m:
+                status = "match"
+            elif (param_name in ['гост_ту', 'марка стали', 'класс']) and (norm_q in norm_m):
+                status = "partial"
             else:
-                # Используем новую, единую функцию normalize_param
-                normalized_part = normalize_param(part)
-                if normalized_part in exact_match_values or normalized_part in size_parts:
-                    should_highlight = True
-            
-            if should_highlight:
-                output_parts.append(f'<span style="background-color: #004D25; color: #E0E0E0; padding: 1px 4px; border-radius: 4px;">{part}</span>')
-            else:
-                output_parts.append(part)
+                status = "mismatch"
         else:
-            output_parts.append(part)
+            # Параметра не было в запросе - он лишний
+            status = "excess"
+        
+        # Для сложных значений (размер, несколько марок стали) разбиваем на части
+        parts_to_highlight = set()
+        raw_parts = re.split(r'[ ,/хx*-]', str(material_value))
+        for p in raw_parts:
+            if p:
+                parts_to_highlight.add(p.strip())
+
+        # <<< НАЧАЛО НОВОГО БЛОКА: Добавляем синонимы в подсветку >>>
+        if param_name in SYNONYMS and material_value in SYNONYMS[param_name]:
+            parts_to_highlight.add(SYNONYMS[param_name][material_value])
+        # <<< КОНЕЦ НОВОГО БЛОКА >>>
+
+        for part in parts_to_highlight:
+            highlights[part] = param_colors[status]
+
+    # --- ЭТАП 2: Применяем подсветку к строке ---
+    # Разбиваем название на слова и символы-разделители
+    tokens = re.split(r'([\s,/хx*()-]+)', full_name)
+    output_parts = []
+
+    for token in tokens:
+        norm_token = token.strip()
+        color = highlights.get(norm_token) # Сначала ищем точное совпадение (например, для "СТ20")
+
+        # Если точного совпадения нет, пробуем "очистить" токен от буквы "М" и поискать снова
+        if not color:
+            length_norm_token = norm_token.upper().replace('М', '')
+            if length_norm_token in highlights:
+                color = highlights[length_norm_token]
+
+        if color:
+            # Если нашли совпадение любым способом, подсвечиваем исходный токен
+            output_parts.append(
+                f'<span style="background-color: {color}; color: #1E1E1E; padding: 1px 4px; border-radius: 4px; font-weight: bold;">{html.escape(token)}</span>'
+            )
+        else:
+            output_parts.append(html.escape(token))
 
     return "".join(output_parts)
 
 def generate_styled_tooltip(query_params: dict, material_id: str, finder) -> str:
     """
-    ФИНАЛЬНАЯ ВЕРСИЯ. Генерирует HTML-блок, повторяя ВСЮ логику скоринга.
+    ФИНАЛЬНАЯ, ПОЛНОСТЬЮ СИНХРОНИЗИРОВАННАЯ ВЕРСИЯ.
+    Генерирует HTML-блок, ТОЧНО повторяя ВСЮ логику скоринга из worker.py.
     """
     try:
         material_row = finder.all_materials[finder.all_materials['Материал'] == material_id].iloc[0]
@@ -170,90 +221,107 @@ def generate_styled_tooltip(query_params: dict, material_id: str, finder) -> str
     except (IndexError, json.JSONDecodeError, TypeError):
         return "Не удалось загрузить данные для подсказки."
 
-    if not query_params:
-        return "Нет параметров для сравнения."
+    if not query_params: return "Нет параметров для сравнения."
+
+    # --- Подтягиваем константы для расчета, чтобы они были в одном месте ---
+    MISMATCH_PENALTY_FACTOR = 1.0
+    MISSING_PARAM_PENALTY_FACTOR = 1.2
+    EXCESS_PARAM_PENALTY = 15
+    HIDDEN_CONDITION_PENALTY = 50
+    PARTIAL_MATCH_BONUS_FACTOR = 0.6 # Начисляем 60% от веса за частичное совпадение
+    EXCESS_PARAM_PENALTY_FACTOR = 0.3 # Штраф = 30% от веса лишнего параметра
 
     # --- ЭТАП 1: Расчет максимально возможного балла ---
-    max_possible_score = 0
-    for param_name in query_params:
-        max_possible_score += WEIGHTS.get(param_name, WEIGHTS['default'])
-    
-    if max_possible_score <= 0:
-        return "Неверные параметры запроса."
+    max_possible_score = sum(WEIGHTS.get(p, WEIGHTS['default']) for p in query_params)
+    if max_possible_score <= 0: return "Неверные параметры запроса."
 
-    # --- ЭТАП 2: Расчет фактического балла ---
     actual_score = 0
-    
-    # 2.1. Бонусы за совпадения
     bonus_lines = []
+    penalty_lines = []
+
+    # --- ЭТАП 2: Анализируем ЗАПРОШЕННЫЕ параметры ---
     for param_name, query_value in query_params.items():
         weight = WEIGHTS.get(param_name, WEIGHTS['default'])
         material_value = material_params.get(param_name)
-        
-        bonus_points = 0
-        bonus_text = ""
 
+        # Случай 1: Параметр есть и в запросе, и в товаре. Сравниваем.
         if material_value and str(material_value).strip() not in ['', '##']:
-            q_val_str = str(query_value).lower().strip()
-            m_val_str = str(material_value).lower().strip()
-            
+            is_matched = False
+            bonus_multiplier = 0.0
+
+            # --- Логика сравнения (остается без изменений) ---
             if param_name == 'марка стали':
-                norm_q = q_val_str.replace('ст', '', 1).strip()
-                norm_m = m_val_str.replace('ст', '', 1).strip()
+                norm_q = normalize_param(str(query_value))
+                norm_m = normalize_param(str(material_value))
                 if norm_q == norm_m:
-                    bonus_points = weight
-                    bonus_text = f'<span style="color: #7DCEA0;">+ {bonus_points}</span> за "{param_name}" (точно)'
-                elif norm_m.startswith(norm_q):
-                    bonus_points = int(weight * 0.8)
-                    bonus_text = f'<span style="color: #DAF7A6;">+ {bonus_points}</span> за "{param_name}" (частично)'
+                    is_matched = True; bonus_multiplier = 1.0
+                    
+            elif param_name == 'состояние':
+                norm_q = normalize_param(str(query_value))
+                norm_m = normalize_param(str(material_value))
+                # Проверяем, что одна строка содержится в другой
+                if norm_q in norm_m or norm_m in norm_q:
+                    is_matched = True
+                    bonus_multiplier = 1.0
+                    
             else:
-                is_matched = False
-                if param_name == 'тип':
-                    if {t.strip() for t in q_val_str.split(',')}.issubset({t.strip() for t in m_val_str.split(',')}): is_matched = True
-                elif param_name == 'длина':
-                    if normalize_param(q_val_str) == normalize_param(m_val_str): is_matched = True
-                    else:
-                        try:
-                            if float(q_val_str.replace('м', '')) == float(m_val_str.replace('м', '')): is_matched = True
-                        except ValueError: pass
+                query_set = {normalize_param(str(v)) for v in query_value} if isinstance(query_value, list) else {normalize_param(str(query_value))}
+                material_set = {normalize_param(str(v)) for v in material_value} if isinstance(material_value, list) else {normalize_param(str(material_value))}
+                if query_set.issubset(material_set):
+                    is_matched = True; bonus_multiplier = 1.0
+            
+            # --- Логика начисления бонусов и штрафов ---
+            if is_matched:
+                bonus_points = int(weight * bonus_multiplier)
+                actual_score += bonus_points
+                bonus_text = f'+ {bonus_points}</span> за "{param_name}"'
+                if bonus_multiplier < 1.0 and bonus_multiplier > 0:
+                    bonus_text += ' (частично)'
+                bonus_lines.append(f'<span style="color: {"#7DCEA0" if bonus_multiplier == 1.0 else "#DAF7A6"};">{bonus_text}')
+            else:
+                is_partial_match = False
+                if param_name in ['гост_ту', 'марка стали', 'класс']:
+                    norm_q = normalize_param(str(query_value))
+                    norm_m = normalize_param(str(material_value))
+                    if norm_q in norm_m:
+                        is_partial_match = True
+
+                if is_partial_match:
+                    bonus_points = int(weight * PARTIAL_MATCH_BONUS_FACTOR)
+                    actual_score += bonus_points
+                    bonus_lines.append(f'<span style="color: #DAF7A6;">+ {bonus_points}</span> за "{param_name}" (частично)')
                 else:
-                    if normalize_param(q_val_str) == normalize_param(m_val_str): is_matched = True
-                
-                if is_matched:
-                    bonus_points = weight
-                    bonus_text = f'<span style="color: #7DCEA0;">+ {bonus_points}</span> за "{param_name}"'
-        
-        if bonus_points > 0:
-            actual_score += bonus_points
-            bonus_lines.append(bonus_text)
+                    penalty_points = int(weight * MISMATCH_PENALTY_FACTOR)
+                    actual_score -= penalty_points
+                    penalty_lines.append(f'<span style="color: #F5B041;">- {penalty_points}</span> за несоответствие "{param_name}"') 
 
+        # Случай 2: Параметр был в запросе, но ОТСУТСТВУЕТ в товаре.
+        else:
+            # <<< НОВЫЙ БЛОК 2: ШТРАФ ЗА ОТСУТСТВИЕ (MISSING) >>>
+            penalty_points = int(weight * MISSING_PARAM_PENALTY_FACTOR)
+            actual_score -= penalty_points
+            penalty_lines.append(f'<span style="color: #EC7063;">- {penalty_points}</span> за отсутствие "{param_name}"')
 
-    # 2.2. Штрафы за избыточность и "скрытое" состояние
-    penalty_lines = []
-    EXCESS_PARAM_PENALTY = 15
-    for material_param_name, material_param_value in material_params.items():
-        if material_param_name not in query_params:
-            if material_param_value and str(material_param_value).strip() not in ['', '##']:
-                # ----> ВОТ ТО САМОЕ ИЗМЕНЕНИЕ <----
-                if material_param_name != 'состояние': # Применяем обычный штраф ко всем, КРОМЕ состояния
-                    actual_score -= EXCESS_PARAM_PENALTY
-                    penalty_lines.append(f'<span style="color: #F1948A;">- {EXCESS_PARAM_PENALTY}</span> за лишний "{material_param_name}"')
-                # ----> КОНЕЦ ИЗМЕНЕНИЯ <----
+    # --- ЭТАП 3: Штрафуем за ЛИШНИЕ параметры (этот блок у вас был и он корректен) ---
+    for material_param_name in material_params:
+        if material_param_name not in query_params and material_param_name != 'состояние':
+            weight = WEIGHTS.get(material_param_name, WEIGHTS['default'])
+            actual_score -= int(weight * EXCESS_PARAM_PENALTY_FACTOR)
+            penalty_points = int(weight * EXCESS_PARAM_PENALTY_FACTOR)
+            penalty_lines.append(f'<span style="color: gold;">- {penalty_points}</span> за лишний "{material_param_name}"')
+    
+    # --- ЭТАП 4: Штраф за "скрытое" состояние (этот блок у вас был и он корректен) ---
+    if 'состояние' not in query_params and material_params.get('состояние'):
+        condition = material_params["состояние"]
+        actual_score -= HIDDEN_CONDITION_PENALTY
+        penalty_lines.append(f'<span style="color: #E74C3C; font-weight: bold;">- {HIDDEN_CONDITION_PENALTY}</span> за скрытое состояние: {condition}')
 
-    # Штраф за "скрытое" состояние (НЛГ, НЕКОНД и т.д.)
-    HIDDEN_CONDITION_PENALTY = 50
-    if 'состояние' not in query_params:
-        material_condition = material_params.get('состояние')
-        if material_condition and str(material_condition).strip() not in ['', '##']:
-            actual_score -= HIDDEN_CONDITION_PENALTY
-            penalty_lines.append(f'<span style="color: #F1948A;">- {HIDDEN_CONDITION_PENALTY}</span> за скрытое состояние: {material_condition}')
-
-    # --- ЭТАП 3: Формирование текста для подсказки ---
+    # --- ЭТАП 5: Формирование HTML (без изменений) ---
     final_score = max(0, actual_score)
     percentage = (final_score / max_possible_score) * 100
-    
-    bonuses_html = "<b>Бонусы за совпадения:</b><br>" + ("<br>".join(bonus_lines) if bonus_lines else "Нет")
-    penalties_html = "<b>Штрафы:</b><br>" + ("<br>".join(penalty_lines) if penalty_lines else "Нет") # Переименовал для общности
+
+    bonuses_html = "<b>Бонусы:</b><br>" + ("<br>".join(bonus_lines) if bonus_lines else "Нет")
+    penalties_html = "<b>Штрафы:</b><br>" + ("<br>".join(penalty_lines) if penalty_lines else "Нет")
     
     formula_html = f"""
     <hr style="margin: 5px 0; border-color: #444;">
@@ -274,7 +342,6 @@ def format_params_to_string(params: dict) -> str:
     parts += [f"**{key.replace('_', ' ')}:** `{value}`" for key, value in params.items() if key not in order]
     return ' | '.join(parts)
 
-# Файл: app.py
 
 def display_results(results_data, finder, pos_request):
     """Отображает результаты с ПРОСТЫМ полем для ввода и БЕЗ кнопок 'Выбрать'."""
@@ -363,7 +430,8 @@ def display_results(results_data, finder, pos_request):
             result_df = finder.all_materials[finder.all_materials['Материал'] == mat_id]
             if not result_df.empty:
                 full_name = result_df['Полное наименование материала'].values[0]
-                highlighted_name = highlight_text(full_name, query_params)
+                # Передаем всю строку DataFrame (result_df.iloc[0]), а не только имя
+                highlighted_name = highlight_text(result_df.iloc[0], query_params)
                 
                 tooltip_content = generate_styled_tooltip(query_params, mat_id, finder)
                 

@@ -52,7 +52,17 @@ def get_base_name(row):
     if 'швеллер' in title_lower or title_lower.startswith('шв '):
         return 'швеллер'
     
-    if 'круг' in title_lower or title_lower.startswith('кр '):
+    # Проверяем на синонимы и ключевые слова для круга
+    CIRCLE_TRIGGERS = ['КРУГ', 'КР ', 'ПОКОВКА']
+    if any(trigger in str(row[NAME_COLUMN]).upper() for trigger in CIRCLE_TRIGGERS):
+        # Если нашли триггер, сначала проверяем на исключения
+        EXCLUSION_KEYWORDS_CIRCLE = [
+            'АЛМАЗНЫЙ', 'ЛЕПЕСТКОВ', 'ОТРЕЗНОЙ', 'ШЛИФОВАЛЬН', 'ЗАЧИСТНОЙ', 'КОНЬК'
+        ]
+        if any(keyword in str(row[NAME_COLUMN]).upper() for keyword in EXCLUSION_KEYWORDS_CIRCLE):
+            return None # Это точно мусор, выходим
+        
+        # Если это не мусор, то это наш круг
         return 'круг'
 
     if 'арматура' in title_lower or title_lower.startswith('а '):
@@ -92,6 +102,8 @@ def process_row(row):
                 params[param_name] = value
 
     # --- ПОСТОБРАБОТКА И УНИФИКАЦИЯ ПАРАМЕТРОВ ---
+    if 'длина' in params and params['длина'] == 'НЕЕР':
+        params['длина'] = 'НЕМЕР'
     
     # 1. Объединяем альтернативные поля...
     for key in ['длина', 'толщина']:
@@ -138,10 +150,25 @@ def process_row(row):
             params['тип'] = sorted(list(set(found_types)))
 
     elif base_name == 'уголок':
+        # Собираем размер из двух полок
         if 'полка_a' in params and 'полка_b' in params:
             params['размер'] = f"{params['полка_a']}x{params['полка_b']}"
             del params['полка_a']
             del params['полка_b']
+
+        title_upper = str(row[NAME_COLUMN]).upper()
+
+        # 1. Определяем тип металла
+        if 'НЕРЖ' in title_upper: # <<< ОСТАВЛЯЕМ ТОЛЬКО IF
+            params['металл'] = 'нержавеющая'
+            
+        # 2. Определяем тип уголка
+        if 'ГН' in title_upper and 'тип' not in params:
+            params['тип'] = 'гнутый' # ГН - гнутый
+            
+        # 3. Определяем состояние из названия (например, "У НЛГ...")
+        if 'НЛГ' in title_upper and 'состояние' not in params:
+            params['состояние'] = 'нлг'
 
     elif base_name == 'арматура':
         if 'терм' in title_lower and 'тип' not in params:
@@ -161,6 +188,43 @@ def process_row(row):
                 params['номер'] = params['номер'].lower()
             if 'тип' in params:
                 params['тип'] = params['тип'].lower()
+                
+    elif base_name == 'круг':
+        title_upper = str(row[NAME_COLUMN]).upper()
+
+        # 1. Определяем тип металла (самый высокий приоритет)
+        if title_upper.startswith('КР НЕРЖ'):
+            params['металл'] = 'нержавеющая'
+        elif title_upper.startswith('КР АЛ'):
+            params['металл'] = 'алюминий'
+        elif title_upper.startswith('КР БР'): # <<<<<< САМОЕ ВАЖНОЕ ИСПРАВЛЕНИЕ
+            params['металл'] = 'бронза'
+        elif title_upper.startswith('КР ЛАТ'):
+            params['металл'] = 'латунь'
+        elif title_upper.startswith('КР МЕД'):
+            params['металл'] = 'медь'
+        elif title_upper.startswith('КР ЧУГ'):
+            params['металл'] = 'чугун'
+        elif title_upper.startswith('КР ТИТАН'):
+            params['металл'] = 'титан'
+
+        # 2. Определяем тип обработки/свойства
+        if 'КАЛИБР' in title_upper and 'тип' not in params:
+            params['тип'] = 'калиброванный'
+        if 'ВЛГ' in title_upper and 'тип' not in params:
+            params['тип'] = 'высоколегированный'
+        if 'КНСТР' in title_upper and 'тип' not in params:
+            params['тип'] = 'конструкционный'
+            
+        # 3. Определяем покрытие и цвет
+        if 'ОЦ' in title_upper and 'покрытие' not in params:
+            params['покрытие'] = 'оцинкованный'
+        elif 'ПОЛИМ' in title_upper and 'покрытие' not in params:
+            params['покрытие'] = 'полимерное'
+            # Ищем цвет RAL, если есть полимерное покрытие
+            ral_match = re.search(r'RAL(\d+)', title_upper)
+            if ral_match:
+                params['цвет_ral'] = ral_match.group(1)
 
     ##### НОВЫЙ БЛОК: ОБЩАЯ ПРОВЕРКА НА СОСТОЯНИЕ ДЛЯ ВСЕХ ТИПОВ #####
     # Этот блок должен идти в конце, чтобы обработать все товары
