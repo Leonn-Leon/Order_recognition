@@ -1,0 +1,12 @@
+connection_url = "amqp://guest:guest@localhost:5672/%2F"
+first_queue = "get_message"
+second_queue = "save_truth"
+third_queue = "find_request_result"
+exchange = "ai"
+routing_key = "orderrecognition.find_request"
+routing_key2 = "orderrecognition.save_truth"
+routing_key3 = "orderrecognition.find_request_result"
+Authorization_AIM = ""
+xfolderid = "b1gob9uom3r70b2es0lp"
+gpt_model_link = f'gpt://{xfolderid}/yandexgpt-lite/latest@tamra4qbkko6f11es6as2'
+gpt_url = 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion'

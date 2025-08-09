@@ -11,6 +11,7 @@ from order_recognition.core.gemini_parser import GeminiParser
 from order_recognition.core.distance import Find_materials
 from order_recognition.core.worker import WEIGHTS
 from order_recognition.core.utils import normalize_param
+from rabbit_rpc_client import execute_rpc_call
 
 # --- КОНФИГУРАЦИЯ ---
 OUTPUT_DIR = "output_data"
@@ -467,17 +468,9 @@ def handle_user_prompt(prompt: str, finder, gpt):
         st.markdown(prompt)
 
     with st.spinner("Анализирую текст..."):
-        # Шаг 1: Базовая очистка от подписей
         cleaned_prompt = clean_prompt_for_gemini(prompt)
-
-        ##### ИЗМЕНЕНИЕ: ДОБАВЛЯЕМ ДВУХСТУПЕНЧАТУЮ ОБРАБОТКУ #####
-        
-        # Шаг 2: "Крупное сито" - просим Gemini удалить комментарии и "мусор"
         filtered_text = gpt.filter_material_positions(cleaned_prompt)
-        
-        # Шаг 3: "Мелкое сито" - отправляем очищенный текст на детальный разбор
         structured_positions = gpt.parse_order_text(filtered_text)
-        ##### КОНЕЦ ИЗМЕНЕНИЯ #####
 
     if not structured_positions:
         error_message = "К сожалению, не удалось распознать товарные позиции в вашем запросе. Проверьте консоль на предмет блокировки ответа."
@@ -497,14 +490,18 @@ def handle_user_prompt(prompt: str, finder, gpt):
                     st.warning(f"🔸 {question}")
             st.divider()
         
-        with st.spinner("Ищу товары в базе..."):
-             results_object = finder.single_thread_rows(structured_positions)
+        with st.spinner("Отправляю задачу в очередь и жду результат..."):
+             results_object = execute_rpc_call(structured_positions)
 
+        if not results_object or 'positions' not in results_object:
+            error_msg = results_object.get('error', 'Неизвестная ошибка от воркера.')
+            st.error(f"Произошла ошибка при обработке: {error_msg}")
+            return
+        
         # Здесь логика остается той же, она уже рассчитана на работу со списком
     for pos_request in structured_positions:
         pos_results = next((res for res in results_object.get('positions', []) if res['request_text'] == pos_request['original_query']), None)
         if pos_results:
-            # >>>>> ИЗМЕНЯЕМ ЭТУ СТРОКУ <<<<<
             # Раньше было: query_params = pos_request.get('params', {})
             st.session_state.messages.append({
                 "role": "assistant",
@@ -521,7 +518,6 @@ def main():
     # Конфигурация страницы должна быть первым вызовом st
     st.set_page_config(page_title="Агент СПК", layout="centered")
     
-        # >>>>> НАЧАЛО ИЗМЕНЕНИЙ: ДОБАВЛЯЕМ БЛОК СТИЛЕЙ <<<<<
     st.markdown("""
         <style>
             /* Импортируем современный шрифт из Google Fonts */
@@ -568,7 +564,6 @@ def main():
             }
         </style>
     """, unsafe_allow_html=True)
-    # <<<<< КОНЕЦ ИЗМЕНЕНИЙ <<<<<
     
     st.title("🤖  Агент по обработке заказов СПК")
     st.caption("Введите запрос...")
@@ -595,7 +590,7 @@ def main():
                 # Отрисовка обычных текстовых сообщений
                 st.markdown(content)
 
-    # Поле ввода пользователя (без изменений)
+    # Поле ввода пользователя
     if prompt := st.chat_input("Введите заказ или ответьте на вопрос..."):
         handle_user_prompt(prompt, finder, gpt)
 
