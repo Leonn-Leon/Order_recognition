@@ -18,7 +18,6 @@ from ..utils import logger
 from ..utils.data_text_processing import Data_text_processing
 from ..utils.split_by_keys import Key_words
 
-from thread import Thread
 
 class Order_recognition():
 
@@ -28,21 +27,21 @@ class Order_recognition():
             os.makedirs("order_recognition/data/logs")
         self.find_mats = Find_materials()
 
-    def consumer_test(self, hash:str=None, content:str=None):
-        if content is None:
-            content = text_from_hash(hash)
-        print('Text - ', content.split('\n'), flush=True)
+    #def consumer_test(self, hash:str=None, content:str=None):
+    #    if content is None:
+    #        content = text_from_hash(hash)
+    #    print('Text - ', content.split('\n'), flush=True)
         # self.test_analize_email(content)
 
-        start_time = time.time()
-        ygpt = custom_yandex_gpt()
-        
-        my_thread = Thread(target=self.test_analize_email, args=[ygpt, content])
-        my_thread.start()
-        
-        my_thread.join()
-        elapsed_time = time.time() - start_time
-        print(f"Время обработки письма: {elapsed_time:.2f} секунд")
+    #    start_time = time.time()
+    #    ygpt = custom_yandex_gpt()
+    #    
+    #    my_thread = Thread(target=self.test_analize_email, args=[ygpt, content])
+    #    my_thread.start()
+    #    
+    #    my_thread.join()
+    #    elapsed_time = time.time() - start_time
+    #    print(f"Время обработки письма: {elapsed_time:.2f} секунд")
 
     def test_analize_email(self, ygpt: custom_yandex_gpt, content):
         clear_email = ygpt.big_mail(content)
@@ -331,14 +330,14 @@ class Order_recognition():
     def start(self):
         asyncio.run(self.main())
 
-if __name__ == '__main__':
-    order_rec = Order_recognition()
-    
-    print("--- [WORKER] Инициализация данных... ---")
-    init_worker(
-        csv_path='order_recognition/data/mats_with_features.csv', 
-        csv_encoding='utf-8'
-    )
-    
-    print("--- [WORKER] Запуск основного цикла сервера... ---")
-    order_rec.start()
+#if __name__ == '__main__':
+#    order_rec = Order_recognition()
+#    
+#    print("--- [WORKER] Инициализация данных... ---")
+#    init_worker(
+#        csv_path='order_recognition/data/mats_with_features.csv', 
+#        csv_encoding='utf-8'
+#    )
+#    
+#    print("--- [WORKER] Запуск основного цикла сервера... ---")
+#    order_rec.start()

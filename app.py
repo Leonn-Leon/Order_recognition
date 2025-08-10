@@ -2,16 +2,17 @@
 import streamlit as st
 import pandas as pd
 import os
-from threading import Lock
+import threading
 import re
 import json
 import html
+from threading import Lock
 
 from order_recognition.core.gemini_parser import GeminiParser
-from order_recognition.core.distance import Find_materials
-from order_recognition.core.worker import WEIGHTS
+from order_recognition.core.worker import WEIGHTS, init_worker
 from order_recognition.core.utils import normalize_param
 from rabbit_rpc_client import execute_rpc_call
+from order_recognition.core.rabbitmq import Order_recognition
 
 # --- КОНФИГУРАЦИЯ ---
 OUTPUT_DIR = "output_data"
@@ -23,21 +24,47 @@ file_lock = Lock()
 # --- ФУНКЦИИ ---
 
 @st.cache_resource
-def load_services():
-    """Загружает и кэширует тяжелые сервисы (модели, данные)."""
-    print("--- ОДНОКРАТНАЯ ЗАГРУЗКА СЕРВИСОВ ---")
-    try:
-        finder_service = Find_materials()
-        if finder_service.all_materials.empty:
-            st.error("Критическая ошибка: не удалось загрузить базу материалов. Проверьте путь и наличие файла.")
-            st.stop()
-        gpt_service = GeminiParser()
-        print("--- СЕРВИСЫ УСПЕШНО ЗАГРУЖЕНЫ ---")
-        return finder_service, gpt_service
-    except Exception as e:
-        st.error(f"Критическая ошибка при загрузке сервисов: {e}")
-        st.stop()
 
+#def load_services():
+#    """Загружает и кэширует тяжелые сервисы (модели, данные)."""
+#    print("--- ОДНОКРАТНАЯ ЗАГРУЗКА СЕРВИСОВ ---")
+#    try:
+#       finder_service = Find_materials()
+#        if finder_service.all_materials.empty:
+#            st.error("Критическая ошибка: не удалось загрузить базу материалов. Проверьте путь и наличие файла.")
+#            st.stop()
+#        gpt_service = GeminiParser()
+#        print("--- СЕРВИСЫ УСПЕШНО ЗАГРУЖЕНЫ ---")
+#        return finder_service, gpt_service
+#    except Exception as e:
+#        st.error(f"Критическая ошибка при загрузке сервисов: {e}")
+#        st.stop()
+
+def init_app_services():
+    """
+    Единая, кэшируемая функция для СОЗДАНИЯ тяжелых объектов.
+    Она НЕ выводит ничего на экран и НЕ запускает потоки.
+    """
+    print("--- [Streamlit] ОДНОКРАТНАЯ ЗАГРУЗКА СЕРВИСОВ ---")
+    
+    # 1. Создаем Gemini
+    gpt_service = GeminiParser()
+
+    # 2. Создаем экземпляр Order_recognition
+    worker_instance = Order_recognition()
+    finder_service = worker_instance.find_mats
+
+    # 3. Инициализируем данные для воркера (CSV)
+    print("--- [Streamlit] Инициализация данных (CSV) для воркера... ---")
+    init_worker(
+        csv_path='order_recognition/data/mats_with_features.csv', 
+        csv_encoding='utf-8'
+    )
+
+    print("--- [Streamlit] СЕРВИСЫ УСПЕШНО СОЗДАНЫ ---")
+    # Возвращаем созданные объекты
+    return finder_service, gpt_service, worker_instance
+        
 def save_feedback(original_query, correct_material_id, confirmed_material_name):
     """Сохраняет подтвержденный менеджером вариант в CSV."""
     new_feedback = pd.DataFrame(
@@ -525,7 +552,19 @@ def main():
     st.title("🤖  Агент по обработке заказов СПК")
     st.caption("Введите запрос...")
 
-    finder, gpt = load_services()
+    try:
+        finder, gpt, worker_instance = init_app_services()
+
+        if 'worker_thread_started' not in st.session_state:
+            print("--- [Streamlit] Запуск RabbitMQ воркера в фоновом потоке... ---")
+            thread = threading.Thread(target=worker_instance.start, daemon=True)
+            thread.start()
+            st.session_state.worker_thread_started = True
+            st.toast("Фоновый сервис обработки заказов запущен!", icon="🤖")
+
+    except Exception as e:
+        st.error(f"Критическая ошибка при инициализации сервисов: {e}")
+        st.stop()
 
     # Инициализация истории чата
     if "messages" not in st.session_state: st.session_state.messages = []

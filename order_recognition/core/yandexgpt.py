@@ -7,7 +7,7 @@ import requests
 from datetime import datetime
 from order_recognition.confs.config import Authorization_AIM, xfolderid, gpt_url, gpt_model_link
 import jwt
-from thread import Thread
+#from thread import Thread
 from order_recognition.utils import logger
 
 
@@ -68,53 +68,53 @@ class custom_yandex_gpt():
         self.iam_token = self.get_iam_token()
         self.headers["Authorization"] = "Bearer " + self.iam_token
 
-    def big_mail(self, text):
-        self.update_token()
+    #def big_mail(self, text):
+    #    self.update_token()
 
-        text_lines = text.split('\n')
+    #    text_lines = text.split('\n')
 
-        self.ress = [""]*len(text_lines)
+    #    self.ress = [""]*len(text_lines)
         
-        my_threads = []
-        MAX_TARGET = 2000
-        current_block = []
-        current_length = 0
+    #    my_threads = []
+    #    MAX_TARGET = 2000
+    #    current_block = []
+    #    current_length = 0
 
-        for line in text_lines:
-            line_len = len(line)
-            
-            # Рассчитываем потенциальную длину 
-            potential_length = current_length + line_len
-            
-            if potential_length > MAX_TARGET:
-                # Отправляем текущий блок
-                block_text = '\n'.join(current_block)
-                my_threads.append(Thread(target=self.get_pos, args=[block_text, len(my_threads)]))
-                my_threads[-1].start()
-                
-                # Начинаем новый блок с текущей строки
-                current_block = [block_text[-100:]+line]
-                current_length = 100+line_len
-            else:
-                # Добавляем строку в блок
-                current_block.append(line)
-                current_length = potential_length
+    #    for line in text_lines:
+    #        line_len = len(line)
+    #        
+    #        # Рассчитываем потенциальную длину 
+    #        potential_length = current_length + line_len
+    #        
+    #        if potential_length > MAX_TARGET:
+    #            # Отправляем текущий блок
+    #            block_text = '\n'.join(current_block)
+    #            my_threads.append(Thread(target=self.get_pos, args=[block_text, len(my_threads)]))
+    #            my_threads[-1].start()
+    #            
+    #           # Начинаем новый блок с текущей строки
+    #            current_block = [block_text[-100:]+line]
+    #            current_length = 100+line_len
+    #        else:
+    #            # Добавляем строку в блок
+    #            current_block.append(line)
+    #            current_length = potential_length
 
         # Отправляем последний блок
-        if current_block:
-            block_text = '\n'.join(current_block)
-            my_threads.append(Thread(target=self.get_pos, args=[block_text, len(my_threads)]))
-            my_threads[-1].start()
+    #    if current_block:
+    #        block_text = '\n'.join(current_block)
+    #        my_threads.append(Thread(target=self.get_pos, args=[block_text, len(my_threads)]))
+    #        my_threads[-1].start()
 
-        print(f'Запущено потоков: {len(my_threads)}')
+    #    print(f'Запущено потоков: {len(my_threads)}')
         
-        # Ожидаем завершения всех потоков
-        for ind, thread in enumerate(my_threads):
-            thread.join()
-            print(f"Поток {ind+1} завершён")
+    #    # Ожидаем завершения всех потоков
+    #    for ind, thread in enumerate(my_threads):
+    #        thread.join()
+    #        print(f"Поток {ind+1} завершён")
 
-        self.ress = [mini_r for r in self.ress for mini_r in r if r != '']
-        return self.ress
+    #    self.ress = [mini_r for r in self.ress for mini_r in r if r != '']
+    #    return self.ress
 
     def get_pos(self, text:str, idx:int):
         """
