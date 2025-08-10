@@ -1,5 +1,5 @@
-connection_url = "amqp://guest:guest@localhost:5672/%2F"
-first_queue = "get_message"
+connection_url = "RMQ_AI_URL" 
+first_queue = "rpc_queue_orders"
 second_queue = "save_truth"
 third_queue = "find_request_result"
 exchange = "ai"

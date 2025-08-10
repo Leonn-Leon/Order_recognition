@@ -2,10 +2,12 @@
 import pika
 import uuid
 import json
+import os
 
 
-RABBITMQ_URL = 'amqp://guest:guest@localhost:5672/%2F'
-RPC_QUEUE_NAME = 'get_message'
+RABBITMQ_URL = os.getenv("RMQ_AI_URL", "amqp://guest:guest@localhost:5672/%2F")
+EXCHANGE_NAME = os.getenv("RMQ_EXCHANGE_NAME", "ai")
+ROUTING_KEY = os.getenv("ROUTING_KEY_1", "orderrecognition.find_request")
 
 class RpcClient(object):
     def __init__(self):
@@ -36,8 +38,8 @@ class RpcClient(object):
         self.corr_id = str(uuid.uuid4())
 
         self.channel.basic_publish(
-            exchange='',
-            routing_key=RPC_QUEUE_NAME, 
+            exchange=EXCHANGE_NAME,
+            routing_key=ROUTING_KEY,
             properties=pika.BasicProperties(
                 reply_to=self.callback_queue,
                 correlation_id=self.corr_id,  
@@ -45,7 +47,7 @@ class RpcClient(object):
             body=json.dumps(data_to_send) 
         )
 
-        print(" [x] Запрос отправлен, ожидание ответа...")
+        print(f" [x] Запрос отправлен в exchange='{EXCHANGE_NAME}' с ключом='{ROUTING_KEY}', ожидание ответа...")
         while self.response is None:
             self.connection.process_data_events(time_limit=None)
 

@@ -26,11 +26,11 @@ class GeminiParser:
             generation_config = {"temperature": 0.0}
             
             self.model = genai.GenerativeModel(
-                model_name="gemini-2.0-flash", 
+                model_name="gemini-2.5-flash", 
                 generation_config=generation_config,
                 safety_settings=SAFETY_SETTINGS
             )
-            print("--- Gemini Parser (gemini-2.0-flash) с настройками безопасности успешно инициализирован ---")
+            print("--- Gemini Parser (gemini-2.5-flash) с настройками безопасности успешно инициализирован ---")
 
         except Exception as e:
             raise Exception(f"Ошибка при инициализации Gemini: {e}")
@@ -281,7 +281,7 @@ class GeminiParser:
             positions = data.get('positions', [])
             
             if isinstance(positions, list):
-                print(f"Gemini (gemini-2.0-flash) распознал: {positions}")
+                print(f"Gemini (gemini-2.5-flash) распознал: {positions}")
                 return positions
             
             print(f"--- Ошибка: Ключ 'positions' в ответе модели не является списком. Ответ: {data} ---")

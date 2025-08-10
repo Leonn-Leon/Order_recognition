@@ -59,23 +59,21 @@ def get_clarification_question(structured_position):
     params = structured_position.get("params", {})
     original_query = structured_position.get('original_query', '')
     
-    # >>>>> НАЧАЛО ИЗМЕНЕНИЙ >>>>>
-    # Проверка для арматуры и круглой трубы
     if base_name in ["арматура", "труба_круглая", "круг"] and "диаметр" not in params:
         return f"Для позиции `{original_query}` не указан **диаметр**."
     
-    # Проверка для листа
+
     if base_name == "лист" and "толщина" not in params:
         return f"Для листа `{original_query}` не указана **толщина**."
         
-    # Проверка для профильной трубы (ДОБАВЛЯЕМ ЭТО)
+
     if base_name == "труба_профильная":
         if "размер" not in params:
             return f"Для профильной трубы `{original_query}` не указан **размер**."
         if "толщина" not in params:
             return f"Для профильной трубы `{original_query}` не указана **толщина** стенки."
 
-    # Проверка для швеллера
+
     if base_name in ["швеллер", "балка"] and "номер" not in params:
         return f"Для {base_name.replace('_', ' ')} `{original_query}` не указан **номер**."
 
@@ -88,7 +86,6 @@ def clean_prompt_for_gemini(prompt_text: str) -> str:
     """
     lines = prompt_text.split('\n')
     
-    # 1. Находим, с какой строки начинается подпись
     signature_start_index = -1
     signature_triggers = ['с уважением', 'с наилучшими', 'директор', 'менеджер', 'mercury', 'golos.click', 'amineva', 'отдел снабжения']
     for i, line in enumerate(lines):
@@ -96,16 +93,11 @@ def clean_prompt_for_gemini(prompt_text: str) -> str:
             signature_start_index = i
             break
             
-    # 2. Если подпись найдена, обрезаем все строки, начиная с нее
     if signature_start_index != -1:
         lines = lines[:signature_start_index]
         
-    # 3. Соединяем строки обратно в единый текст
     cleaned_text = '\n'.join(lines)
     
-    # 4. ЗАМЕНЯЕМ НЕНАДЕЖНОЕ РЕГУЛЯРНОЕ ВЫРАЖЕНИЕ НА БОЛЕЕ НАДЕЖНЫЙ МЕТОД
-    # Этот метод разбивает строку по ЛЮБЫМ пробельным символам (пробелы, табы, переносы строк)
-    # и затем соединяет обратно через один пробел. Это гарантирует результат в одну строку.
     single_line_text = " ".join(cleaned_text.split())
 
     return single_line_text
@@ -133,7 +125,6 @@ def highlight_text(material_row: pd.Series, query_params: dict) -> str:
         "тип": {
             "гнутый": "ГН"
         }
-        # Сюда можно будет добавлять другие синонимы, если потребуется
     }
     
     # --- Цветовая схема ---
@@ -146,18 +137,15 @@ def highlight_text(material_row: pd.Series, query_params: dict) -> str:
 
     highlights = {}
 
-    # --- ЭТАП 1: Определяем статус для каждого параметра в НАЙДЕННОМ ТОВАРЕ ---
     for param_name, material_value in material_params.items():
         query_value = query_params.get(param_name)
         
-        # Пропускаем пустые значения
         if not material_value or str(material_value).strip() in ['', '##']:
             continue
 
         status = None
         
         if query_value:
-            # Параметр был в запросе - проверяем совпадение
             norm_q = normalize_param(str(query_value))
             norm_m = normalize_param(str(material_value))
 
@@ -168,26 +156,20 @@ def highlight_text(material_row: pd.Series, query_params: dict) -> str:
             else:
                 status = "mismatch"
         else:
-            # Параметра не было в запросе - он лишний
             status = "excess"
         
-        # Для сложных значений (размер, несколько марок стали) разбиваем на части
         parts_to_highlight = set()
         raw_parts = re.split(r'[ ,/хx*-]', str(material_value))
         for p in raw_parts:
             if p:
                 parts_to_highlight.add(p.strip())
 
-        # <<< НАЧАЛО НОВОГО БЛОКА: Добавляем синонимы в подсветку >>>
         if param_name in SYNONYMS and material_value in SYNONYMS[param_name]:
             parts_to_highlight.add(SYNONYMS[param_name][material_value])
-        # <<< КОНЕЦ НОВОГО БЛОКА >>>
 
         for part in parts_to_highlight:
             highlights[part] = param_colors[status]
 
-    # --- ЭТАП 2: Применяем подсветку к строке ---
-    # Разбиваем название на слова и символы-разделители
     tokens = re.split(r'([\s,/хx*()-]+)', full_name)
     output_parts = []
 
@@ -195,14 +177,12 @@ def highlight_text(material_row: pd.Series, query_params: dict) -> str:
         norm_token = token.strip()
         color = highlights.get(norm_token) # Сначала ищем точное совпадение (например, для "СТ20")
 
-        # Если точного совпадения нет, пробуем "очистить" токен от буквы "М" и поискать снова
         if not color:
             length_norm_token = norm_token.upper().replace('М', '')
             if length_norm_token in highlights:
                 color = highlights[length_norm_token]
 
         if color:
-            # Если нашли совпадение любым способом, подсвечиваем исходный токен
             output_parts.append(
                 f'<span style="background-color: {color}; color: #1E1E1E; padding: 1px 4px; border-radius: 4px; font-weight: bold;">{html.escape(token)}</span>'
             )
@@ -213,7 +193,6 @@ def highlight_text(material_row: pd.Series, query_params: dict) -> str:
 
 def generate_styled_tooltip(query_params: dict, material_id: str, finder) -> str:
     """
-    ФИНАЛЬНАЯ, ПОЛНОСТЬЮ СИНХРОНИЗИРОВАННАЯ ВЕРСИЯ.
     Генерирует HTML-блок, ТОЧНО повторяя ВСЮ логику скоринга из worker.py.
     """
     try:
@@ -224,7 +203,6 @@ def generate_styled_tooltip(query_params: dict, material_id: str, finder) -> str
 
     if not query_params: return "Нет параметров для сравнения."
 
-    # --- Подтягиваем константы для расчета, чтобы они были в одном месте ---
     MISMATCH_PENALTY_FACTOR = 1.0
     MISSING_PARAM_PENALTY_FACTOR = 1.2
     EXCESS_PARAM_PENALTY = 15
@@ -232,7 +210,6 @@ def generate_styled_tooltip(query_params: dict, material_id: str, finder) -> str
     PARTIAL_MATCH_BONUS_FACTOR = 0.6 # Начисляем 60% от веса за частичное совпадение
     EXCESS_PARAM_PENALTY_FACTOR = 0.3 # Штраф = 30% от веса лишнего параметра
 
-    # --- ЭТАП 1: Расчет максимально возможного балла ---
     max_possible_score = sum(WEIGHTS.get(p, WEIGHTS['default']) for p in query_params)
     if max_possible_score <= 0: return "Неверные параметры запроса."
 
@@ -240,17 +217,14 @@ def generate_styled_tooltip(query_params: dict, material_id: str, finder) -> str
     bonus_lines = []
     penalty_lines = []
 
-    # --- ЭТАП 2: Анализируем ЗАПРОШЕННЫЕ параметры ---
     for param_name, query_value in query_params.items():
         weight = WEIGHTS.get(param_name, WEIGHTS['default'])
         material_value = material_params.get(param_name)
 
-        # Случай 1: Параметр есть и в запросе, и в товаре. Сравниваем.
         if material_value and str(material_value).strip() not in ['', '##']:
             is_matched = False
             bonus_multiplier = 0.0
 
-            # --- Логика сравнения (остается без изменений) ---
             if param_name == 'марка стали':
                 norm_q = normalize_param(str(query_value))
                 norm_m = normalize_param(str(material_value))
@@ -260,7 +234,7 @@ def generate_styled_tooltip(query_params: dict, material_id: str, finder) -> str
             elif param_name == 'состояние':
                 norm_q = normalize_param(str(query_value))
                 norm_m = normalize_param(str(material_value))
-                # Проверяем, что одна строка содержится в другой
+
                 if norm_q in norm_m or norm_m in norm_q:
                     is_matched = True
                     bonus_multiplier = 1.0
@@ -271,7 +245,6 @@ def generate_styled_tooltip(query_params: dict, material_id: str, finder) -> str
                 if query_set.issubset(material_set):
                     is_matched = True; bonus_multiplier = 1.0
             
-            # --- Логика начисления бонусов и штрафов ---
             if is_matched:
                 bonus_points = int(weight * bonus_multiplier)
                 actual_score += bonus_points
@@ -296,14 +269,11 @@ def generate_styled_tooltip(query_params: dict, material_id: str, finder) -> str
                     actual_score -= penalty_points
                     penalty_lines.append(f'<span style="color: #F5B041;">- {penalty_points}</span> за несоответствие "{param_name}"') 
 
-        # Случай 2: Параметр был в запросе, но ОТСУТСТВУЕТ в товаре.
         else:
-            # <<< НОВЫЙ БЛОК 2: ШТРАФ ЗА ОТСУТСТВИЕ (MISSING) >>>
             penalty_points = int(weight * MISSING_PARAM_PENALTY_FACTOR)
             actual_score -= penalty_points
             penalty_lines.append(f'<span style="color: #EC7063;">- {penalty_points}</span> за отсутствие "{param_name}"')
 
-    # --- ЭТАП 3: Штрафуем за ЛИШНИЕ параметры (этот блок у вас был и он корректен) ---
     for material_param_name in material_params:
         if material_param_name not in query_params and material_param_name != 'состояние':
             weight = WEIGHTS.get(material_param_name, WEIGHTS['default'])
@@ -311,13 +281,11 @@ def generate_styled_tooltip(query_params: dict, material_id: str, finder) -> str
             penalty_points = int(weight * EXCESS_PARAM_PENALTY_FACTOR)
             penalty_lines.append(f'<span style="color: gold;">- {penalty_points}</span> за лишний "{material_param_name}"')
     
-    # --- ЭТАП 4: Штраф за "скрытое" состояние (этот блок у вас был и он корректен) ---
     if 'состояние' not in query_params and material_params.get('состояние'):
         condition = material_params["состояние"]
         actual_score -= HIDDEN_CONDITION_PENALTY
         penalty_lines.append(f'<span style="color: #E74C3C; font-weight: bold;">- {HIDDEN_CONDITION_PENALTY}</span> за скрытое состояние: {condition}')
 
-    # --- ЭТАП 5: Формирование HTML (без изменений) ---
     final_score = max(0, actual_score)
     percentage = (final_score / max_possible_score) * 100
 
@@ -352,7 +320,6 @@ def display_results(results_data, finder, pos_request):
     detected_qty = pos_request.get('quantity', 1)
     detected_unit = pos_request.get('unit', 'шт')
 
-    # CSS стили для подсказки остаются без изменений
     st.markdown("""
     <style>
         .tooltip-container {
@@ -388,25 +355,20 @@ def display_results(results_data, finder, pos_request):
 
     with st.container(border=True):
         
-        # 1. Создаем уникальные ключи
         qty_key = f"qty_{request_text}"
         unit_key = f"unit_{request_text}"
 
-        # 2. Инициализируем состояние
         if qty_key not in st.session_state:
-            # Сохраняем как строку для st.text_input
             st.session_state[qty_key] = str(detected_qty) 
         if unit_key not in st.session_state:
             st.session_state[unit_key] = detected_unit
 
-        # 3. Создаем колонки и виджеты
         col_info_header, col_qty, col_unit = st.columns([0.65, 0.2, 0.15])
         
         with col_info_header:
             st.markdown(f"**Исходный запрос:** `{request_text}`")
             st.markdown(f"**Распознано:** {format_params_to_string(query_params)}")
 
-        # >>>>> ИЗМЕНЕНИЕ: ИСПОЛЬЗУЕМ ПРОСТОЕ ТЕКСТОВОЕ ПОЛЕ <<<<<
         with col_qty:
             st.text_input(
                 "Кол-во",
@@ -431,7 +393,6 @@ def display_results(results_data, finder, pos_request):
             result_df = finder.all_materials[finder.all_materials['Материал'] == mat_id]
             if not result_df.empty:
                 full_name = result_df['Полное наименование материала'].values[0]
-                # Передаем всю строку DataFrame (result_df.iloc[0]), а не только имя
                 highlighted_name = highlight_text(result_df.iloc[0], query_params)
                 
                 tooltip_content = generate_styled_tooltip(query_params, mat_id, finder)
@@ -443,9 +404,8 @@ def display_results(results_data, finder, pos_request):
                 </div>
                 '''
 
-                # >>>>> ИЗМЕНЕНИЕ: УБИРАЕМ КОЛОНКИ И КНОПКУ 'ВЫБРАТЬ' <<<<<
                 st.markdown(
-                    f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">' # Добавил отступ
+                    f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">'
                     f'<span style="font-size: 0.9em; color: #A0A0A0;">Top {i}</span>'
                     f'<span>{highlighted_name}</span></div>'
                     f'<div style="font-size: 0.8em; color: #707070; padding-left: 38px;">'
@@ -498,24 +458,21 @@ def handle_user_prompt(prompt: str, finder, gpt):
             st.error(f"Произошла ошибка при обработке: {error_msg}")
             return
         
-        # Здесь логика остается той же, она уже рассчитана на работу со списком
     for pos_request in structured_positions:
         pos_results = next((res for res in results_object.get('positions', []) if res['request_text'] == pos_request['original_query']), None)
         if pos_results:
-            # Раньше было: query_params = pos_request.get('params', {})
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": {
                     "type": "results",
-                    "pos_request": pos_request,  # Сохраняем весь объект запроса
+                    "pos_request": pos_request,
                     "data": pos_results
                 }
             }) 
-            display_results(pos_results, finder, pos_request) # Передаем весь pos_request
+            display_results(pos_results, finder, pos_request) 
 
 # --- ОСНОВНОЕ ПРИЛОЖЕНИЕ STREAMLIT ---
 def main():
-    # Конфигурация страницы должна быть первым вызовом st
     st.set_page_config(page_title="Агент СПК", layout="centered")
     
     st.markdown("""
@@ -579,18 +536,14 @@ def main():
         with st.chat_message(message["role"]):
             content = message["content"]
             if isinstance(content, dict) and content.get("type") == "results":
-                # Извлекаем ВСЕ данные, которые мы сохранили на Шаге 1
                 pos_request = content.get("pos_request")
                 results_data = content.get("data")
                 
-                # Если все данные на месте, вызываем отрисовку
                 if pos_request and results_data:
                     display_results(results_data, finder, pos_request)
             else:
-                # Отрисовка обычных текстовых сообщений
                 st.markdown(content)
 
-    # Поле ввода пользователя
     if prompt := st.chat_input("Введите заказ или ответьте на вопрос..."):
         handle_user_prompt(prompt, finder, gpt)
 
