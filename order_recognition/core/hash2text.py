@@ -5,15 +5,11 @@ import html
 from bs4 import BeautifulSoup
 from order_recognition.utils.data_text_processing import Data_text_processing
 
-# Функция для парсинга XML и извлечения HTML-содержимого
 def html_from_xml(xml_data):
-    # Парсинг XML
     root = ET.fromstring(xml_data)
-    # Нахождение элемента fileContent и декодирование HTML-содержимого
     html_content = html.unescape(root.find('.//fileContent').text)
     return html_content
 
-# Функция для преобразования HTML в текст
 def convert_html_to_text(html_content):
     soup = BeautifulSoup(html_content, features="html.parser")
     return soup.get_text('\n').replace('\r', ' ')

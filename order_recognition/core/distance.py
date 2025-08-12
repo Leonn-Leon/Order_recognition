@@ -1,199 +1,126 @@
-from Levenshtein import ratio
+# order_recognition/core/distance.py
 import pandas as pd
 import uuid
-import json
-import base64
-from order_recognition.utils.data_text_processing import Data_text_processing
-import numpy as np
-from order_recognition.work_with_models.models_manager import Use_models
-from multiprocessing import Process, Pool
+from multiprocessing import Pool, cpu_count
+# Импортируем все необходимое из worker.py
+from .worker import init_worker, process_one_task, calculate_score
+
+# ----------------------------------------------------
+SACRIFICE_HIERARCHY = [
+    # Самые маловажные, которыми жертвуем в первую очередь
+    'цвет_ral',
+    'покрытие',
+    'гост_ту',
+    'состояние',
+
+    # Средней важности
+    'марка стали',
+    'тип',
+
+    # Важные, но можно пожертвовать, если длина не указана
+    'длина',
+    
+    # Ключевые параметры, которыми жертвуем в последнюю очередь
+    'класс',      # для арматуры
+    'номер',      # для швеллера/балки
+    'толщина',    # для листа/трубы/уголка
+    'размер',     # для профиля/уголка
+    'диаметр',    # для арматуры/круглой трубы
+]
+# ----------------------------------------------------
 
 class Find_materials():
-    def __init__(self):
-        pd.options.mode.copy_on_write = True
-        self.models = Use_models()
-        self.all_materials = pd.read_csv('order_recognition/data/mats.csv', dtype=str)
-        self.otgruzki = pd.read_csv('order_recognition/data/otgruzki.csv', sep=';')
-        self.otgruzki['Код материала'] = self.otgruzki['Код материала'].astype(int)
-        self.method2 = pd.read_csv('order_recognition/data/method2.csv')
-        self.saves = pd.read_csv('order_recognition/data/saves.csv', index_col='req_Number')
-        # Добавление длины названия
-        self.all_materials["Name Length"] = self.all_materials["Полное наименование материала"].str.len()
-        print('All materials opened!', flush=True)
-        self.dp = Data_text_processing()
+    def __init__(self, csv_path='order_recognition/data/mats_with_features.csv'):
+        self.csv_path = csv_path
+        self.csv_encoding = 'utf-8'
+        try:
+            self.all_materials = pd.read_csv(self.csv_path, dtype=str, encoding=self.csv_encoding)
+            self.all_materials['Материал'] = self.all_materials['Материал'].str.zfill(18)
+            print('Класс Find_materials создан и данные для UI загружены.')
+        except FileNotFoundError:
+            print(f"ОШИБКА: Файл с признаками не найден по пути {self.csv_path}")
+            self.all_materials = pd.DataFrame()
 
-    def find_top_materials_advanced(self, query, materials_df, top_n=5):
+    def _search_single_pass(self, task: dict):
         """
-        Расширенная функция поиска материалов, которая отдаёт приоритет совпадениям по словам и учитывает числовые параметры.
-
-        Аргументы:
-        query (str): Строка запроса от клиента.
-        materials_df (pd.DataFrame): DataFrame, содержащий данные о материалах.
-        top_n (int): Количество лучших результатов для возврата.
-
-        Возвращает:
-        pd.DataFrame: DataFrame, содержащий топовые совпадающие материалы.
+        Выполняет ОДИН проход поиска для одной задачи.
+        Возвращает словарь с результатами и лучшим скором.
         """
-        # Разделение запроса на слова и числа
-        # words = re.findall(r'\D+', query)  # Найти все нечисловые последовательности
-        # numbers = re.findall(r'\d+\.?\d*', query)  # Найти все числа, включая десятичные
-        # all = words + numbers
-        all = query.split()
-        # all = [(i[:-2] if i[-2:]==".0" else i) for i in all]
-        print('second metric -', all)
-        # Функция для подсчёта совпадающих слов и проверки наличия числовых параметров
-        def count_matches_and_numeric(query_numbers, material_name):
-            material_words = material_name.lower().split()  # Разбиение названия материала на слова
-            coincidences = []
-            k = 0
-            for num in query_numbers:
-                num = num.strip()
-                if num in material_words:
-                    ind = material_words.index(num)
-                    coincidences += [[ind, num]]
-                    material_words[ind] = ""
-                    k+=1
-                    # continue
-                elif num.isdigit():
-                    coincidences += [""]
-                    # continue
-                elif num[:-1].isdigit():
-                    if num[:-1] in material_words:
-                        ind = material_words.index(num[:-1])
-                        coincidences += [[ind, num[:-1]]]
-                        material_words[ind] = ""
-                        k += 1
-                        # continue
-                elif num[1:].isdigit():
-                    if num[1:] in material_words:
-                        ind = material_words.index(num[1:])
-                        coincidences += [[ind, num[1:]]]
-                        material_words[ind] = ""
-                        k += 1
-                        # continue
-                else:
-                    coincidences += [""]
+        original_query = task.get('original_query', '')
+        base_name = task.get('base_name', '')
+        query_params = task.get('params', {})
+        
+        candidates_df = self.all_materials[self.all_materials['base_name'] == base_name].copy()
+        
+        if candidates_df.empty:
+            return {'request_text': original_query, 'best_score': -9999}
 
-            _size = len(coincidences)
-            numeric_presence = sum(((_size-ind)/(abs(num[0]-ind)+1))**0.1
-                                   for ind, num in enumerate(coincidences) if num != "")
-
-            return numeric_presence
-
-        # Применение функции подсчёта к каждому материалу
-        materials_df = materials_df.assign(
-            **{"Numeric Presence": materials_df["Полное наименование материала"].apply(
-                lambda x: count_matches_and_numeric(all, x)
-            )}
+        candidates_df['score'] = candidates_df['params_json'].apply(
+            lambda x: calculate_score(query_params, x)
         )
-        try:
-            materials_df.loc[materials_df["Материал"].isin(self.otgruzki['Код материала'].tolist()), "Numeric Presence"] += 200
-            # if not materials_df.empty: # Проверка, что DataFrame не пустой
-                # scores = materials_df["Numeric Presence"]
-                # min_score = scores.min()
-                # max_score = scores.max()
-                # if max_score > min_score:
-                #     materials_df["Numeric Presence"] = (scores - min_score) / (max_score - min_score)
-                # else: # Все значения одинаковы
-                #     materials_df["Numeric Presence"] = 1.0 if max_score > 0 else 0.0
-        except Exception as exc:
-            print(exc)
-        max_similarity_idxs = np.argsort(materials_df["Numeric Presence"])
-        # Отправить также и отсортированные materials_df["Numeric Presence"]materials_df.iloc[max_similarity_idxs[::-1]]
-        return materials_df.iloc[max_similarity_idxs[::-1]]
-
-    def paralell_rows(self, rows):
-        # Удаление элементов с дублирующимися нулевыми значениями
-        seen = set()
-        unique_rows = []
-        for row in rows:
-            if row[0] not in seen:
-                unique_rows.append(row)
-                seen.add(row[0])
-
-        print(f'Удалено {len(rows) - len(unique_rows)} дубликатов, осталось {len(unique_rows)} уникальных позиций.')
-        rows = [(i, i2, i3) for i, i2, i3 in rows if len(i) > 5 and i[0] != '+']
-        kols = len(rows)
-        my_threads = []
-        self.results = [""]
-        self.poss = [""]*kols
-        self.results[0] = {"req_Number": str(uuid.uuid4())}
+        candidates_df['score'] = pd.to_numeric(candidates_df['score'])
         
-        tasks = [[row, val_ei, ei, idx] for idx, (row, ei, val_ei) in enumerate(rows)]
+        top_results = candidates_df.sort_values(by="score", ascending=False).head(5)
         
-        with Pool(5) as pool:
-            result_from_processes = pool.map(self.find_mats, tasks)
+        response_position = {'request_text': original_query}
+        if not top_results.empty:
+            response_position['best_score'] = top_results.iloc[0]['score']
+        
+        for i, (_, row_data) in enumerate(top_results.iterrows()):
+            response_position[f'material{i+1}_id'] = row_data['Материал']
+            response_position[f"weight_{i+1}"] = str(row_data['score'])
             
-        for res in result_from_processes:
-            self.poss[int(res["position_id"])] = res
+        return response_position
 
-        # print("вот тут", self.poss)
-        self.results[0]["positions"] = self.poss
-        self.saves.loc[self.results[0]["req_Number"]] = ["{'positions':" + str(self.results[0]["positions"]) + "}"]
-        self.saves.to_csv('order_recognition/data/saves.csv')
-        # print("results -", self.results)
-        return str(self.results)
+    def single_thread_rows(self, structured_rows: list[dict]):
+        """
+        Многопроходный поиск для Streamlit.
+        Сначала ищет точное совпадение. Если не находит, "жертвует"
+        наименее важными параметрами и ищет снова.
+        """
 
-    def find_mats(self, args):
-        row, val_ei, ei, idx = args
-        local_poss = {'position_id': str(idx)}
-        local_poss['request_text'] = row
-        ###############################
-        new_mat, val_ei, ei = self.dp.new_mat_prep(row, val_ei, ei)
-        print('--', new_mat)
+        final_positions = []
+        for task in structured_rows:
+            original_params = task.get('params', {}).copy()
+            
 
+            result = self._search_single_pass(task)
+            
+            best_score = result.get('best_score', -9999)
+            
+            if best_score <= 0 and len(original_params) > 1:
 
-        local_poss['value'] = val_ei
-        local_poss['ei'] = ei
+                params_to_sacrifice = original_params.copy()
+                
+                for param_to_remove in SACRIFICE_HIERARCHY:
+                    if param_to_remove in params_to_sacrifice:
+                        del params_to_sacrifice[param_to_remove]
+                       
+                        new_task = task.copy()
+                        new_task['params'] = params_to_sacrifice
+                        
+                        result = self._search_single_pass(new_task)
+                        best_score = result.get('best_score', -9999)
+                        
+                        if best_score > 0:
+                            break
+            
+            final_positions.append(result)
 
-        materials_df = self.all_materials#[tr]
-        advanced_search_results = self.find_top_materials_advanced(new_mat,
-                                materials_df[['Материал', "Полное наименование материала"]])
-        # ress = advanced_search_results.values
-        ress = advanced_search_results[:5].values
-        for ind, res in enumerate(ress):
-            _ratio = ratio(" ".join(new_mat.split()[:5]), " ".join(res[0].split()[:5]))
-            ress[ind][2] = str(_ratio)
-        # print(ress)
-        # print('Вот это ищем', new_mat)
-        if new_mat in self.method2.question.to_list():
-            print('Нашёл', new_mat)
-            foundes = self.method2[self.method2.question == new_mat].answer.to_list()
-            true_positions = []
-            for pos in foundes[::-1]:
-                temp = json.loads(base64.b64decode(pos).decode('utf-8').replace("'", '"'))
-                if temp not in true_positions:
-                    true_positions += [temp]
-            itog = []
-            for ind, i in enumerate(ress):
-                for tp in true_positions:
-                    if i[0] == tp["num_mat"]:
-                        break
-                else:
-                    itog += [i]
-            ress = []
-            for tp in true_positions:
-                ress += [[tp["num_mat"], tp["name_mat"], "0.99"]]
-            ress += itog
-            ress = ress[:5]
-        for ind, pos in enumerate(ress):
-            local_poss['material'+str(ind+1)+'_id'] = '0'*(18-len(str(pos[0])))+str(pos[0])
-            local_poss["weight_"+str(ind+1)+""] = str(pos[2])
-        return local_poss
+        return {"req_Number": str(uuid.uuid4()), "positions": final_positions}
 
+    def parallel_rows(self, structured_rows: list[dict]):
+        print("--- Запускается многопроцессорный режим. ---")
+        if not structured_rows:
+            return {"req_Number": str(uuid.uuid4()), "positions": []}
+            
+        tasks = structured_rows
+        init_args = (self.csv_path, self.csv_encoding)
+        
+        num_processes = min(cpu_count(), len(tasks)) 
+        if num_processes == 0: return {"req_Number": str(uuid.uuid4()), "positions": []}
 
-if __name__ == '__main__':
-    print('Введите наименования ниже для поиска их в базе:')
-    rows = []
-    find_mats = Find_materials()
-    while True:
-        try:
-            line = input()
-            if line == '0':
-                break
-            line = ' '.join(line.split())
-        except EOFError:
-            break
-        rows.append(line)
-    print(f'Найдено {len(rows)} наименований')
-    find_mats.paralell_rows(rows)
+        with Pool(initializer=init_worker, initargs=init_args, processes=num_processes) as pool:
+            result_from_processes = pool.map(process_one_task, tasks)
+        
+        return {"req_Number": str(uuid.uuid4()), "positions": result_from_processes}
