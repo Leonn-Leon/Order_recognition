@@ -5,9 +5,7 @@ from multiprocessing import Pool, cpu_count
 # Импортируем все необходимое из worker.py
 from .worker import init_worker, process_one_task, calculate_score
 
-# --- ИЕРАРХИЯ ПАРАМЕТРОВ ДЛЯ "ЖЕРТВОПРИНОШЕНИЯ" ---
-# Список от наименее важного к наиболее важному.
-# Система будет удалять их из запроса по одному, снизу вверх, если не найдет точное совпадение.
+# ----------------------------------------------------
 SACRIFICE_HIERARCHY = [
     # Самые маловажные, которыми жертвуем в первую очередь
     'цвет_ral',
@@ -80,27 +78,24 @@ class Find_materials():
         Сначала ищет точное совпадение. Если не находит, "жертвует"
         наименее важными параметрами и ищет снова.
         """
-        # print("--- Запуск многопроходного поиска ---") # <<<< УБРАТЬ
 
         final_positions = []
         for task in structured_rows:
             original_params = task.get('params', {}).copy()
             
-            # print(f"Проход 1: Ищем по всем параметрам {original_params}") # <<<< УБРАТЬ
+
             result = self._search_single_pass(task)
             
             best_score = result.get('best_score', -9999)
             
             if best_score <= 0 and len(original_params) > 1:
-                # print("Проход 1 не дал результатов. Начинаем поиск с жертвами...") # <<<< УБРАТЬ
-                
+
                 params_to_sacrifice = original_params.copy()
                 
                 for param_to_remove in SACRIFICE_HIERARCHY:
                     if param_to_remove in params_to_sacrifice:
                         del params_to_sacrifice[param_to_remove]
-                        # print(f"  -> Жертвуем '{param_to_remove}'. Ищем по {params_to_sacrifice}") # <<<< УБРАТЬ
-                        
+                       
                         new_task = task.copy()
                         new_task['params'] = params_to_sacrifice
                         
@@ -108,7 +103,6 @@ class Find_materials():
                         best_score = result.get('best_score', -9999)
                         
                         if best_score > 0:
-                            # print(f"  -> Найдено с лучшим счетом {best_score}. Завершаем поиск.") # <<<< УБРАТЬ
                             break
             
             final_positions.append(result)
@@ -116,8 +110,7 @@ class Find_materials():
         return {"req_Number": str(uuid.uuid4()), "positions": final_positions}
 
     def parallel_rows(self, structured_rows: list[dict]):
-        """Многопроцессорная версия. Опасно использовать в Streamlit."""
-        print("--- ВНИМАНИЕ: Запускается многопроцессорный режим. ---")
+        print("--- Запускается многопроцессорный режим. ---")
         if not structured_rows:
             return {"req_Number": str(uuid.uuid4()), "positions": []}
             

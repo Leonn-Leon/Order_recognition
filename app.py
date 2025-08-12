@@ -8,10 +8,10 @@ import json
 import html
 from threading import Lock
 
-from order_recognition.core.gemini_parser import GeminiParser
+from order_recognition.core.deepseek_parser import DeepSeekParser
 from order_recognition.core.worker import WEIGHTS, init_worker
 from order_recognition.core.utils import normalize_param
-from rabbit_rpc_client import execute_rpc_call
+from order_recognition.core.rabbit_rpc_client import execute_rpc_call
 from order_recognition.core.rabbitmq import Order_recognition
 
 # --- КОНФИГУРАЦИЯ ---
@@ -25,36 +25,18 @@ file_lock = Lock()
 
 @st.cache_resource
 
-#def load_services():
-#    """Загружает и кэширует тяжелые сервисы (модели, данные)."""
-#    print("--- ОДНОКРАТНАЯ ЗАГРУЗКА СЕРВИСОВ ---")
-#    try:
-#       finder_service = Find_materials()
-#        if finder_service.all_materials.empty:
-#            st.error("Критическая ошибка: не удалось загрузить базу материалов. Проверьте путь и наличие файла.")
-#            st.stop()
-#        gpt_service = GeminiParser()
-#        print("--- СЕРВИСЫ УСПЕШНО ЗАГРУЖЕНЫ ---")
-#        return finder_service, gpt_service
-#    except Exception as e:
-#        st.error(f"Критическая ошибка при загрузке сервисов: {e}")
-#        st.stop()
-
 def init_app_services():
     """
     Единая, кэшируемая функция для СОЗДАНИЯ тяжелых объектов.
     Она НЕ выводит ничего на экран и НЕ запускает потоки.
     """
     print("--- [Streamlit] ОДНОКРАТНАЯ ЗАГРУЗКА СЕРВИСОВ ---")
-    
-    # 1. Создаем Gemini
-    gpt_service = GeminiParser()
 
-    # 2. Создаем экземпляр Order_recognition
+    gpt_service = DeepSeekParser()
+
     worker_instance = Order_recognition()
     finder_service = worker_instance.find_mats
 
-    # 3. Инициализируем данные для воркера (CSV)
     print("--- [Streamlit] Инициализация данных (CSV) для воркера... ---")
     init_worker(
         csv_path='order_recognition/data/mats_with_features.csv', 
@@ -62,7 +44,6 @@ def init_app_services():
     )
 
     print("--- [Streamlit] СЕРВИСЫ УСПЕШНО СОЗДАНЫ ---")
-    # Возвращаем созданные объекты
     return finder_service, gpt_service, worker_instance
         
 def save_feedback(original_query, correct_material_id, confirmed_material_name):
@@ -498,7 +479,7 @@ def handle_user_prompt(prompt: str, finder, gpt):
             }) 
             display_results(pos_results, finder, pos_request) 
 
-# --- ОСНОВНОЕ ПРИЛОЖЕНИЕ STREAMLIT ---
+# STREAMLIT
 def main():
     st.set_page_config(page_title="Агент СПК", layout="centered")
     

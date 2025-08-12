@@ -1,16 +1,16 @@
 services:
 
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:4.1.0-management
     container_name: some-rabbit
     ports:
       - "5672:5672"
       - "15672:15672"
-  #  healthcheck:
-  #    test: ["CMD", "rabbitmq-diagnostics", "check_running", "-q"]
-  #    interval: 30s
-  #    timeout: 30s
-  #    retries: 3
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running", "-q"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
 
 
   agent:
@@ -26,11 +26,6 @@ services:
       - RPC_QUEUE_NAME=rpc_queue_orders
       - RMQ_EXCHANGE_NAME=ai
       - ROUTING_KEY_1=orderrecognition.find_request
-
-      - second_queue=save_truth
-      - third_queue=find_request_result
-      - ROUTING_KEY_2=orderrecognition.save_truth
-      - ROUTING_KEY_3=orderrecognition.find_request_result
     restart: unless-stopped
     depends_on:
       - rabbitmq

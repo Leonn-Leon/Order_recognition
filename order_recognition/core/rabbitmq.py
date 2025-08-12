@@ -292,11 +292,23 @@ class Order_recognition():
         key2 = os.getenv("ROUTING_KEY_2", conf.routing_key2)
         key3 = os.getenv("ROUTING_KEY_3", conf.routing_key3)
 
-        print(f"--- [WORKER] Попытка подключения к RabbitMQ по адресу: ...@{connection_url.split('@')[-1]} ---")
+        connection = None
+        
+        for i in range(10):
+            try:
+                print(f"--- [WORKER] Попытка подключения к RabbitMQ ({i+1}/10)... ---")
+                connection = await aio_pika.connect_robust(connection_url)
+                print("--- [WORKER] Успешное подключение к RabbitMQ! ---")
+                break
+            except (ConnectionRefusedError, aio_pika.exceptions.AMQPConnectionError) as e:
+                if i < 9:
+                    print(f"--- [WORKER] Не удалось подключиться: {e}. Повтор через 5 секунд... ---")
+                    await asyncio.sleep(5)
+                else:
+                    print("--- [WORKER] Не удалось подключиться к RabbitMQ после всех попыток. Поток завершается. ---")
+                    return
 
-        connection = await aio_pika.connect_robust(
-            connection_url
-        )
+        if not connection: return
     
         async with connection:
             channel = await connection.channel()

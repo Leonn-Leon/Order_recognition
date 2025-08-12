@@ -31,7 +31,7 @@ def get_base_name(row):
     if any(keyword in title_lower for keyword in EXCLUSION_KEYWORDS):
         return None
 
-    # 2. Классифицируем ТРУБЫ (самые специфичные)
+    # 2. Классифицируем ТРУБЫ
     if 'проф' in title_lower:
         return 'труба_профильная'
     
@@ -52,17 +52,16 @@ def get_base_name(row):
     if 'швеллер' in title_lower or title_lower.startswith('шв '):
         return 'швеллер'
     
-    # Проверяем на синонимы и ключевые слова для круга
+
     CIRCLE_TRIGGERS = ['КРУГ', 'КР ', 'ПОКОВКА']
     if any(trigger in str(row[NAME_COLUMN]).upper() for trigger in CIRCLE_TRIGGERS):
-        # Если нашли триггер, сначала проверяем на исключения
+
         EXCLUSION_KEYWORDS_CIRCLE = [
             'АЛМАЗНЫЙ', 'ЛЕПЕСТКОВ', 'ОТРЕЗНОЙ', 'ШЛИФОВАЛЬН', 'ЗАЧИСТНОЙ', 'КОНЬК'
         ]
         if any(keyword in str(row[NAME_COLUMN]).upper() for keyword in EXCLUSION_KEYWORDS_CIRCLE):
-            return None # Это точно мусор, выходим
+            return None
         
-        # Если это не мусор, то это наш круг
         return 'круг'
 
     if 'арматура' in title_lower or title_lower.startswith('а '):
@@ -76,8 +75,6 @@ def get_base_name(row):
 
     return None
 
-
-# create_features.py
 
 def process_row(row):
     """Извлекает и очищает параметры для ОДНОЙ строки на основе ее base_name."""
@@ -93,7 +90,7 @@ def process_row(row):
         if column_name in row and pd.notna(row[column_name]):
             value = str(row[column_name]).strip()
             if value and value != NULL_VALUE:
-                # Убираем ".0" из целых чисел, которые pandas мог прочитать как float
+                
                 if value.endswith('.0'):
                     value = value[:-2]
                 
@@ -101,11 +98,9 @@ def process_row(row):
                     value = value.upper().replace('М', '')
                 params[param_name] = value
 
-    # --- ПОСТОБРАБОТКА И УНИФИКАЦИЯ ПАРАМЕТРОВ ---
     if 'длина' in params and params['длина'] == 'НЕЕР':
         params['длина'] = 'НЕМЕР'
     
-    # 1. Объединяем альтернативные поля...
     for key in ['длина', 'толщина']:
         alt_key = f"{key}_альт"
         if alt_key in params:
@@ -113,7 +108,6 @@ def process_row(row):
                 params[key] = params[alt_key]
             del params[alt_key]
 
-    # 2. Логика для конкретных base_name
     title_lower = str(row[NAME_COLUMN]).lower()
 
     if base_name == 'труба_профильная':
@@ -122,13 +116,11 @@ def process_row(row):
             del params['размер_a']
             del params['размер_b']
         
-        # Определяем тип металла
         if 'нерж' in title_lower:
             params['металл'] = 'нержавеющая'
         else:
             params['металл'] = 'черный'
             
-        # Дополнительно извлекаем тип обработки (х/к), если он есть
         if 'х/к' in title_lower and 'тип' not in params:
             params['тип'] = 'х/к'
 
@@ -146,7 +138,6 @@ def process_row(row):
         if 'изоляц' in str(row['Материал. Признак 2']).lower(): found_types.append('изоляц')
 
         if found_types:
-            # Теперь мы сохраняем как список, чтобы соответствовать выводу Gemini
             params['тип'] = sorted(list(set(found_types)))
 
     elif base_name == 'уголок':
@@ -159,14 +150,14 @@ def process_row(row):
         title_upper = str(row[NAME_COLUMN]).upper()
 
         # 1. Определяем тип металла
-        if 'НЕРЖ' in title_upper: # <<< ОСТАВЛЯЕМ ТОЛЬКО IF
+        if 'НЕРЖ' in title_upper:
             params['металл'] = 'нержавеющая'
             
         # 2. Определяем тип уголка
         if 'ГН' in title_upper and 'тип' not in params:
             params['тип'] = 'гнутый' # ГН - гнутый
             
-        # 3. Определяем состояние из названия (например, "У НЛГ...")
+        # 3. Определяем состояние из названия
         if 'НЛГ' in title_upper and 'состояние' not in params:
             params['состояние'] = 'нлг'
 
@@ -174,16 +165,13 @@ def process_row(row):
         if 'терм' in title_lower and 'тип' not in params:
             params['тип'] = 'терм'
     
-    # >>>>> ИЗМЕНЕНИЕ 2: Улучшенная логика для швеллера и балки <<<<<
     elif base_name == 'швеллер':
-            # Приводим все параметры к нижнему регистру для единообразия
             if 'номер' in params:
                 params['номер'] = params['номер'].lower()
             if 'тип' in params:
                 params['тип'] = params['тип'].lower()
 
     elif base_name == 'балка':
-            # Приводим все параметры к нижнему регистру для единообразия
             if 'номер' in params:
                 params['номер'] = params['номер'].lower()
             if 'тип' in params:
@@ -192,12 +180,12 @@ def process_row(row):
     elif base_name == 'круг':
         title_upper = str(row[NAME_COLUMN]).upper()
 
-        # 1. Определяем тип металла (самый высокий приоритет)
+        # 1. Определяем тип металла
         if title_upper.startswith('КР НЕРЖ'):
             params['металл'] = 'нержавеющая'
         elif title_upper.startswith('КР АЛ'):
             params['металл'] = 'алюминий'
-        elif title_upper.startswith('КР БР'): # <<<<<< САМОЕ ВАЖНОЕ ИСПРАВЛЕНИЕ
+        elif title_upper.startswith('КР БР'):
             params['металл'] = 'бронза'
         elif title_upper.startswith('КР ЛАТ'):
             params['металл'] = 'латунь'
@@ -221,14 +209,12 @@ def process_row(row):
             params['покрытие'] = 'оцинкованный'
         elif 'ПОЛИМ' in title_upper and 'покрытие' not in params:
             params['покрытие'] = 'полимерное'
-            # Ищем цвет RAL, если есть полимерное покрытие
+
             ral_match = re.search(r'RAL(\d+)', title_upper)
             if ral_match:
                 params['цвет_ral'] = ral_match.group(1)
 
-    ##### НОВЫЙ БЛОК: ОБЩАЯ ПРОВЕРКА НА СОСТОЯНИЕ ДЛЯ ВСЕХ ТИПОВ #####
-    # Этот блок должен идти в конце, чтобы обработать все товары
-    if 'состояние' not in params: # Проверяем, не было ли оно уже извлечено из колонки
+    if 'состояние' not in params:
         if 'неконд' in title_lower:
             params['состояние'] = 'неконд'
         elif 'нлг' in title_lower:
@@ -252,7 +238,6 @@ def main():
     tqdm.pandas(desc="Определение категорий")
     df['base_name'] = df.progress_apply(get_base_name, axis=1)
     
-    # Отфильтровываем строки, для которых категория не определилась (мусор и ненужные нам товары)
     df_filtered = df.dropna(subset=['base_name']).copy()
     print(f"Осталось {len(df_filtered)} релевантных позиций (арматура, уголок, трубы и т.д.).")
 
@@ -260,14 +245,12 @@ def main():
     tqdm.pandas(desc="Извлечение параметров")
     df_filtered[['base_name_final', 'params_json']] = df_filtered.progress_apply(process_row, axis=1, result_type='expand')
 
-    # Финальная очистка: убираем строки, где не удалось извлечь параметры
     df_final = df_filtered.dropna(subset=['params_json']).copy()
     
     if df_final.empty:
         print("\nОШИБКА: Не найдено ни одной строки для сохранения. Проверьте правила и данные.")
         return
 
-    # Шаг 1: Выбираем только нужные колонки, используя их ТЕКУЩИЕ, уникальные имена
     df_final = df_final[[
         'Материал номер',
         NAME_COLUMN,
@@ -275,17 +258,14 @@ def main():
         'params_json'
     ]]
     
-    # Шаг 2: Теперь, когда дубликатов нет, переименовываем выбранные колонки в финальные имена
     df_final = df_final.rename(columns={
         'Материал номер': 'Материал',
         NAME_COLUMN: 'Полное наименование материала',
         'base_name_final': 'base_name'
     })
     
-        # >>>>> НАЧАЛО НОВОГО БЛОКА: СОРТИРОВКА ДАННЫХ <<<<<
     print("\nСортировка данных для сохранения...")
     df_final = df_final.sort_values(by=['base_name', 'Полное наименование материала'])
-    # >>>>> КОНЕЦ НОВОГО БЛОКА <<<<<
     
     print(f"\nСохранение {len(df_final)} обработанных позиций в {OUTPUT_FILE}...")
     df_final.to_csv(OUTPUT_FILE, index=False, encoding='utf-8')

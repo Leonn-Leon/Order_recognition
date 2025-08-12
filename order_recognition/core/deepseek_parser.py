@@ -1,5 +1,6 @@
-# order_recognition/core/gemini_parser.py
-import google.generativeai as genai
+# order_recognition/core/deepseek_parser.py
+from openai import OpenAI
+import requests
 import json
 import os
 from dotenv import load_dotenv
@@ -8,33 +9,33 @@ from order_recognition.core.param_mapper import PARAM_MAP
 
 load_dotenv()
 
-SAFETY_SETTINGS = [
-    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-]
-
-class GeminiParser:
-    def __init__(self):
-        try:
-            api_key = os.getenv("GEMINI_API_KEY")
-            if not api_key:
-                raise ValueError("Переменная окружения GEMINI_API_KEY не найдена.")
-            genai.configure(api_key=api_key)
-            
-            generation_config = {"temperature": 0.0}
-            
-            self.model = genai.GenerativeModel(
-                model_name="gemini-2.5-flash", 
-                generation_config=generation_config,
-                safety_settings=SAFETY_SETTINGS
+class DeepSeekParser:
+    
+    def __init__(
+            self,
+            model: str = "deepseek-chat-v3-0324",
+            api_key: str = os.getenv("DEEPSEEK_API_KEY"),
+            base_url: str = "https://api.aitunnel.ru/v1/"
+        ):
+        
+        if not api_key:
+            raise ValueError("API ключ не найден.")
+        
+        self.model = model
+        
+        try:  
+            self.llm = OpenAI(
+                api_key=api_key,
+                base_url=base_url
             )
-            print("--- Gemini Parser (gemini-2.5-flash) с настройками безопасности успешно инициализирован ---")
+          
+
+            print(f"--- DeepSeek Parser ({self.model}) успешно инициализирован ---")
 
         except Exception as e:
-            raise Exception(f"Ошибка при инициализации Gemini: {e}")
-
+            raise Exception(f"Ошибка при инициализации DeepSeek: {e}")
+        
+        
     def _extract_json_from_response(self, text: str) -> dict | None:
         match = re.search(r'```json\s*(\{[\s\S]*?\})\s*```', text, re.DOTALL)
         if match:
@@ -52,14 +53,15 @@ class GeminiParser:
             print(f"--- Ошибка декодирования JSON: {e}")
             print(f"Проблемный фрагмент: {json_string[:300]}...")
             return None
-
+    
+    
     def filter_material_positions(self, text: str) -> str:
         """
         Первый проход. Очищает текст от комментариев и разговоров,
         оставляя только строки, похожие на товарные позиции.
         """
         
-        prompt = f"""
+        prompt = """
         Твоя задача - выступить в роли строгого фильтра. Проанализируй текст ниже и верни ТОЛЬКО строки, которые являются конкретными товарными позициями для заказа.
 
         ПРАВИЛА:
@@ -85,38 +87,32 @@ class GeminiParser:
         ---
 
         ТЕКСТ ДЛЯ ОБРАБОТКИ:
-        "{text}"
+        "{text_to_process}"
         """
-
-        try:
-            response = self.model.generate_content(prompt.format(text=text), safety_settings=SAFETY_SETTINGS)
-            if not response.parts:
-                print("--- Фильтрующий промпт был заблокирован ---")
-                return text
-            
-            print("--- Текст после первого прохода (фильтрации) ---")
-            print(response.text)
-            return response.text.strip()
-            
-        except Exception as e:
-            print(f"Ошибка на этапе фильтрации текста: {e}")
+        
+        filtered_text = self._call_deepseek_api(prompt.format(text_to_process=text))
+        if not filtered_text:
             return text
 
+        print("--- Текст после первого прохода (фильтрации DeepSeek) ---")
+        print(filtered_text)
+        return filtered_text
+    
 
     def parse_order_text(self, text: str) -> list[dict]:
         
         VALID_BASE_NAMES = list(PARAM_MAP.keys())
-       
-        prompt = f"""
+    
+        prompt = """
         Проанализируй текст заказа и верни ТОЛЬКО ОДИН JSON-объект.
         **КЛЮЧЕВОЕ ПРАВИЛО: Извлекай в `params` только те характеристики, которые ЯВНО УКАЗАНЫ в тексте. Ничего не додумывай.**
 
-        Текст для анализа: "{text}"
+        Текст для анализа: "{text_to_process}"
 
         Инструкции:
         1.  Создай ключ "positions", содержащий список JSON-объектов для каждой товарной позиции.
         2.  Каждый объект должен иметь ключи: `original_query`, `base_name`, `quantity` (по умолч. 1), `unit` (по умолч. 'шт'), и `params`.
-        3.  Ключ `base_name` должен быть одним из: {VALID_BASE_NAMES}.
+        3.  Ключ `base_name` должен быть одним из: {valid_names}.
 
         Правила для `params` (в нижнем регистре):
         - `номер`: Для швеллера или балки. **Извлекай из строки ТОЛЬКО ЦИФРЫ номера (например, из "24у" извлеки "24", из "70ш4" извлеки "70").**
@@ -261,29 +257,33 @@ class GeminiParser:
         ```
         Не добавляй пояснений. Верни только JSON.
         """
-
-        try:
-            response = self.model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
-            
-            if not response.parts:
-                finish_reason_info = f"Finish reason: {response.prompt_feedback.block_reason}." if response.prompt_feedback else "Причина не указана."
-                print(f"--- Ответ от Gemini был заблокирован. {finish_reason_info} ---")
-                return []
-
-            data = self._extract_json_from_response(response.text)
-
-            if not data:
-                return []
-
-            positions = data.get('positions', [])
-            
-            if isinstance(positions, list):
-                print(f"Gemini (gemini-2.5-flash) распознал: {positions}")
-                return positions
-            
-            print(f"--- Ошибка: Ключ 'positions' в ответе модели не является списком. Ответ: {data} ---")
+        
+        response_text = self._call_deepseek_api(
+            prompt.format(text_to_process=text, valid_names=VALID_BASE_NAMES)
+            )
+        if not response_text:
             return []
-                
-        except Exception as e:
-            print(f"Ошибка при обращении к Gemini API: {e}")
+
+        data = self._extract_json_from_response(response_text)
+        if not data:
             return []
+
+        positions = data.get('positions', [])
+        if isinstance(positions, list):
+            print(f"DeepSeek ({self.model_name}) распознал: {positions}")
+            return positions
+        
+        print(f"--- Ошибка: Ключ 'positions' в ответе DeepSeek не является списком. Ответ: {data} ---")
+        return []
+    
+    
+    def _call_deepseek_api(self, prompt: str) -> str:
+
+        chat_result = self.llm.chat.completions.create(
+            model= self.model,
+            temperature=0, 
+            messages= [{"role": "user", "content": prompt}],
+        )
+        content = chat_result.choices[0].message.content
+        return content.strip()
+
