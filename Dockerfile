@@ -25,17 +25,12 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv ./.venv
 
-COPY . .
+COPY order_recognition/ ./order_recognition/
+COPY pyproject.toml poetry.lock ./
+COPY app.py ./app.py
 
-#ARG RMQ_AI_URL
-
-#RUN sed -i "s|RMQ_AI_URL|${RMQ_AI_URL}|g" order_recognition/confs/config.py
-
-# Настраиваем PATH, чтобы система видела исполняемые файлы из .venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-#
 EXPOSE 8501
-
-#CMD ["python", "-m", "order_recognition.core.rabbitmq"]
+RUN chmod -R g+rw /app/order_recognition
 CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

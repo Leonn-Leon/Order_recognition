@@ -6,17 +6,15 @@ import aio_pika
 import base64
 import json
 import time
-
+from order_recognition.core.distance import Find_materials
 from functools import partial
-
-from .distance import Find_materials
-from .hash2text import text_from_hash
-from .yandexgpt import custom_yandex_gpt
-from .worker import process_one_task, init_worker
-from ..confs import config as conf
-from ..utils import logger
-from ..utils.data_text_processing import Data_text_processing
-from ..utils.split_by_keys import Key_words
+from order_recognition.core.hash2text import text_from_hash
+from order_recognition.confs import config as conf
+from order_recognition.utils import logger
+from order_recognition.core.yandexgpt import custom_yandex_gpt
+from order_recognition.utils.data_text_processing import Data_text_processing
+from thread import Thread
+from order_recognition.utils.split_by_keys import Key_words
 
 
 class Order_recognition():
@@ -27,24 +25,25 @@ class Order_recognition():
             os.makedirs("order_recognition/data/logs")
         self.find_mats = Find_materials()
 
-    #def consumer_test(self, hash:str=None, content:str=None):
-    #    if content is None:
-    #        content = text_from_hash(hash)
-    #    print('Text - ', content.split('\n'), flush=True)
+    def consumer_test(self, hash:str=None, content:str=None):
+        if content is None:
+            content = text_from_hash(hash)
+        print('Text - ', content.split('\n'), flush=True)
         # self.test_analize_email(content)
 
-    #    start_time = time.time()
-    #    ygpt = custom_yandex_gpt()
-    #    
-    #    my_thread = Thread(target=self.test_analize_email, args=[ygpt, content])
-    #    my_thread.start()
-    #    
-    #    my_thread.join()
-    #    elapsed_time = time.time() - start_time
-    #    print(f"Время обработки письма: {elapsed_time:.2f} секунд")
+        start_time = time.time()
+        ygpt = custom_yandex_gpt()
+        
+        my_thread = Thread(target=self.test_analize_email, args=[ygpt, content])
+        my_thread.start()
+        
+        my_thread.join()
+        elapsed_time = time.time() - start_time
+        print(f"Время обработки письма: {elapsed_time:.2f} секунд")
 
     def test_analize_email(self, ygpt: custom_yandex_gpt, content):
         clear_email = ygpt.big_mail(content)
+        # Отправляем распознаннaй текст(!) на поиск материалов
         print('Очищенные позиции -', clear_email)
         results = str(self.find_mats.paralell_rows(clear_email))
         logger.write_logs('results - ' + results, 1)
@@ -117,6 +116,7 @@ class Order_recognition():
 
     async def save_truth(self,
             msg: aio_pika.IncomingMessage):
+        # используем контекстный менеджер для ack'а сообщения
         async with msg.process():
             content = msg.body
             if 'true_value' not in str(content):
@@ -205,13 +205,15 @@ class Order_recognition():
         print('Начало потока!', flush=True)
         ygpt = custom_yandex_gpt()
         clear_email = ygpt.big_mail(content)
-
+        # Отправляем распознанный текст(!) на поиск материалов
         print('Clear email - ', clear_email)
         results = str(self.find_mats.paralell_rows(clear_email))
         logger.write_logs('results - ' + results, 1)
         print('results = ', results)
         # self.send_result(results)
+        # проверяем, требует ли сообщение ответа
         if msg.reply_to:
+            # отправляем ответ в default exchange
             print('Отправляем результат', flush=True)
             logger.write_logs('Отправляем результaт', 1)
             asyncio.run(channel.default_exchange.publish(
@@ -230,41 +232,35 @@ class Order_recognition():
             msg: aio_pika.IncomingMessage,
             channel: aio_pika.RobustChannel,
     ):
+        """
+        Обрабатываем сообщение из очереди rebbitmq
 
+        Args:
+            msg (aio_pika.IncomingMessage): сообщение из очереди rebbitmq
+            channel (aio_pika.RobustChannel): контекстный менеджер для ack'а сообщения
+        """
+        # используем контекстный менеджер для ack'а сообщения
         async with msg.process():
-
-            if not msg.reply_to:
-                print(f" [!] Получено сообщение без 'reply_to'. Игнорирую.")
+            print('Что-то получил из очереди rebbitmq...', flush=True)
+            content = msg.body
+            if 'true_value' in str(content):
                 return
+            logger.write_logs('Получилось взять письмо из очереди', 1)
+            print('Получилось взять письмо из очереди', flush=True)
+            body = json.loads(content)
+            logger.write_logs('Body - ' + str(body), 1)
+            if len(body['email']) == 0:
+                print('Письмо пустое!!!', flush=True)
+                logger.write_logs('Письмо пустое!!!', 1)
+            content = text_from_hash(body['email'])
+            my_thread = Thread(target=self.start_analize_email, args=[content, msg, channel])
+            my_thread.start()
+            # my_thread.join()
 
-            print(f" [x] Получен RPC запрос. ID: {msg.correlation_id}")
-            
-            try:
-                structured_positions = json.loads(msg.body)
-                
-                results = []
-                for task in structured_positions:
-                    result_for_task = process_one_task(task)
-                    results.append(result_for_task)
-                
-                response_data = {"positions": results}
-                response_body = json.dumps(response_data).encode('utf-8')
-
-                await channel.default_exchange.publish(
-                    message=aio_pika.Message(
-                        body=response_body,
-                        correlation_id=msg.correlation_id 
-                    ),
-                    routing_key=msg.reply_to,
-                )
-                print(f" [.] Ответ для ID {msg.correlation_id} отправлен.")
-
-            except json.JSONDecodeError:
-                print(f" [!] Ошибка декодирования JSON для ID: {msg.correlation_id}")
-            except Exception as e:
-                print(f" [!] Ошибка при обработке запроса ID {msg.correlation_id}: {e}")
     def get_message(self, body):
-
+        """
+        Получаем письмо из очереди и возвращаем его в виде строки
+        """
         body = json.loads(body)
         print(body)
 
@@ -281,59 +277,35 @@ class Order_recognition():
         return content
 
     async def main(self):
-
-        connection_url = os.getenv("RMQ_AI_URL", conf.connection_url)
-        q1_name = os.getenv("first_queue", conf.first_queue)
-        q2_name = os.getenv("second_queue", conf.second_queue)
-        q3_name = os.getenv("third_queue", conf.third_queue)
+        """
+        Подключаемся к брокеру, объявляем очередь,
+        подписываемся на неё и ждем сообщений.
         
-        exchange_name = os.getenv("RMQ_EXCHANGE_NAME", conf.exchange)
-        key1 = os.getenv("ROUTING_KEY_1", conf.routing_key)
-        key2 = os.getenv("ROUTING_KEY_2", conf.routing_key2)
-        key3 = os.getenv("ROUTING_KEY_3", conf.routing_key3)
+        """
+        connection = await aio_pika.connect_robust(
+            conf.connection_url
+        )
 
-        connection = None
-        
-        for i in range(10):
-            try:
-                print(f"--- [WORKER] Попытка подключения к RabbitMQ ({i+1}/10)... ---")
-                connection = await aio_pika.connect_robust(connection_url)
-                print("--- [WORKER] Успешное подключение к RabbitMQ! ---")
-                break
-            except (ConnectionRefusedError, aio_pika.exceptions.AMQPConnectionError) as e:
-                if i < 9:
-                    print(f"--- [WORKER] Не удалось подключиться: {e}. Повтор через 5 секунд... ---")
-                    await asyncio.sleep(5)
-                else:
-                    print("--- [WORKER] Не удалось подключиться к RabbitMQ после всех попыток. Поток завершается. ---")
-                    return
 
-        if not connection: return
-    
         async with connection:
             channel = await connection.channel()
-
-            
-            exchange = await channel.declare_exchange(
-                exchange_name, aio_pika.ExchangeType.TOPIC, durable=True
-            )
-            
-            queue1 = await channel.declare_queue(q1_name, timeout=60000)
-            await queue1.bind(exchange, routing_key=key1)
-            await queue1.consume(partial(self.consumer, channel=channel), timeout=60000)
-            print(f"[*] Слушаем очередь 1 - '{q1_name}' (ключ: '{key1}')", flush=True)
+            queue = await channel.declare_queue(conf.first_queue, timeout=60000)
+            await queue.bind(exchange=conf.exchange, routing_key=conf.routing_key, timeout=10000)
+            # через partial прокидываем в наш обработчик сам канал
+            await queue.consume(partial(self.consumer, channel=channel), timeout=60000)
+            print('Слушаем очередь', flush=True)
 
 
-            queue2 = await channel.declare_queue(q2_name, timeout=10000)
-            await queue2.bind(exchange, routing_key=key2)
+            queue2 = await channel.declare_queue(conf.second_queue, timeout=10000)
+            await queue2.bind(exchange=conf.exchange, routing_key=conf.routing_key2, timeout=10000)
+            # через partial прокидываем в наш обработчик сам канал
             await queue2.consume(partial(self.save_truth), timeout=10000)
-            print(f"[*] Слушаем очередь 2 - '{q2_name}' (ключ: '{key2}')", flush=True)
-
-            queue3 = await channel.declare_queue(q3_name, timeout=10000)
-            await queue3.bind(exchange, routing_key=key3)
-            print(f"[*] Очередь 3 - '{q3_name}' (ключ: '{key3}') создана.", flush=True)
-
-            print("\n [OK] Воркер готов к работе. Ожидание сообщений...")
+            print('Слушаем очередь 2', flush=True)
+            
+            # Эту очередь просто создаю и не слушаю
+            queue3 = await channel.declare_queue(conf.third_queue, timeout=10000)
+            await queue3.bind(exchange=conf.exchange, routing_key=conf.routing_key3, timeout=10000)
+            
             try:
                 await asyncio.Future()
             except Exception:
@@ -343,13 +315,16 @@ class Order_recognition():
         asyncio.run(self.main())
 
 if __name__ == '__main__':
-   order_rec = Order_recognition()
-   
-   print("--- [WORKER] Инициализация данных... ---")
-   init_worker(
-       csv_path='order_recognition/data/mats_with_features.csv', 
-       csv_encoding='utf-8'
-   )
-   
-   print("--- [WORKER] Запуск основного цикла сервера... ---")
-   order_rec.start()
+    # os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'templates'))
+    Key_words()
+    order_rec = Order_recognition()
+    print("RMQ_AI_URL:", conf.connection_url[:4])
+    if conf.connection_url == "TEST" or conf.connection_url == "RMQ_AI_URL":
+        # order_rec.save_truth_test('{"req_number": "0f604ddf-8e06-4ed1-9406-6ca769962250", "mail_code": "0061540478", "user": "SHARIPOVDI", "positions": [{"position_id": "0", "true_material": "000000000000005832", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "1", "true_material": "000000000000007927", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "2", "true_material": "000000000000007903", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "3", "true_material": "000000000000005793", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "4", "true_material": "000000000000005797", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "5", "true_material": "000000000000088877", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "6", "true_material": "000000000000069270", "true_ei": "", "true_value": "6.000", "spec_mat": ""}, {"position_id": "7", "true_material": "000000000000008362", "true_ei": "М", "true_value": "12.000", "spec_mat": ""}]}')
+        hash = ""
+        # while True:    
+        # order_rec.consumer_test(hash=hash) # Выполняется паралельно но поставил заглушку
+        order_rec.consumer_test(content="швелле 10п")
+        #     hash = input("Введи hash:\n")
+    else:
+        order_rec.start()
