@@ -270,7 +270,7 @@ class DeepSeekParser:
 
         positions = data.get('positions', [])
         if isinstance(positions, list):
-            print(f"DeepSeek ({self.model_name}) распознал: {positions}")
+            print(f"DeepSeek ({self.model}) распознал: {positions}")
             return positions
         
         print(f"--- Ошибка: Ключ 'positions' в ответе DeepSeek не является списком. Ответ: {data} ---")

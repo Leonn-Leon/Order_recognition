@@ -14,7 +14,9 @@ from order_recognition.utils import logger
 from order_recognition.core.yandexgpt import custom_yandex_gpt
 from order_recognition.utils.data_text_processing import Data_text_processing
 from thread import Thread
+from order_recognition.core.deepseek_parser import DeepSeekParser
 from order_recognition.utils.split_by_keys import Key_words
+from order_recognition.core.worker import process_one_task, init_worker
 
 
 class Order_recognition():
@@ -24,6 +26,8 @@ class Order_recognition():
         if not os.path.exists("order_recognition/data/logs"):
             os.makedirs("order_recognition/data/logs")
         self.find_mats = Find_materials()
+        self.parser = DeepSeekParser()
+
 
     def consumer_test(self, hash:str=None, content:str=None):
         if content is None:
@@ -32,20 +36,32 @@ class Order_recognition():
         # self.test_analize_email(content)
 
         start_time = time.time()
-        ygpt = custom_yandex_gpt()
         
-        my_thread = Thread(target=self.test_analize_email, args=[ygpt, content])
+        my_thread = Thread(target=self.test_analize_email, args=[content])
         my_thread.start()
         
         my_thread.join()
         elapsed_time = time.time() - start_time
         print(f"Время обработки письма: {elapsed_time:.2f} секунд")
 
-    def test_analize_email(self, ygpt: custom_yandex_gpt, content):
-        clear_email = ygpt.big_mail(content)
-        # Отправляем распознаннaй текст(!) на поиск материалов
-        print('Очищенные позиции -', clear_email)
-        results = str(self.find_mats.paralell_rows(clear_email))
+    def test_analize_email(self, content):
+        filtered_text = self.parser.filter_material_positions(content)
+        structured_positions = self.parser.parse_order_text(filtered_text)
+        
+        if not structured_positions:
+            print("Не удалось распознать позиции.")
+            return
+
+        print('Распознанные структурированные позиции -', structured_positions)
+        
+        # Шаг 2: Обрабатываем каждую позицию через worker
+        results_list = []
+        for task in structured_positions:
+            result_for_task = process_one_task(task)
+            results_list.append(result_for_task)
+
+        # Шаг 3: Формируем и выводим итоговый JSON
+        results = json.dumps({"positions": results_list}, ensure_ascii=False, indent=4)
         logger.write_logs('results - ' + results, 1)
         print('results = ', results)
         # self.send_result(results)
@@ -203,28 +219,41 @@ class Order_recognition():
             channel (_type_): 
         """
         print('Начало потока!', flush=True)
-        ygpt = custom_yandex_gpt()
-        clear_email = ygpt.big_mail(content)
-        # Отправляем распознанный текст(!) на поиск материалов
-        print('Clear email - ', clear_email)
-        results = str(self.find_mats.paralell_rows(clear_email))
-        logger.write_logs('results - ' + results, 1)
-        print('results = ', results)
-        # self.send_result(results)
-        # проверяем, требует ли сообщение ответа
+
+        # Шаг 1: Парсим сырой текст в структурированные позиции
+        filtered_text = self.parser.filter_material_positions(content)
+        structured_positions = self.parser.parse_order_text(filtered_text)
+
+        if not structured_positions:
+            print("Не удалось распознать позиции. Поток завершен.")
+            # Можно отправить пустой ответ или сообщение об ошибке
+            return
+
+        print('Распознанные структурированные позиции -', structured_positions)
+
+        # Шаг 2: Обрабатываем каждую позицию через worker
+        results_list = []
+        for task in structured_positions:
+            result_for_task = process_one_task(task)
+            results_list.append(result_for_task)
+
+        # Шаг 3: Формируем и отправляем итоговый JSON
+        response_data = {"positions": results_list}
+        response_body = json.dumps(response_data, ensure_ascii=False).encode('utf-8')
+        
+        logger.write_logs('results - ' + response_body.decode('utf-8'), 1)
+        print('results = ', response_body.decode('utf-8'))
+
         if msg.reply_to:
-            # отправляем ответ в default exchange
             print('Отправляем результат', flush=True)
             logger.write_logs('Отправляем результaт', 1)
             asyncio.run(channel.default_exchange.publish(
                 message=aio_pika.Message(
                     content_type='application/json',
-                    body=str.encode(results.replace("'", '"')[1:-1]),
-                    # body=b'{"a":"b"}',
+                    body=response_body,
                     correlation_id=msg.correlation_id
                 ),
-                routing_key=msg.reply_to,  # самое важное
-
+                routing_key=msg.reply_to,
             ))
         print('Конец!', flush=True)
 
@@ -318,13 +347,18 @@ if __name__ == '__main__':
     # os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'templates'))
     Key_words()
     order_rec = Order_recognition()
+    print("--- [WORKER] Инициализация данных... ---")
+    init_worker(
+       csv_path='order_recognition/data/mats_with_features.csv', 
+       csv_encoding='utf-8'
+    )
     print("RMQ_AI_URL:", conf.connection_url[:4])
     if conf.connection_url == "TEST" or conf.connection_url == "RMQ_AI_URL":
         # order_rec.save_truth_test('{"req_number": "0f604ddf-8e06-4ed1-9406-6ca769962250", "mail_code": "0061540478", "user": "SHARIPOVDI", "positions": [{"position_id": "0", "true_material": "000000000000005832", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "1", "true_material": "000000000000007927", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "2", "true_material": "000000000000007903", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "3", "true_material": "000000000000005793", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "4", "true_material": "000000000000005797", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "5", "true_material": "000000000000088877", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "6", "true_material": "000000000000069270", "true_ei": "", "true_value": "6.000", "spec_mat": ""}, {"position_id": "7", "true_material": "000000000000008362", "true_ei": "М", "true_value": "12.000", "spec_mat": ""}]}')
         hash = ""
         # while True:    
         # order_rec.consumer_test(hash=hash) # Выполняется паралельно но поставил заглушку
-        order_rec.consumer_test(content="швелле 10п")
+        order_rec.consumer_test(content="швеллер 10п")
         #     hash = input("Введи hash:\n")
     else:
         order_rec.start()

@@ -538,7 +538,7 @@ def main():
 
         if 'worker_thread_started' not in st.session_state:
             print("--- [Streamlit] Запуск RabbitMQ воркера в фоновом потоке... ---")
-            thread = threading.Thread(target=worker_instance.start, daemon=True)
+            thread = threading.Thread(target=worker_instance.start)
             thread.start()
             st.session_state.worker_thread_started = True
             st.toast("Фоновый сервис обработки заказов запущен!", icon="🤖")

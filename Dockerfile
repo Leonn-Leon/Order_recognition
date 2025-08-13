@@ -14,10 +14,9 @@ WORKDIR /app
 # Копируем только файлы, необходимые для установки зависимостей
 COPY pyproject.toml poetry.lock ./
 
-# Устанавливаем все Python-зависимости, включая NLTK-данные
+# Устанавливаем все Python-зависимости
 RUN poetry config virtualenvs.in-project true && \
-    poetry install --only main --no-interaction --no-ansi --no-root && \
-    poetry run python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
+    poetry install --only main --no-interaction --no-ansi --no-root -no-cache
 
 FROM python:3.11-slim
 
@@ -32,5 +31,5 @@ COPY app.py ./app.py
 ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8501
-RUN chmod -R g+rw /app/order_recognition
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["python", "order_recognition/core/rabbitmq.py"]
