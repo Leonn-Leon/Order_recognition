@@ -1,4 +1,5 @@
-connection_url = "RMQ_AI_URL" 
+import os
+connection_url = os.getenv("RMQ_AI_URL", "Test")
 first_queue = "get_message"
 second_queue = "save_truth"
 third_queue = "find_request_result"

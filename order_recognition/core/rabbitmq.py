@@ -353,7 +353,7 @@ if __name__ == '__main__':
        csv_encoding='utf-8'
     )
     print("RMQ_AI_URL:", conf.connection_url[:4])
-    if conf.connection_url == "TEST" or conf.connection_url == "RMQ_AI_URL":
+    if conf.connection_url.lower() == "test" or conf.connection_url.lower() == "rmq_ai_url":
         # order_rec.save_truth_test('{"req_number": "0f604ddf-8e06-4ed1-9406-6ca769962250", "mail_code": "0061540478", "user": "SHARIPOVDI", "positions": [{"position_id": "0", "true_material": "000000000000005832", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "1", "true_material": "000000000000007927", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "2", "true_material": "000000000000007903", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "3", "true_material": "000000000000005793", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "4", "true_material": "000000000000005797", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "5", "true_material": "000000000000088877", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "6", "true_material": "000000000000069270", "true_ei": "", "true_value": "6.000", "spec_mat": ""}, {"position_id": "7", "true_material": "000000000000008362", "true_ei": "М", "true_value": "12.000", "spec_mat": ""}]}')
         hash = ""
         # while True:    
