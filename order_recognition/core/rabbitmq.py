@@ -342,14 +342,14 @@ class Order_recognition():
     def start(self):
         asyncio.run(self.main())
 
-#if __name__ == '__main__':
-#    order_rec = Order_recognition()
-#    
-#    print("--- [WORKER] Инициализация данных... ---")
-#    init_worker(
-#        csv_path='order_recognition/data/mats_with_features.csv', 
-#        csv_encoding='utf-8'
-#    )
-#    
-#    print("--- [WORKER] Запуск основного цикла сервера... ---")
-#    order_rec.start()
+if __name__ == '__main__':
+   order_rec = Order_recognition()
+   
+   print("--- [WORKER] Инициализация данных... ---")
+   init_worker(
+       csv_path='order_recognition/data/mats_with_features.csv', 
+       csv_encoding='utf-8'
+   )
+   
+   print("--- [WORKER] Запуск основного цикла сервера... ---")
+   order_rec.start()
