@@ -16,7 +16,7 @@ COPY pyproject.toml poetry.lock ./
 
 # Устанавливаем все Python-зависимости
 RUN poetry config virtualenvs.in-project true && \
-    poetry install --only main --no-interaction --no-ansi --no-root -no-cache
+    poetry install --only main --no-interaction --no-ansi --no-root --no-cache
 
 FROM python:3.11-slim
 
