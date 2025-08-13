@@ -57,4 +57,4 @@ deploy:
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker login $CI_REGISTRY -u $CI_TKN_LN -p $CI_TKN_PW"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker pull $TAG_LATEST"
     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker images"
-    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker run -d --name orderrec --mount source=test_vol,target=/order_recognition/data/logs  $CI_REGISTRY_IMAGE/master:latest"
+    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no admuser@$DAB_SERVER_IP "docker run -d --name orderrec --mount source=test_vol,target=/app/order_recognition/data/logs -e DEEPSEEK_API_KEY=$DEEPSEEK_API_KEY $CI_REGISTRY_IMAGE/master:latest"
