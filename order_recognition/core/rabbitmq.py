@@ -19,6 +19,39 @@ from order_recognition.utils.split_by_keys import Key_words
 from order_recognition.core.worker import process_one_task, init_worker
 
 
+def normalize_rmq_url(url: str | None) -> str:
+    """Normalize RMQ URL to a valid AMQP URI for aio-pika.
+
+    Accepts forms like:
+    - "localhost:5672"
+    - "user:pass@host:port"
+    - placeholders like "Test"/"RMQ_AI_URL" (fallback to localhost)
+    - already valid "amqp://user:pass@host:port/%2F"
+    """
+    if not url:
+        return "amqp://guest:guest@localhost:5672/%2F"
+    u = str(url).strip()
+    low = u.lower()
+    if low in ("test", "rmq_ai_url"):
+        return "amqp://guest:guest@localhost:5672/%2F"
+    if "://" not in u:
+        # No scheme provided
+        if "@" in u:
+            creds, hostport = u.split("@", 1)
+            if ":" not in creds:
+                creds = f"{creds}:guest"
+            if ":" not in hostport:
+                hostport = f"{hostport}:5672"
+            return f"amqp://{creds}@{hostport}/%2F"
+        # e.g. "localhost:5672" or just "localhost"
+        if ":" in u:
+            host, port = u.split(":", 1)
+        else:
+            host, port = u, "5672"
+        return f"amqp://guest:guest@{host}:{port}/%2F"
+    return u
+
+
 class Order_recognition():
 
     def __init__(self):
@@ -312,12 +345,14 @@ class Order_recognition():
         
         """
         connection = await aio_pika.connect_robust(
-            conf.connection_url
+            normalize_rmq_url(conf.connection_url)
         )
 
 
         async with connection:
             channel = await connection.channel()
+            # Ensure exchange exists before bindings/publishes
+            await channel.declare_exchange(conf.exchange, aio_pika.ExchangeType.DIRECT, durable=True)
             queue = await channel.declare_queue(conf.first_queue, timeout=60000)
             await queue.bind(exchange=conf.exchange, routing_key=conf.routing_key, timeout=10000)
             # через partial прокидываем в наш обработчик сам канал

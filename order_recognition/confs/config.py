@@ -1,5 +1,5 @@
 import os
-connection_url = os.getenv("RMQ_AI_URL", "Test")
+connection_url = os.getenv("RMQ_AI_URL", "amqp://guest:guest@localhost:5672/%2F")
 first_queue = "get_message"
 second_queue = "save_truth"
 third_queue = "find_request_result"

@@ -27,10 +27,8 @@ COPY --from=builder /app/.venv ./.venv
 
 COPY order_recognition/ ./order_recognition/
 COPY pyproject.toml poetry.lock ./
-COPY app.py ./app.py
 
 ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8501
-# CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
 CMD ["python", "order_recognition/core/rabbitmq.py"]

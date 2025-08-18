@@ -1,10 +1,6 @@
 # order_recognition/core/utils.py
 
 def normalize_param(param_value: str) -> str:
-    """
-    ЕДИНАЯ функция для "пуленепробиваемой" нормализации параметров.
-    Используется во всем проекте (в worker.py для скоринга, в app.py для подсветки).
-    """
     if not isinstance(param_value, str):
         return ""
     
