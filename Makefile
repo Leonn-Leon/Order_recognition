@@ -1,23 +1,35 @@
-IMAGE_NAME=order-recognition
-IMAGE_TAG=0.1.0
-DOCKERFILE=Dockerfile
-PYTHON_MAIN=core/rabbimq.py
-# Чтение переменных из .env
-include .env
-export $(shell sed 's/=.*//' .env)
+PROJECT?=order-recognition
+AGENT_IMAGE?=$(PROJECT)-agent
+CLIENT_IMAGE?=$(PROJECT)-client
+TAG?=latest
 
-build:
-	@echo "RMQ_AI_URL=$(RMQ_AI_URL)"
-	@echo "SHTTP_PROXY=$(SHTTP_PROXY)"
-	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) --build-arg RMQ_AI_URL=$(RMQ_AI_URL) \
-											   --build-arg SHTTP_PROXY=$(SHTTP_PROXY) \
-											   --build-arg SHTTPS_PROXY=$(SHTTPS_PROXY) -f $(DOCKERFILE) .
+.PHONY: build build-agent build-client up down logs logs-agent logs-client ps clean
 
-run:
-	docker run -it --rm $(IMAGE_NAME):$(IMAGE_TAG)
+build: build-agent build-client ## Build all images
 
-install:
-	poetry install
+build-agent: ## Build agent image
+	docker build -t $(AGENT_IMAGE):$(TAG) -f Dockerfile .
 
-test:
-	poetry run pytest
+build-client: ## Build streamlit client image
+	docker build -t $(CLIENT_IMAGE):$(TAG) -f Dockerfile.streamlit .
+
+up: ## Start compose stack
+	docker compose up -d --build
+
+down: ## Stop compose stack
+	docker compose down
+
+logs: ## Tail all logs
+	docker compose logs -f --tail=200
+
+logs-agent: ## Tail agent logs
+	docker logs -f order-agent
+
+logs-client: ## Tail client logs
+	docker logs -f order-client
+
+ps: ## Show compose services
+	docker compose ps
+
+clean: ## Remove dangling images
+	docker image prune -f
