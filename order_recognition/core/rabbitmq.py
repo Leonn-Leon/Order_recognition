@@ -352,7 +352,7 @@ class Order_recognition():
         async with connection:
             channel = await connection.channel()
             # Ensure exchange exists before bindings/publishes
-            await channel.declare_exchange(conf.exchange, aio_pika.ExchangeType.DIRECT, durable=True)
+            await channel.declare_exchange(conf.exchange, aio_pika.ExchangeType.TOPIC, durable=True)
             queue = await channel.declare_queue(conf.first_queue, timeout=60000)
             await queue.bind(exchange=conf.exchange, routing_key=conf.routing_key, timeout=10000)
             # через partial прокидываем в наш обработчик сам канал
