@@ -14,9 +14,9 @@ class DeepSeekParser:
     
     def __init__(
             self,
-            model: str = "deepseek-chat-v3-0324",
+            model: str = "deepseek-chat",
             api_key: str = os.getenv("DEEPSEEK_API_KEY"),
-            base_url: str = "https://api.aitunnel.ru/v1/"
+            base_url: str = "https://api.deepseek.com"
         ):
         
         if not api_key:

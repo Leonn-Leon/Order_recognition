@@ -12,39 +12,7 @@ from order_recognition.utils.data_text_processing import Data_text_processing
 from thread import Thread
 from order_recognition.core.deepseek_parser import DeepSeekParser
 from order_recognition.core.worker import process_one_task, init_worker
-
-
-def normalize_rmq_url(url: str | None) -> str:
-    """Normalize RMQ URL to a valid AMQP URI for aio-pika.
-
-    Accepts forms like:
-    - "localhost:5672"
-    - "user:pass@host:port"
-    - placeholders like "Test"/"RMQ_AI_URL" (fallback to localhost)
-    - already valid "amqp://user:pass@host:port/%2F"
-    """
-    if not url:
-        return "amqp://guest:guest@localhost:5672/%2F"
-    u = str(url).strip()
-    low = u.lower()
-    if low in ("test", "rmq_ai_url"):
-        return "amqp://guest:guest@localhost:5672/%2F"
-    if "://" not in u:
-        # No scheme provided
-        if "@" in u:
-            creds, hostport = u.split("@", 1)
-            if ":" not in creds:
-                creds = f"{creds}:guest"
-            if ":" not in hostport:
-                hostport = f"{hostport}:5672"
-            return f"amqp://{creds}@{hostport}/%2F"
-        # e.g. "localhost:5672" or just "localhost"
-        if ":" in u:
-            host, port = u.split(":", 1)
-        else:
-            host, port = u, "5672"
-        return f"amqp://guest:guest@{host}:{port}/%2F"
-    return u
+from aiormq.exceptions import AMQPConnectionError
 
 
 class Order_recognition():
@@ -217,9 +185,9 @@ class Order_recognition():
         подписываемся на неё и ждем сообщений.
         
         """
-        connection = await aio_pika.connect_robust(
-            normalize_rmq_url(conf.connection_url)
-        )
+        amqp_url = conf.connection_url
+        logger.write_logs(f"RMQ: connecting to {amqp_url}", 1)
+        connection = await aio_pika.connect_robust(amqp_url)
 
 
         async with connection:
