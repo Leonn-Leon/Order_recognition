@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 import re
 from order_recognition.core.param_mapper import PARAM_MAP
+from order_recognition.utils import logger
 
 load_dotenv()
 
@@ -13,9 +14,9 @@ class DeepSeekParser:
     
     def __init__(
             self,
-            model: str = "deepseek-chat-v3-0324",
+            model: str = "deepseek-chat",
             api_key: str = os.getenv("DEEPSEEK_API_KEY"),
-            base_url: str = "https://api.aitunnel.ru/v1/"
+            base_url: str = "https://api.deepseek.com"
         ):
         
         if not api_key:
@@ -278,12 +279,17 @@ class DeepSeekParser:
     
     
     def _call_deepseek_api(self, prompt: str) -> str:
-
-        chat_result = self.llm.chat.completions.create(
-            model= self.model,
-            temperature=0, 
-            messages= [{"role": "user", "content": prompt}],
-        )
-        content = chat_result.choices[0].message.content
-        return content.strip()
+        try:
+            chat_result = self.llm.chat.completions.create(
+                model=self.model,
+                temperature=0,
+                messages=[{"role": "user", "content": prompt}],
+                timeout=60.0,
+            )
+            content = chat_result.choices[0].message.content
+            return content.strip()
+        except Exception as exc:
+            logger.write_logs(f"DeepSeek API error: {exc}", event=0)
+            print(f"--- DeepSeek API error: {exc}")
+            return ""
 

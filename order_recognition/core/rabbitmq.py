@@ -1,55 +1,18 @@
-import xml.etree.ElementTree as ET
-import re
 import os
 import asyncio
 import aio_pika
-import base64
+import pandas as pd
 import json
-import time
 from order_recognition.core.distance import Find_materials
 from functools import partial
 from order_recognition.core.hash2text import text_from_hash
 from order_recognition.confs import config as conf
 from order_recognition.utils import logger
-from order_recognition.core.yandexgpt import custom_yandex_gpt
 from order_recognition.utils.data_text_processing import Data_text_processing
 from thread import Thread
 from order_recognition.core.deepseek_parser import DeepSeekParser
-from order_recognition.utils.split_by_keys import Key_words
 from order_recognition.core.worker import process_one_task, init_worker
-
-
-def normalize_rmq_url(url: str | None) -> str:
-    """Normalize RMQ URL to a valid AMQP URI for aio-pika.
-
-    Accepts forms like:
-    - "localhost:5672"
-    - "user:pass@host:port"
-    - placeholders like "Test"/"RMQ_AI_URL" (fallback to localhost)
-    - already valid "amqp://user:pass@host:port/%2F"
-    """
-    if not url:
-        return "amqp://guest:guest@localhost:5672/%2F"
-    u = str(url).strip()
-    low = u.lower()
-    if low in ("test", "rmq_ai_url"):
-        return "amqp://guest:guest@localhost:5672/%2F"
-    if "://" not in u:
-        # No scheme provided
-        if "@" in u:
-            creds, hostport = u.split("@", 1)
-            if ":" not in creds:
-                creds = f"{creds}:guest"
-            if ":" not in hostport:
-                hostport = f"{hostport}:5672"
-            return f"amqp://{creds}@{hostport}/%2F"
-        # e.g. "localhost:5672" or just "localhost"
-        if ":" in u:
-            host, port = u.split(":", 1)
-        else:
-            host, port = u, "5672"
-        return f"amqp://guest:guest@{host}:{port}/%2F"
-    return u
+from aiormq.exceptions import AMQPConnectionError
 
 
 class Order_recognition():
@@ -61,186 +24,65 @@ class Order_recognition():
         self.find_mats = Find_materials()
         self.parser = DeepSeekParser()
 
-
-    def consumer_test(self, hash:str=None, content:str=None):
-        if content is None:
-            content = text_from_hash(hash)
-        print('Text - ', content.split('\n'), flush=True)
-        # self.test_analize_email(content)
-
-        start_time = time.time()
-        
-        my_thread = Thread(target=self.test_analize_email, args=[content])
-        my_thread.start()
-        
-        my_thread.join()
-        elapsed_time = time.time() - start_time
-        print(f"Время обработки письма: {elapsed_time:.2f} секунд")
-
-    def test_analize_email(self, content):
-        filtered_text = self.parser.filter_material_positions(content)
-        structured_positions = self.parser.parse_order_text(filtered_text)
-        
-        if not structured_positions:
-            print("Не удалось распознать позиции.")
-            return
-
-        print('Распознанные структурированные позиции -', structured_positions)
-        
-        # Шаг 2: Обрабатываем каждую позицию через worker
-        results_list = []
-        for task in structured_positions:
-            result_for_task = process_one_task(task)
-            results_list.append(result_for_task)
-
-        # Шаг 3: Формируем и выводим итоговый JSON
-        results = json.dumps({"positions": results_list}, ensure_ascii=False, indent=4)
-        logger.write_logs('results - ' + results, 1)
-        print('results = ', results)
-        # self.send_result(results)
-
-    def save_truth_test(self, content):
-        if 'true_value' not in str(content):
-            return
-        logger.write_logs('Получилось взять ответы МЕТОД 2', 1)
-        print('Получилось взять ответы МЕТОД 2', flush=True)
-        body = json.loads(content)
-        print("METHOD 2 - ", body, flush=True)
-        logger.write_logs('METHOD 2 - ' + str(body), 1)
-        req_Number = body['req_number']
-        if req_Number in self.find_mats.saves.index:
-            positions = json.loads(self.find_mats.saves.loc[req_Number]['positions'].replace("'", '"'))['positions']
-            true_positions = body['positions']
-            for ind, pos in enumerate(true_positions):
-                if int(pos['true_material']) == int(positions[int(pos['position_id'])]['material1_id']):
-                    continue
-                request_text = positions[int(pos['position_id'])]['request_text']
-                val_ei = positions[int(pos['position_id'])]['value']
-                ei = positions[int(pos['position_id'])]['ei']
-                request_text, _, _ = self.dp.new_mat_prep(request_text, val_ei, ei)
-                request_text = request_text.strip()
-                try:
-                    true_mat = self.find_mats.all_materials[self.find_mats.all_materials['Материал']. \
-                        str.contains(str(int(pos['true_material'])))]['Полное наименование материала'].values[0]
-                    true_first = self.find_mats.all_materials[self.find_mats.all_materials['Материал']
-                                                              == (str(int(pos['true_material'])))][
-                        'Название иерархии-1'].values[0]
-                    true_zero = self.find_mats.all_materials[self.find_mats.all_materials['Материал']
-                                                              == (str(int(pos['true_material'])))][
-                        'Название иерархии-0'].values[0]
-                    # true_mat = str(int(pos['true_material']))
-
-                except Exception as exc:
-                    logger.write_logs('Не нашёл такого материала ' + str(pos['true_material']) + ' ' + str(exc), event=0)
-                    continue
-                try:
-                    print(self.find_mats.all_materials[self.find_mats.all_materials['Материал']
-                                                       == (str(int(pos['true_material'])))])
-                    print('Отправляем обучать !', flush=True)
-                    logger.write_logs('Отправляем обучать ! ' + request_text + '|' + true_first)
-                    self.find_mats.models.fit(request_text, true_first, true_zero, 0, 1)
-                except Exception as exc:
-                    logger.write_logs('Не смог обучить модельки для ' + str(pos['true_material']) + ' ' + str(exc),
-                                    event=0)
-                    continue
-
-                if 'spec_mat' in pos.keys():
-                    this_client_only = True if pos['spec_mat'] == 'X' else False
-                else:
-                    this_client_only = False
-                res = str({'num_mat': str(int(pos['true_material'])),
-                           'name_mat': true_mat,
-                           'true_ei': pos['true_ei'],
-                           'true_value': pos['true_value'],
-                           'spec_mat': str(this_client_only)})
-                res = base64.b64encode(bytes(res, 'utf-8'))
-                # self.find_mats.method2.loc[request_text] = res.decode('utf-8')
-                # print(self.find_mats.method2.index)
-                self.find_mats.method2.loc[len(self.find_mats.method2.index)] = [request_text, res.decode('utf-8')]
-            self.find_mats.method2.to_csv('order_recognition/data/method2.csv', index=False)
-        else:
-            logger.write_logs('Не нашёл такого письма', event=0)
-            print('Не нашёл такого письма', flush=True)
-        print("Метод 2 всё", flush=True)
-
     async def save_truth(self,
             msg: aio_pika.IncomingMessage):
         # используем контекстный менеджер для ack'а сообщения
         async with msg.process():
-            content = msg.body
-            if 'true_value' not in str(content):
+            body_raw = msg.body
+            try:
+                body = json.loads(body_raw)
+            except Exception as exc:
+                logger.write_logs(f"save_truth: bad body json: {exc}", 0)
                 return
-            logger.write_logs('Получилось взять ответы МЕТОД 2', 1)
-            print('Получилось взять ответы МЕТОД 2', flush=True)
-            body = json.loads(content)
-            print("METHOD 2 - ", body, flush=True)
-            logger.write_logs('METHOD 2 - ' + str(body), 1)
-            req_Number = body['req_number']
-            if req_Number in self.find_mats.saves.index:
-                positions = json.loads(self.find_mats.saves.loc[req_Number]['positions'].replace("'", '"'))['positions']
-                true_positions = body['positions']
-                for ind, pos in enumerate(true_positions):
-                    if int(pos['true_material']) == int(positions[int(pos['position_id'])]['material1_id']):
-                        continue
 
-                    request_text = positions[int(pos['position_id'])]['request_text']
-                    val_ei = positions[int(pos['position_id'])]['value']
-                    ei = positions[int(pos['position_id'])]['ei']
-                    request_text, _, _ = self.dp.new_mat_prep(request_text, val_ei, ei)
-                    request_text = request_text.strip()
-                    try:
-                        fit_zero, fit_first = True, True
-                        true_mat = self.find_mats.all_materials[self.find_mats.all_materials['Материал']. \
-                            str.contains(str(int(pos['true_material'])))]['Полное наименование материала'].values[0]
-                        true_first = self.find_mats.all_materials[self.find_mats.all_materials['Материал']
-                                                                  == (str(int(pos['true_material'])))][
-                            'Название иерархии-1'].values[0]
-                        true_zero = self.find_mats.all_materials[self.find_mats.all_materials['Материал']
-                                                                 == (str(int(pos['true_material'])))][
-                            'Название иерархии-0'].values[0]
-                        if self.find_mats.all_materials[self.find_mats.all_materials['Материал']
-                                                == (str(int(positions[int(pos['position_id'])]['material1_id'])))][
-                            'Название иерархии-0'].values[0] == true_zero:
-                            fit_zero = False
-                        if self.find_mats.all_materials[self.find_mats.all_materials['Материал']
-                                                == (str(int(positions[int(pos['position_id'])]['material1_id'])))][
-                            'Название иерархии-1'].values[0] == true_first:
-                            fit_first = False
-                        # true_mat = str(int(pos['true_material']))
+            req_number = body.get('req_number') or body.get('req_Number')
+            true_positions = body.get('positions', [])
+            if not true_positions:
+                logger.write_logs('save_truth: empty positions', 0)
+                return
 
-                    except Exception as exc:
-                        logger.write_logs('Не нашёл такого материала ' + str(pos['true_material']) + ' ' + str(exc),
-                                        event=0)
-                        continue
-                    try:
-                        print(self.find_mats.all_materials[self.find_mats.all_materials['Материал']
-                                                           == (str(int(pos['true_material'])))])
-                        print('Отправляем обучать !', flush=True)
-                        logger.write_logs('Отправляем обучать ! ' + request_text + '|' + true_first)
-                        self.find_mats.models.fit(request_text, true_first, true_zero, fit_zero, fit_first)
-                    except Exception as exc:
-                        logger.write_logs('Не смог обучить модельки для ' + str(pos['true_material']) + ' ' + str(exc),
-                                        event=0)
-                        continue
+            # Подготовим карту Материал -> Наименование
+            mat_name_map = {}
+            try:
+                materials_df = self.find_mats.all_materials
+                if not materials_df.empty:
+                    mat_series = materials_df[['Материал', 'Полное наименование материала']].dropna()
+                    mat_series['Материал'] = mat_series['Материал'].astype(str)
+                    mat_name_map = dict(zip(mat_series['Материал'], mat_series['Полное наименование материала']))
+            except Exception as exc:
+                logger.write_logs(f'save_truth: cannot build material map: {exc}', 0)
 
-                    if 'spec_mat' in pos.keys():
-                        this_client_only = True if pos['spec_mat'] == 'X' else False
-                    else:
-                        this_client_only = False
-                    res = str({'num_mat': str(int(pos['true_material'])),
-                               'name_mat': true_mat,
-                               'true_ei': pos['true_ei'],
-                               'true_value': pos['true_value'],
-                               'spec_mat': str(this_client_only)})
-                    res = base64.b64encode(bytes(res, 'utf-8'))
-                    # self.find_mats.method2.loc[request_text] = res.decode('utf-8')
-                    # print(self.find_mats.method2.index)
-                    self.find_mats.method2.loc[len(self.find_mats.method2.index)] = [request_text, res.decode('utf-8')]
-                self.find_mats.method2.to_csv('order_recognition/data/method2.csv', index=False)
-            else:
-                logger.write_logs('Не нашёл такого письма', event=0)
-                print('Не нашёл такого письма', flush=True)
-            print("Метод 2 всё", flush=True)
+            rows = []
+            for pos in true_positions:
+                try:
+                    material_id = str(int(pos.get('true_material')))
+                except Exception:
+                    material_id = str(pos.get('true_material')) if pos.get('true_material') is not None else ''
+
+                material_name = mat_name_map.get(material_id, '')
+                rows.append({
+                    'req_number': req_number or '',
+                    'position_id': pos.get('position_id', ''),
+                    'true_material': material_id,
+                    'true_material_name': material_name,
+                    'true_ei': pos.get('true_ei', ''),
+                    'true_value': pos.get('true_value', ''),
+                    'spec_mat': pos.get('spec_mat', ''),
+                })
+
+            out_path = 'order_recognition/data/method2.csv'
+            try:
+                os.makedirs(os.path.dirname(out_path), exist_ok=True)
+                new_df = pd.DataFrame(rows)
+                if os.path.exists(out_path):
+                    old_df = pd.read_csv(out_path, dtype=str)
+                    out_df = pd.concat([old_df, new_df], ignore_index=True)
+                else:
+                    out_df = new_df
+                out_df.to_csv(out_path, index=False, encoding='utf-8')
+                logger.write_logs(f'save_truth: saved {len(rows)} rows to method2.csv', 1)
+            except Exception as exc:
+                logger.write_logs(f'save_truth: cannot write CSV: {exc}', 0)
 
     def start_analize_email(self, content, msg, channel):
         """
@@ -252,10 +94,24 @@ class Order_recognition():
             channel (_type_): 
         """
         print('Начало потока!', flush=True)
+        logger.write_logs('start_analize_email: begin')
 
         # Шаг 1: Парсим сырой текст в структурированные позиции
-        filtered_text = self.parser.filter_material_positions(content)
-        structured_positions = self.parser.parse_order_text(filtered_text)
+        try:
+            filtered_text = self.parser.filter_material_positions(content)
+            logger.write_logs('start_analize_email: after filter')
+        except Exception as exc:
+            logger.write_logs(f'start_analize_email: filter error {exc}', 0)
+            print('Ошибка фильтрации:', exc, flush=True)
+            return
+
+        try:
+            structured_positions = self.parser.parse_order_text(filtered_text)
+            logger.write_logs('start_analize_email: after parse')
+        except Exception as exc:
+            logger.write_logs(f'start_analize_email: parse error {exc}', 0)
+            print('Ошибка парсинга:', exc, flush=True)
+            return
 
         if not structured_positions:
             print("Не удалось распознать позиции. Поток завершен.")
@@ -267,7 +123,12 @@ class Order_recognition():
         # Шаг 2: Обрабатываем каждую позицию через worker
         results_list = []
         for task in structured_positions:
-            result_for_task = process_one_task(task)
+            try:
+                result_for_task = process_one_task(task)
+            except Exception as exc:
+                logger.write_logs(f'start_analize_email: process_one_task error {exc}', 0)
+                print('Ошибка обработчика задачи:', exc, flush=True)
+                result_for_task = {'request_text': task.get('original_query',''), 'error': str(exc)}
             results_list.append(result_for_task)
 
         # Шаг 3: Формируем и отправляем итоговый JSON
@@ -317,26 +178,6 @@ class Order_recognition():
             content = text_from_hash(body['email'])
             my_thread = Thread(target=self.start_analize_email, args=[content, msg, channel])
             my_thread.start()
-            # my_thread.join()
-
-    def get_message(self, body):
-        """
-        Получаем письмо из очереди и возвращаем его в виде строки
-        """
-        body = json.loads(body)
-        print(body)
-
-        try:
-            content = base64.standard_b64decode(base64.standard_b64decode(body['email']))\
-                .decode('utf-8')
-            root = ET.fromstring(content)
-            content = root[0][0][2].text
-            content = re.sub(r'\<.*?\>', '', content).replace('&nbsp;', '')
-        except Exception as exc:
-            logger.write_logs('Письмо не читается,'+str(exc), 0)
-            print('Error, письмо не читается,', exc)
-            return 'Error while reading'
-        return content
 
     async def main(self):
         """
@@ -344,9 +185,9 @@ class Order_recognition():
         подписываемся на неё и ждем сообщений.
         
         """
-        connection = await aio_pika.connect_robust(
-            normalize_rmq_url(conf.connection_url)
-        )
+        amqp_url = conf.connection_url
+        logger.write_logs(f"RMQ: connecting to {amqp_url}", 1)
+        connection = await aio_pika.connect_robust(amqp_url)
 
 
         async with connection:
@@ -358,7 +199,6 @@ class Order_recognition():
             # через partial прокидываем в наш обработчик сам канал
             await queue.consume(partial(self.consumer, channel=channel), timeout=60000)
             print('Слушаем очередь', flush=True)
-
 
             queue2 = await channel.declare_queue(conf.second_queue, timeout=10000)
             await queue2.bind(exchange=conf.exchange, routing_key=conf.routing_key2, timeout=10000)
@@ -379,21 +219,10 @@ class Order_recognition():
         asyncio.run(self.main())
 
 if __name__ == '__main__':
-    # os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'templates'))
-    Key_words()
     order_rec = Order_recognition()
     print("--- [WORKER] Инициализация данных... ---")
     init_worker(
        csv_path='order_recognition/data/mats_with_features.csv', 
        csv_encoding='utf-8'
     )
-    print("RMQ_AI_URL:", conf.connection_url[:4])
-    if conf.connection_url.lower() == "test" or conf.connection_url.lower() == "rmq_ai_url":
-        # order_rec.save_truth_test('{"req_number": "0f604ddf-8e06-4ed1-9406-6ca769962250", "mail_code": "0061540478", "user": "SHARIPOVDI", "positions": [{"position_id": "0", "true_material": "000000000000005832", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "1", "true_material": "000000000000007927", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "2", "true_material": "000000000000007903", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "3", "true_material": "000000000000005793", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "4", "true_material": "000000000000005797", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "5", "true_material": "000000000000088877", "true_ei": "", "true_value": "12.000", "spec_mat": ""}, {"position_id": "6", "true_material": "000000000000069270", "true_ei": "", "true_value": "6.000", "spec_mat": ""}, {"position_id": "7", "true_material": "000000000000008362", "true_ei": "М", "true_value": "12.000", "spec_mat": ""}]}')
-        hash = ""
-        # while True:    
-        # order_rec.consumer_test(hash=hash) # Выполняется паралельно но поставил заглушку
-        order_rec.consumer_test(content="швеллер 10п")
-        #     hash = input("Введи hash:\n")
-    else:
-        order_rec.start()
+    order_rec.start()

@@ -1,5 +1,4 @@
 import pymorphy3
-from order_recognition.utils.split_by_keys import Key_words
 import re
 from order_recognition.utils import logger
 
@@ -30,13 +29,27 @@ class Data_text_processing:
 
             return new_mat.strip(), val_ei, ei
 
+    def _split_numbers_and_words(self, s: str) -> str:
+            s = s.lower() + ' '
+            # небольшие нормализации как в split_by_keys
+            s = s.replace(' по ', ' ')
+            if 'уголок' in s:
+                s = s.replace('гост', '')
+            s = re.sub(r'(\d)x(\d)', r'\1 \2', s)
+            s = re.sub(r'(\d)х(\d)', r'\1 \2', s)
+            s = re.sub(r'(\d)/(\d)', r'\1 \2', s)
+            s = re.sub(r'(\d+),(\d+)', r'\1.\2', s)
+            s = re.sub(r'(ст)\s+(\d+)', r'\1\2', s)
+            s = re.sub(r'[^\w\s.]', ' ', s)
+            s = s.replace(' м п ', 'мп').replace('/', '')
+            s = s.replace('бш', 'б ш').replace('гк', 'г к')
+            return s
+
     def new_mat_prep(self, new_mat:str, val_ei:str=None, ei:str=None):
             morph = pymorphy3.MorphAnalyzer()
 
-            kw = Key_words()
-
             new_mat = ' '.join(new_mat.split())
-            new_mat = kw.split_numbers_and_words(new_mat)
+            new_mat = self._split_numbers_and_words(new_mat)
 
             new_mat += ' '
             new_lines = ''
@@ -115,9 +128,6 @@ class Data_text_processing:
             line = re.sub(r'\s*[—-]{2,}\s*', ' ', line)  # Дефисы и тире
             line = re.sub(r'\s{2,}', ' ', line)          # Множественные пробелы
             line = re.sub(r'\u200b', '', line)           # Невидимые символы
-            
-            # Сохраняем только важные символы
-            # line = re.sub(r'[^\w\s\d.,×xх/\-()]', '', line, flags=re.IGNORECASE)
             cleaned_text.append(line)
 
         return '\n'.join([line for line in cleaned_text if line])

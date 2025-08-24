@@ -12,20 +12,33 @@ services:
       timeout: 30s
       retries: 3
 
-
   agent:
-    build: . # Собираем из текущей папки по Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: order-agent
-    ports:
-      - "8501:8501"
     env_file:
       - .env
     environment:
-      # Передаем переменные, которые прочитают и app.py, и rabbitmq.py
-      - RMQ_AI_URL=amqp://guest:guest@rabbitmq:5672/%2F
-      - RPC_QUEUE_NAME=get_message
-      - RMQ_EXCHANGE_NAME=ai
-      - ROUTING_KEY_1=orderrecognition.find_request
+      - RMQ_AI_URL=${RMQ_AI_URL}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
     restart: unless-stopped
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: order-client
+    ports:
+      - "8585:8585"
+    env_file:
+      - .env
+    environment:
+      - RMQ_AI_URL=${RMQ_AI_URL}
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
